@@ -1,0 +1,370 @@
+# dknet/utils/losses.py
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import warnings
+from typing import Any, Dict, Optional, Tuple
+
+
+def _ensure_numeric(value: Any, default: float, name: str) -> float:
+    """
+    Safely convert value to float; fallback to default with warning on failure.
+    """
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            warnings.warn(
+                f"Invalid {name} value '{value}', using default {default}"
+            )
+            return default
+    if isinstance(value, (int, float)):
+        return float(value)
+    warnings.warn(
+        f"Unexpected {name} type {type(value)}, using default {default}"
+    )
+
+    return default
+
+
+#==============================================================#
+#                        Angle Distance                        #
+#==============================================================#
+class CosineDistance(nn.Module):
+    """
+    Cosine Similarity based Distance
+    Distance = 1 - cosine_similarity(pred, target)
+    """
+    def __init__(self, epsilon: float = 1e-8, reduction: str = 'mean') -> None:
+        super().__init__()
+        # Make sure epsilon is a numeric value
+        self.epsilon = _ensure_numeric(epsilon, default=1e-8, name="epsilon")
+        self.reduction = reduction
+    
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            pred:  [batch_size, 3]
+            target:  [batch_size, 3]
+        """
+        # Angle distances care about direction only, not magnitude.
+        # L2-normalizing removes magnitude influence on gradients.
+        # Cosine similarity is defined on unit vectors.
+        pred_norm = F.normalize(pred, p=2, dim=1, eps=self.epsilon)
+        target_norm = F.normalize(target, p=2, dim=1, eps=self.epsilon)
+        cos_sim = (pred_norm * target_norm).sum(dim=1)
+        cos_distance = 1.0 - cos_sim
+        
+        if self.reduction == 'mean':
+            return cos_distance.mean()
+        elif self.reduction == 'sum':
+            return cos_distance.sum()
+        elif self.reduction == 'none':
+            # Return per-sample distances [batch_size]
+            return cos_distance
+        else:
+            raise ValueError(f"Unsupported reduction: {self.reduction}")
+
+
+class SineDistance(nn.Module):
+    """
+    Sine Similarity based Distance
+    Distance = sin(theta) = sqrt(1 - cos^2(theta))
+    theta = angle between pred and target
+    """
+    def __init__(self, epsilon: float = 1e-8, reduction: str = 'mean') -> None:
+        super().__init__()
+        self.epsilon = _ensure_numeric(epsilon, default=1e-8, name="epsilon")
+        self.reduction = reduction
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        pred_norm = F.normalize(pred, p=2, dim=1, eps=self.epsilon)
+        target_norm = F.normalize(target, p=2, dim=1, eps=self.epsilon)
+        cos_sim = (pred_norm * target_norm).sum(dim=1)
+        cos_sim = torch.clamp(cos_sim, -1.0 + self.epsilon, 1.0 - self.epsilon)
+        sin_sq = torch.clamp(1.0 - cos_sim.pow(2), min=0.0)
+        sin_distance = torch.sqrt(sin_sq + self.epsilon)
+
+        if self.reduction == 'mean':
+            return sin_distance.mean()
+        elif self.reduction == 'sum':
+            return sin_distance.sum()
+        elif self.reduction == 'none':
+            return sin_distance
+        else:
+            raise ValueError(f"Unsupported reduction: {self.reduction}")
+
+
+class SquaredCosineDistance(nn.Module):
+    """
+    Squared Cosine Similarity based Distance
+    Distance = (1 - cosine_similarity(pred, target))^2
+    """
+    def __init__(self, epsilon: float = 1e-8, reduction: str = 'mean') -> None:
+        super().__init__()
+        self.epsilon = _ensure_numeric(epsilon, default=1e-8, name="epsilon")
+        self.reduction = reduction
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        pred_norm = F.normalize(pred, p=2, dim=1, eps=self.epsilon)
+        target_norm = F.normalize(target, p=2, dim=1, eps=self.epsilon)
+        cos_sim = (pred_norm * target_norm).sum(dim=1)
+        cos_sim = torch.clamp(cos_sim, -1.0 + self.epsilon, 1.0 - self.epsilon)
+        cos_distance = 1.0 - cos_sim
+        squared_distance = cos_distance.pow(2)
+
+        if self.reduction == 'mean':
+            return squared_distance.mean()
+        elif self.reduction == 'sum':
+            return squared_distance.sum()
+        elif self.reduction == 'none':
+            return squared_distance
+        else:
+            raise ValueError(f"Unsupported reduction: {self.reduction}")
+
+
+#==============================================================#
+#                         Loss Factory                         #
+#==============================================================#
+class ForceLoss:
+    """Factory for loss functions."""
+    
+    @staticmethod
+    def get_loss(loss_type: str = 'COMBINED', **kwargs: Any) -> nn.Module:
+        """
+        Return the configured loss function with filtered parameters.
+        
+        Args:
+            loss_type (str): Supported types:
+                - 'MSE': standard MSE on 3D force vectors
+                - 'COMBINED': magnitude + angle composite loss
+            **kwargs: Additional loss parameters
+        """
+        loss_key = str(loss_type)
+
+        if loss_key == 'MSE':
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k in ['reduction']}
+            return nn.MSELoss(**filtered_kwargs)
+
+        if loss_key == 'COMBINED':
+            return MagnitudeAngleLoss(**kwargs)
+
+        raise ValueError(
+            f"Unsupported loss type: {loss_type}. Use 'MSE' or 'COMBINED'."
+        )
+
+
+# Magnitude distance can be MSE, MAE, Huber, SmoothL1
+# Not need to define separate classes for them 
+# since they are standard losses
+class MagnitudeAngleLoss(nn.Module):
+    """
+    Magnitude and Angle Combined Loss
+    Loss = lambda * magnitude_distance + (1-lambda) * angle_distance
+    """
+    def __init__(
+        self,
+        magnitude_distance: str = 'mse',
+        angle_distance: str = 'cosine',
+        lambda_magnitude: float = 0.2,
+        normalize_losses: bool = True,
+        epsilon: float = 1e-8,
+        reduction: str = 'mean',
+        magnitude_kwargs: Optional[Dict[str, Any]] = None,
+        angle_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Args:
+            magnitude_distance: Magnitude distance type ('mse', 'mae',
+                'huber', 'smooth_l1')
+            angle_distance: Angle distance type ('cosine', 'sine',
+                'cosine_squared')
+            lambda_magnitude: Magnitude weight; angle weight is
+                (1 - lambda_magnitude)
+            normalize_losses: Normalize magnitude/angle scales
+            epsilon: Numerical stability constant
+            reduction: Reduction mode ('mean', 'sum', 'none')
+            magnitude_kwargs: Extra params for magnitude distance
+            angle_kwargs: Extra params for angle distance
+        """
+        super().__init__()
+        self.magnitude_distance = str(magnitude_distance).lower()
+        self.angle_distance = str(angle_distance).lower()
+        # Ensure numeric parameters are valid
+        self.lambda_magnitude = _ensure_numeric(
+            lambda_magnitude, 0.2, "lambda_magnitude"
+        )
+        self.lambda_angle = 1.0 - self.lambda_magnitude
+        self.normalize_losses = bool(normalize_losses)
+        self.epsilon = _ensure_numeric(epsilon, 1e-8, "epsilon")
+        self.reduction = reduction
+        
+        if not isinstance(magnitude_kwargs, dict):
+            magnitude_kwargs = {}
+        if not isinstance(angle_kwargs, dict):
+            angle_kwargs = {}
+        
+        self.magnitude_kwargs = magnitude_kwargs
+        self.angle_kwargs = angle_kwargs
+        
+        self.angle_loss_fn = self._build_angle_loss_fn(
+            self.angle_distance, self.angle_kwargs
+        )
+        
+        # Track EMA stats for optional normalization
+        if self.normalize_losses:
+            self.register_buffer('magnitude_loss_ema', torch.tensor(1.0))
+            self.register_buffer('angle_loss_ema', torch.tensor(1.0))
+            self.ema_momentum = 0.99
+    
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            pred: Predicted force vectors [batch_size, 3]
+            target: Target force vectors [batch_size, 3]
+        """
+        # Per-sample losses shape: [batch_size]
+        magnitude_loss = self._compute_magnitude_distance(pred, target)
+        angle_loss = self.angle_loss_fn(pred, target)
+        
+        # Optionally normalize losses
+        if self.normalize_losses:
+            # Update EMA statistics during training
+            if self.training:
+                current_mag_loss = magnitude_loss.mean().detach()
+                current_ang_loss = angle_loss.mean().detach()
+                
+                self.magnitude_loss_ema = (
+                    self.ema_momentum * self.magnitude_loss_ema
+                    + (1 - self.ema_momentum) * current_mag_loss
+                )
+                self.angle_loss_ema = (
+                    self.ema_momentum * self.angle_loss_ema
+                    + (1 - self.ema_momentum) * current_ang_loss
+                )
+            normalized_magnitude_loss = magnitude_loss / (
+                self.magnitude_loss_ema + self.epsilon
+            )
+            normalized_angle_loss = angle_loss / (
+                self.angle_loss_ema + self.epsilon
+            )
+            
+            combined_loss = (
+                self.lambda_magnitude * normalized_magnitude_loss
+                + self.lambda_angle * normalized_angle_loss
+            )
+        else:
+            combined_loss = (self.lambda_magnitude * magnitude_loss + 
+                           self.lambda_angle * angle_loss)
+        
+        if self.reduction == 'mean':
+            return combined_loss.mean()
+        elif self.reduction == 'sum':
+            return combined_loss.sum()
+        elif self.reduction == 'none':
+            return combined_loss
+        else:
+            raise ValueError(f"Unsupported reduction: {self.reduction}")
+    
+    def _build_angle_loss_fn(
+        self, angle_distance: str, angle_kwargs: Dict[str, Any]
+    ) -> nn.Module:
+        """
+        Build the angle distance loss module.
+        
+        Returns:
+            nn.Module: Angle distance loss instance
+        """
+        angle_key = angle_distance.lower()
+        filtered_kwargs = {
+            k: v
+            for k, v in angle_kwargs.items()
+            if k in ['epsilon', 'reduction']
+        }
+        # Ensure 'reduction' is set to 'none' for per-sample loss
+        filtered_kwargs['reduction'] = 'none'
+        
+        if angle_key == 'cosine':
+            return CosineDistance(**filtered_kwargs)
+        if angle_key == 'sine':
+            return SineDistance(**filtered_kwargs)
+        if angle_key == 'cosine_squared':
+            return SquaredCosineDistance(**filtered_kwargs)
+        
+        raise ValueError(f"Unsupported angle_distance: {angle_distance}")
+    
+    def _compute_magnitude_distance(
+        self, pred: torch.Tensor, target: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        Compute magnitude distance.
+        
+        Returns:
+            torch.Tensor: Per-sample magnitude distance [batch_size]
+        """
+        if self.magnitude_distance == 'mse':
+            pred_mag = torch.norm(pred, dim=1)
+            target_mag = torch.norm(target, dim=1)
+            # Already reduced to [B]
+            return (pred_mag - target_mag).pow(2)
+
+        if self.magnitude_distance == 'vector_mse':
+            # Per-sample vector MSE: mean squared error across x/y/z.
+            component_mse = (pred - target).pow(2)  # [B, 3]
+            return component_mse.mean(dim=1)
+        
+        if self.magnitude_distance == 'mae':
+            return torch.abs(pred - target).mean(dim=1)
+        
+        if self.magnitude_distance == 'huber':
+            delta = self.magnitude_kwargs.get('delta', 1.0)
+            huber_raw = F.huber_loss(
+                pred, target, reduction='none', delta=delta
+            )  # [B, 3]
+            return huber_raw.mean(dim=1)
+        
+        if self.magnitude_distance == 'smooth_l1':
+            beta = self.magnitude_kwargs.get('beta', 1.0)
+            smooth_raw = F.smooth_l1_loss(
+                pred, target, reduction='none', beta=beta
+            )  # [B, 3]
+            return smooth_raw.mean(dim=1)
+        
+        raise ValueError(
+            f"Unsupported magnitude_distance: {self.magnitude_distance}"
+        )
+
+    def get_component_losses(
+        self, pred: torch.Tensor, target: torch.Tensor
+    ) -> Tuple[float, float]:
+        """
+        Return magnitude and angle losses for monitoring/debugging.
+        
+        Returns:
+            tuple: (magnitude_loss, angle_loss) in raw (unnormalized) scale
+        """
+        with torch.no_grad():
+            magnitude_loss = self._compute_magnitude_distance(pred, target).mean()
+            angle_loss = self.angle_loss_fn(pred, target).mean()
+        return magnitude_loss.item(), angle_loss.item()
+    
+    def get_normalization_stats(self) -> Dict[str, float | bool]:
+        """
+        Return current normalization statistics.
+        
+        Returns:
+            dict: Normalization statistics
+        """
+        if self.normalize_losses:
+            return {
+                'magnitude_loss_ema': self.magnitude_loss_ema.item(),
+                'angle_loss_ema': self.angle_loss_ema.item(),
+                'lambda_magnitude': self.lambda_magnitude,
+                'lambda_angle': self.lambda_angle
+            }
+        else:
+            return {
+                'normalize_losses': False,
+                'lambda_magnitude': self.lambda_magnitude,
+                'lambda_angle': self.lambda_angle
+            }

@@ -1,0 +1,413 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Japanese resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)\r\n"
+    "LANGUAGE 17, 1\r\n"
+    "#pragma code_page(932)\r\n"
+    "#include ""res\\LVBasicFramework.rc2""  // Resources edited outside Microsoft Visual C++\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\LVBasicFramework.ico"
+IDR_LVBasicFrameworTYPE ICON                    "res\\LVBasicFrameworkDoc.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR 16, 15
+BEGIN
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_GEOMETRYOPEN
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU
+BEGIN
+    POPUP "File (&F)"
+    BEGIN
+        MENUITEM "Image Open (&O)",             ID_FILE_OPEN
+        MENUITEM "Geometry Open (&G)",          ID_FILE_GEOMETRYOPEN
+        MENUITEM SEPARATOR
+        MENUITEM "Quit (&X)",                   ID_APP_EXIT
+    END
+    MENUITEM "Modeling (&M)",               0
+    POPUP "Help (&H)"
+    BEGIN
+        MENUITEM "Version Information (&A)...", ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS
+BEGIN
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL, NOINVERT
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 235, 55
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Version Information - LVBasicFramework"
+FONT 9, "MS UI Gothic", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "LVBasicFramework Version 1.0",IDC_STATIC,40,10,119,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2006",IDC_STATIC,40,25,119,8
+    DEFPUSHBUTTON   "OK",IDOK,178,7,50,16,WS_GROUP
+    CONTROL         "Check1",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,0,0,38,10
+END
+
+IDD_LVBASICFRAMEWORK_FORM DIALOGEX 0, 0, 149, 520
+STYLE DS_SETFONT | WS_CHILD
+FONT 9, "MS UI Gothic", 0, 0, 0x1
+BEGIN
+    CONTROL         "Mean Model",IDC_RADIO_SDM,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,286,60,10
+    CONTROL         "Patient-specific Model",IDC_RADIO_PATIENT,"Button",BS_AUTORADIOBUTTON,71,286,75,10
+    CONTROL         "Model1",IDC_CHECK_MODEL1,"Button",BS_AUTOCHECKBOX | WS_GROUP,17,367,37,10
+    CONTROL         "Model2",IDC_CHECK_MODEL2,"Button",BS_AUTOCHECKBOX,57,367,37,10
+    CONTROL         "Model3",IDC_CHECK_MODEL3,"Button",BS_AUTOCHECKBOX,97,367,37,10
+    CONTROL         "Model4",IDC_CHECK_MODEL4,"Button",BS_AUTOCHECKBOX,17,381,37,10
+    CONTROL         "Model5",IDC_CHECK_MODEL5,"Button",BS_AUTOCHECKBOX,57,381,37,10
+    CONTROL         "Model6",IDC_CHECK_MODEL6,"Button",BS_AUTOCHECKBOX,97,381,37,10
+    CONTROL         "Node",IDC_CHECK_NODE,"Button",BS_AUTOCHECKBOX | WS_GROUP,12,123,28,10
+    CONTROL         "Line",IDC_CHECK_LINE,"Button",BS_AUTOCHECKBOX,42,123,22,10
+    CONTROL         "Surface",IDC_CHECK_SURFACE,"Button",BS_AUTOCHECKBOX,67,123,32,10
+    CONTROL         "Colormap",IDC_CHECK_POINT,"Button",BS_AUTOCHECKBOX,101,123,39,10
+    GROUPBOX        "Statistical Model (PCA)",IDC_STATIC,7,269,136,88
+    EDITTEXT        IDC_EDIT_FPS,102,102,36,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    LTEXT           "Iteration",IDC_STATIC,75,105,26,11,NOT WS_GROUP
+    GROUPBOX        "Registration",IDC_STATIC,7,164,136,97
+    EDITTEXT        IDC_EDIT_MEAN,75,209,33,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_E,55,176,53,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    LTEXT           "Metric E",IDC_STATIC,20,180,40,11,NOT WS_GROUP
+    LTEXT           "Mean Shape Distance",IDC_STATIC,20,213,70,12,NOT WS_GROUP
+    LTEXT           "[mm]",IDC_STATIC,110,213,18,11,NOT WS_GROUP
+    LTEXT           "Hausdorff Distance",IDC_STATIC,20,229,70,10,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_MAX,75,225,33,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    LTEXT           "[mm]",IDC_STATIC,110,229,18,11,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_NODE,34,83,36,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_TETRA,34,102,36,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_TRIANGLE,102,83,36,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    LTEXT           "Node",IDC_STATIC,12,86,18,11,NOT WS_GROUP
+    LTEXT           "Tetra",IDC_STATIC,12,104,18,11,NOT WS_GROUP
+    LTEXT           "Surface",IDC_STATIC,75,86,25,11,NOT WS_GROUP
+    LTEXT           "Phase",IDC_STATIC,100,25,19,11,NOT WS_GROUP
+    LTEXT           "Model",IDC_STATIC,16,25,18,11,NOT WS_GROUP
+    LTEXT           "Case",IDC_STATIC,58,25,16,11,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_MODEL,35,22,16,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_CASE,76,22,15,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_TIME,121,22,15,14,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
+    GROUPBOX        "Mesh",IDC_STATIC,7,70,136,87
+    GROUPBOX        "Data",IDC_STATIC,7,10,136,53
+    PUSHBUTTON      ">",IDC_BUTTON_CASE,58,39,35,15,NOT WS_TABSTOP
+    PUSHBUTTON      ">",IDC_BUTTON_MODEL,16,39,35,15,NOT WS_TABSTOP
+    PUSHBUTTON      ">",IDC_BUTTON_TIME,100,39,35,15,WS_DISABLED | NOT WS_TABSTOP
+    PUSHBUTTON      "Capture",IDC_BUTTON_CAPTURE,78,336,54,15
+    LTEXT           "w1",IDC_STATIC,26,304,16,11,NOT WS_GROUP
+    PUSHBUTTON      "+",IDC_BUTTON_W1PLUS,101,300,18,15,NOT WS_TABSTOP
+    PUSHBUTTON      "-",IDC_BUTTON_W1MINUS,42,300,18,15,NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_W1,64,300,33,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    LTEXT           "w2",IDC_STATIC,26,320,16,11,NOT WS_GROUP
+    PUSHBUTTON      "-",IDC_BUTTON_W2MINUS,42,317,18,15,NOT WS_TABSTOP
+    PUSHBUTTON      "+",IDC_BUTTON_W2PLUS,101,317,18,15,NOT WS_TABSTOP
+    EDITTEXT        IDC_EDIT_W2,64,317,33,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    LTEXT           "Displacement Laplacian",IDC_STATIC,20,196,85,10,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_DLAPLACIAN,75,193,33,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    LTEXT           "Vertex Distance",IDC_STATIC,20,245,55,10,NOT WS_GROUP
+    EDITTEXT        IDC_EDIT_VDISTANCE,75,241,33,14,ES_AUTOHSCROLL | NOT WS_TABSTOP
+    LTEXT           "[mm]",IDC_STATIC,110,245,18,11,NOT WS_GROUP
+    CONTROL         "",IDC_PROGRESS_READ,"msctls_progress32",PBS_SMOOTH | WS_BORDER,7,422,136,15
+    CONTROL         "Model7",IDC_CHECK_MODEL7,"Button",BS_AUTOCHECKBOX | WS_GROUP,17,395,37,10
+    CONTROL         "Model8",IDC_CHECK_MODEL8,"Button",BS_AUTOCHECKBOX,57,395,37,10
+    CONTROL         "Model9",IDC_CHECK_MODEL9,"Button",BS_AUTOCHECKBOX,97,395,37,10
+    CONTROL         "Translucent",IDC_CHECK_TRANS,"Button",BS_AUTOCHECKBOX | WS_GROUP,12,137,47,10
+    CONTROL         "Deformation Vector",IDC_CHECK_DEFORM,"Button",BS_AUTOCHECKBOX | WS_GROUP,61,137,71,10
+END
+
+IDD_LVDIALOG DIALOGEX 0, 0, 186, 90
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,129,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,24,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041103a4"
+        BEGIN
+            VALUE "CompanyName", "TODO: <Company Name>"
+            VALUE "FileDescription", "TODO: <File Description>"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "LVBasicFramework.exe"
+            VALUE "LegalCopyright", "TODO: (C) <Company Name>. All rights reserved."
+            VALUE "OriginalFilename", "LVBasicFramework.exe"
+            VALUE "ProductName", "TODO: <Product Name>"
+            VALUE "ProductVersion", "1.0.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x411, 932
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 228
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 48
+    END
+
+    IDD_LVBASICFRAMEWORK_FORM, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 143
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 513
+    END
+
+    IDD_LVDIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 83
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDR_MAINFRAME           "LVBasicFramework\n\nLVBasicFramewor\n\n\nLVBasicFramework.Document\nLVBasicFramework.Document"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_APP_TITLE       "LVBasicFramework"
+    AFX_IDS_IDLEMESSAGE     "Ready"
+END
+
+STRINGTABLE
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_NEW             "Create a new file\nNew"
+    ID_FILE_CLOSE           "Close the active file\nClose"
+    ID_FILE_SAVE            "Save the active file\nSave"
+    ID_FILE_SAVE_AS         "Save the active file with a new name\nSave As"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_MRU_FILE1       "Open the selected file"
+    ID_FILE_MRU_FILE2       "Open the selected file"
+    ID_FILE_MRU_FILE3       "Open the selected file"
+    ID_FILE_MRU_FILE4       "Open the selected file"
+    ID_FILE_MRU_FILE5       "Open the selected file"
+    ID_FILE_MRU_FILE6       "Open the selected file"
+    ID_FILE_MRU_FILE7       "Open the selected file"
+    ID_FILE_MRU_FILE8       "Open the selected file"
+    ID_FILE_MRU_FILE9       "Open the selected file"
+    ID_FILE_MRU_FILE10      "Open the selected file"
+    ID_FILE_MRU_FILE11      "Open the selected file"
+    ID_FILE_MRU_FILE12      "Open the selected file"
+    ID_FILE_MRU_FILE13      "Open the selected file"
+    ID_FILE_MRU_FILE14      "Open the selected file"
+    ID_FILE_MRU_FILE15      "Open the selected file"
+    ID_FILE_MRU_FILE16      "Open the selected file"
+END
+
+STRINGTABLE
+BEGIN
+    ID_NEXT_PANE            "Switch to the next window\nNext Pane"
+    ID_PREV_PANE            "Switch to the previous window\nPrevious Pane"
+END
+
+STRINGTABLE
+BEGIN
+    ID_WINDOW_SPLIT         "Split the active window\nSplit"
+END
+
+STRINGTABLE
+BEGIN
+    ID_EDIT_CLEAR           "Clear the selection\nClear"
+    ID_EDIT_CLEAR_ALL       "Clear everything\nClear All"
+    ID_EDIT_COPY            "Copy the selection to the clipboard\nCopy"
+    ID_EDIT_CUT             "Cut the selection to the clipboard\nCut"
+    ID_EDIT_FIND            "Find the specified text\nFind"
+    ID_EDIT_PASTE           "Paste the clipboard contents\nPaste"
+    ID_EDIT_REPEAT          "Repeat the last action\nRepeat"
+    ID_EDIT_REPLACE         "Replace the specified text\nReplace"
+    ID_EDIT_SELECT_ALL      "Select everything in the file\nSelect All"
+    ID_EDIT_UNDO            "Undo the last action\nUndo"
+    ID_EDIT_REDO            "Redo the last undone action\nRedo"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle Toolbar"
+    ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle Status Bar"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCSIZE          "Change the window size"
+    AFX_IDS_SCMOVE          "Move the window"
+    AFX_IDS_SCMINIMIZE      "Minimize the window"
+    AFX_IDS_SCMAXIMIZE      "Maximize the window"
+    AFX_IDS_SCNEXTWINDOW    "Switch to the next window"
+    AFX_IDS_SCPREVWINDOW    "Switch to the previous window"
+    AFX_IDS_SCCLOSE         "Close the active window and prompt to save changes"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCRESTORE       "Restore the window size"
+    AFX_IDS_SCTASKLIST      "Activate the task list"
+END
+
+#endif    // Japanese resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+LANGUAGE 17, 1
+#pragma code_page(932)
+#include "res\LVBasicFramework.rc2"  // Resources edited outside Microsoft Visual C++
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
