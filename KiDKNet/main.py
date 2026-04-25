@@ -32,8 +32,9 @@ DEFAULT_CUDA_ALLOC_CONF = (
 def set_timezone(tz_name: str = "JST-9") -> None:
     """Set process timezone so log timestamps follow JST (UTC+9)."""
     os.environ["TZ"] = tz_name
-    if hasattr(time, "tzset"):
-        time.tzset()
+    tzset = getattr(time, "tzset", None)
+    if callable(tzset):
+        tzset()
 
 def setup_logging() -> None:
     """Set up logging configuration"""
