@@ -8,11 +8,6 @@
 
 namespace mvrmesh {
 
-std::pair<std::vector<Vec3>, std::vector<Tet>> subdivide_tetrahedra(
-    const std::vector<Vec3>& vertices,
-    const std::vector<Tet>& tets
-);
-
 std::vector<double> estimate_vertex_curvature(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces
@@ -38,4 +33,3 @@ std::pair<std::vector<Vec3>, std::vector<Face>> adaptive_remesh(
 );
 
 }  // namespace mvrmesh
-

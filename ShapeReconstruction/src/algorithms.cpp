@@ -59,41 +59,6 @@ int py_round_nonnegative_to_int(double value) {
 
 }  // namespace
 
-std::pair<std::vector<Vec3>, std::vector<Tet>> subdivide_tetrahedra(
-    const std::vector<Vec3>& vertices,
-    const std::vector<Tet>& tets
-) {
-    std::vector<Vec3> out_vertices = vertices;
-    std::map<Edge, int> edge_mid_cache;
-    std::vector<Tet> out_tets;
-    out_tets.reserve(tets.size() * 8U);
-
-    for (const Tet& tet : tets) {
-        const int a = tet[0];
-        const int b = tet[1];
-        const int c = tet[2];
-        const int d = tet[3];
-
-        const int ab = midpoint_index(out_vertices, edge_mid_cache, a, b);
-        const int ac = midpoint_index(out_vertices, edge_mid_cache, a, c);
-        const int ad = midpoint_index(out_vertices, edge_mid_cache, a, d);
-        const int bc = midpoint_index(out_vertices, edge_mid_cache, b, c);
-        const int bd = midpoint_index(out_vertices, edge_mid_cache, b, d);
-        const int cd = midpoint_index(out_vertices, edge_mid_cache, c, d);
-
-        out_tets.push_back(Tet{a, ab, ac, ad});
-        out_tets.push_back(Tet{b, ab, bc, bd});
-        out_tets.push_back(Tet{c, ac, bc, cd});
-        out_tets.push_back(Tet{d, ad, bd, cd});
-        out_tets.push_back(Tet{ab, ac, ad, cd});
-        out_tets.push_back(Tet{ab, ac, bc, cd});
-        out_tets.push_back(Tet{ab, ad, bd, cd});
-        out_tets.push_back(Tet{ab, bc, bd, cd});
-    }
-
-    return std::make_pair(std::move(out_vertices), std::move(out_tets));
-}
-
 std::vector<double> estimate_vertex_curvature(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
     std::map<int, std::vector<int>> incident;
     std::vector<Vec3> face_normals;
@@ -285,4 +250,3 @@ std::pair<std::vector<Vec3>, std::vector<Face>> adaptive_remesh(
 }
 
 }  // namespace mvrmesh
-

@@ -22,8 +22,8 @@ struct CliOptions {
     throw std::runtime_error(
         message +
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
-        "[--format ply|stl|both] [--adaptive-remesh] [--volumetric-reconstruct] "
-        "[--adaptive-iterations N] [--adaptive-split-ratio R] [--volumetric-iterations N]\n"
+        "[--format ply|stl|both] [--adaptive-remesh] "
+        "[--adaptive-iterations N] [--adaptive-split-ratio R]\n"
         "Default output (without --output): <project_root>/outPut/{PLY|STL}/<input_stem>"
     );
 }
@@ -72,8 +72,6 @@ CliOptions parse_args(int argc, char** argv) {
             options.format = mvrmesh::parse_output_format(argv[++i]);
         } else if (arg == "--adaptive-remesh") {
             options.build.adaptive_remesh = true;
-        } else if (arg == "--volumetric-reconstruct") {
-            options.build.volumetric_reconstruct = true;
         } else if (arg == "--adaptive-iterations") {
             if (i + 1 >= argc) {
                 throw_usage_error("Missing value for --adaptive-iterations.");
@@ -84,11 +82,6 @@ CliOptions parse_args(int argc, char** argv) {
                 throw_usage_error("Missing value for --adaptive-split-ratio.");
             }
             options.build.adaptive_split_ratio = parse_double_value(argv[++i], "--adaptive-split-ratio");
-        } else if (arg == "--volumetric-iterations") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --volumetric-iterations.");
-            }
-            options.build.volumetric_iterations = parse_int_value(argv[++i], "--volumetric-iterations");
         } else if (!arg.empty() && arg[0] == '-') {
             throw_usage_error("Unknown option: " + arg);
         } else {
@@ -106,9 +99,6 @@ CliOptions parse_args(int argc, char** argv) {
 
     if (options.build.adaptive_iterations < 1) {
         throw std::runtime_error("--adaptive-iterations must be >= 1");
-    }
-    if (options.build.volumetric_iterations < 1) {
-        throw std::runtime_error("--volumetric-iterations must be >= 1");
     }
     if (!(options.build.adaptive_split_ratio > 0.0 && options.build.adaptive_split_ratio <= 1.0)) {
         throw std::runtime_error("--adaptive-split-ratio must be in (0, 1]");

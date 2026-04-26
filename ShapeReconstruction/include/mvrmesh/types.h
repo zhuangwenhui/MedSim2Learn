@@ -31,16 +31,13 @@ enum class OutputFormat {
 
 enum class SurfaceMode {
     DirectSurface,
-    AdaptiveRemesh,
-    VolumetricReconstruct
+    AdaptiveRemesh
 };
 
 struct BuildOptions {
     bool adaptive_remesh = false;
-    bool volumetric_reconstruct = false;
     int adaptive_iterations = 1;
     double adaptive_split_ratio = 0.5;
-    int volumetric_iterations = 1;
 };
 
 struct BuildResult {

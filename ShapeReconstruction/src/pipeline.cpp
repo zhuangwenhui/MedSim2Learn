@@ -21,32 +21,8 @@ BuildResult build_surface(
     if (options.adaptive_iterations < 1) {
         throw std::runtime_error("--adaptive-iterations must be >= 1");
     }
-    if (options.volumetric_iterations < 1) {
-        throw std::runtime_error("--volumetric-iterations must be >= 1");
-    }
     if (!(options.adaptive_split_ratio > 0.0 && options.adaptive_split_ratio <= 1.0)) {
         throw std::runtime_error("--adaptive-split-ratio must be in (0, 1]");
-    }
-    if (options.adaptive_remesh && options.volumetric_reconstruct) {
-        throw std::runtime_error("Only one of --adaptive-remesh or --volumetric-reconstruct can be enabled.");
-    }
-
-    if (options.volumetric_reconstruct) {
-        if (tets.empty()) {
-            throw std::runtime_error("No tetrahedra in @4. --volumetric-reconstruct requires tetra mesh.");
-        }
-        std::vector<Vec3> out_vertices = vertices;
-        std::vector<Tet> out_tets = tets;
-        for (int i = 0; i < options.volumetric_iterations; ++i) {
-            auto subdivided = subdivide_tetrahedra(out_vertices, out_tets);
-            out_vertices = std::move(subdivided.first);
-            out_tets = std::move(subdivided.second);
-        }
-        BuildResult result;
-        result.vertices = std::move(out_vertices);
-        result.faces = boundary_faces_from_tets(result.vertices, out_tets);
-        result.mode = SurfaceMode::VolumetricReconstruct;
-        return result;
     }
 
     std::vector<Face> base_faces;
@@ -125,11 +101,7 @@ std::string surface_mode_to_string(SurfaceMode mode) {
     if (mode == SurfaceMode::AdaptiveRemesh) {
         return "adaptive_remesh";
     }
-    if (mode == SurfaceMode::VolumetricReconstruct) {
-        return "volumetric_reconstruct";
-    }
     return "direct_surface";
 }
 
 }  // namespace mvrmesh
-

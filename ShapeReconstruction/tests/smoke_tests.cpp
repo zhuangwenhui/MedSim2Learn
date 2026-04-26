@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "mvrmesh/algorithms.h"
+#include "mvrmesh/pipeline.h"
 #include "mvrmesh/topology.h"
 #include "mvrmesh/types.h"
 
@@ -17,6 +18,7 @@ void require(bool cond, const std::string& message) {
         throw std::runtime_error(message);
     }
 }
+
 
 void test_normalize_faces_indices() {
     using mvrmesh::Face;
@@ -46,7 +48,7 @@ void test_boundary_faces_single_tet() {
     require(faces.size() == 4, "Single tetrahedron should produce 4 boundary faces");
 }
 
-void test_subdivide_tetrahedra_count() {
+void test_build_surface_uses_tet_boundary_without_triangles() {
     using mvrmesh::Tet;
     using mvrmesh::Vec3;
 
@@ -56,10 +58,12 @@ void test_subdivide_tetrahedra_count() {
         Vec3{0.0, 1.0, 0.0},
         Vec3{0.0, 0.0, 1.0},
     };
+    const std::vector<mvrmesh::Face> triangles;
     const std::vector<Tet> tets{Tet{0, 1, 2, 3}};
-    const auto subdivided = mvrmesh::subdivide_tetrahedra(vertices, tets);
-    require(subdivided.second.size() == 8, "Each tetrahedron must subdivide into 8 tetrahedra");
-    require(subdivided.first.size() == 10, "Single tetrahedron subdivision should create 6 edge midpoints");
+    const mvrmesh::BuildResult result = mvrmesh::build_surface(vertices, triangles, tets, mvrmesh::BuildOptions{});
+    require(result.mode == mvrmesh::SurfaceMode::DirectSurface, "Tet boundary fallback should use direct surface mode");
+    require(result.vertices.size() == 4, "Tet boundary fallback should keep input vertices");
+    require(result.faces.size() == 4, "Single tetrahedron boundary fallback should produce 4 faces");
 }
 
 void test_adaptive_single_triangle_split() {
@@ -101,7 +105,7 @@ int main() {
     try {
         test_normalize_faces_indices();
         test_boundary_faces_single_tet();
-        test_subdivide_tetrahedra_count();
+        test_build_surface_uses_tet_boundary_without_triangles();
         test_adaptive_single_triangle_split();
         test_python_round_behavior_for_face_selection();
     } catch (const std::exception& ex) {
@@ -112,4 +116,3 @@ int main() {
     std::cout << "[ok] smoke tests passed\n";
     return 0;
 }
-
