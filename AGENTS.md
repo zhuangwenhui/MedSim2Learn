@@ -108,6 +108,9 @@ When optimizing existing code:
 - When optimizing classes, methods, or functions with the same name, edit them directly in the branch without adding suffixes such as `_optimized`.
 - Do not create duplicate optimized variants such as `ClassName_optimized` alongside `ClassName`.
 - Direct replacement in a separate branch keeps code management and merging cleaner.
+- Branch worktrees must be created only in a sibling directory of the repository root, not on another drive or under user config/cache directories.
+- Do not create branch worktrees on a different disk from the main project checkout. Cross-disk worktrees can leak absolute build, dependency, or validation paths into generated configuration and later make merge or handoff validation ambiguous.
+- Before deleting a branch worktree, compare it with the main checkout, preserve any required local-only files, then remove the worktree and branch only after the user explicitly approves the git operation.
 
 ### Code Reuse
 

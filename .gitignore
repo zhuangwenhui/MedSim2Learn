@@ -19,6 +19,9 @@ __pycache__/
 # CMake / Visual Studio generated files
 /build/
 /ShapeReconstruction/build/
+/ShapeReconstruction/build-tetgen/
+/ShapeReconstruction/build-cgal/
+/ShapeReconstruction/build-required/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -42,10 +45,14 @@ Testing/
 /ShapeReconstruction/legacy/
 /ShapeReconstruction/originalData/
 /ShapeReconstruction/outPut/
+/ShapeReconstruction/evaluations/*_roster.md
+/ShapeReconstruction/evaluations/dependency_setup.md
+/ShapeReconstruction/evaluations/deformsim_*_smoke.json
 
 
 # DeformSim local build/runtime artifacts
 /DeformSim/**/[Dd]ebug/
+/DeformSim/build-smoke/
 /DeformSim/**/[Dd]ebugPublic/
 /DeformSim/**/[Rr]elease/
 /DeformSim/**/[Rr]eleases/
