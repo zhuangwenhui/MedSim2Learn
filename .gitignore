@@ -45,9 +45,8 @@ Testing/
 /ShapeReconstruction/legacy/
 /ShapeReconstruction/originalData/
 /ShapeReconstruction/outPut/
-/ShapeReconstruction/evaluations/*_roster.md
-/ShapeReconstruction/evaluations/dependency_setup.md
-/ShapeReconstruction/evaluations/deformsim_*_smoke.json
+/ShapeReconstruction/evaluations/
+/ShapeReconstruction/tests/
 
 
 # DeformSim local build/runtime artifacts

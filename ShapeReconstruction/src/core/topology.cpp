@@ -1,4 +1,4 @@
-#include "mvrmesh/topology.h"
+#include "mvrmesh/core/topology.h"
 
 #include <algorithm>
 #include <array>
@@ -8,7 +8,7 @@
 #include <tuple>
 #include <utility>
 
-#include "mvrmesh/geometry.h"
+#include "mvrmesh/core/geometry.h"
 
 namespace mvrmesh {
 

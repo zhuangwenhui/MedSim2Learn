@@ -1,4 +1,4 @@
-#include "mvrmesh/geometry.h"
+#include "mvrmesh/core/geometry.h"
 
 #include <cmath>
 

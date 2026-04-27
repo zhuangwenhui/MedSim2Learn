@@ -1,4 +1,4 @@
-#include "mvrmesh/pipeline.h"
+#include "mvrmesh/core/pipeline.h"
 
 #include <algorithm>
 #include <cctype>
@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "mvrmesh/algorithms.h"
-#include "mvrmesh/topology.h"
+#include "mvrmesh/core/algorithms.h"
+#include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 

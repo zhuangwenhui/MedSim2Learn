@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mvrmesh/types.h"
+#include "mvrmesh/core/types.h"
 
 namespace mvrmesh {
 

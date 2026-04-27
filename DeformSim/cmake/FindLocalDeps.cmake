@@ -8,8 +8,12 @@ set(DEFORMSIM_ONEAPI_MKL_INCLUDE "C:/Program Files (x86)/Intel/oneAPI/mkl/latest
     "Intel oneAPI MKL include directory")
 set(DEFORMSIM_ONEAPI_MKL_LIB "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/lib" CACHE PATH
     "Intel oneAPI MKL library directory")
+set(DEFORMSIM_ONEAPI_MKL_BIN "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/bin" CACHE PATH
+    "Intel oneAPI MKL runtime directory")
 set(DEFORMSIM_ONEAPI_COMPILER_LIB "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/lib" CACHE PATH
     "Intel oneAPI compiler library directory")
+set(DEFORMSIM_ONEAPI_COMPILER_BIN "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/bin" CACHE PATH
+    "Intel oneAPI compiler runtime directory")
 
 function(deformsim_require_path path label)
   if(NOT EXISTS "${path}")
@@ -32,7 +36,9 @@ endfunction()
 deformsim_require_path("${DEFORMSIM_PROJECT_ROOT}" "DEFORMSIM_PROJECT_ROOT")
 deformsim_require_path("${DEFORMSIM_ONEAPI_MKL_INCLUDE}" "DEFORMSIM_ONEAPI_MKL_INCLUDE")
 deformsim_require_path("${DEFORMSIM_ONEAPI_MKL_LIB}" "DEFORMSIM_ONEAPI_MKL_LIB")
+deformsim_require_path("${DEFORMSIM_ONEAPI_MKL_BIN}" "DEFORMSIM_ONEAPI_MKL_BIN")
 deformsim_require_path("${DEFORMSIM_ONEAPI_COMPILER_LIB}" "DEFORMSIM_ONEAPI_COMPILER_LIB")
+deformsim_require_path("${DEFORMSIM_ONEAPI_COMPILER_BIN}" "DEFORMSIM_ONEAPI_COMPILER_BIN")
 
 foreach(local_dir IN ITEMS Lib BMGL GL Utility)
   deformsim_require_path("${DEFORMSIM_PROJECT_ROOT}/${local_dir}" "DEFORMSIM_PROJECT_ROOT/${local_dir}")
@@ -54,6 +60,16 @@ else()
   get_filename_component(_deformsim_sdk_bin_dir "${_deformsim_sdk_version_dir}" DIRECTORY)
   get_filename_component(_deformsim_sdk_root "${_deformsim_sdk_bin_dir}" DIRECTORY)
   set(_deformsim_windows_sdk_include_root "${_deformsim_sdk_root}/Include/${_deformsim_sdk_version}")
+  if(NOT EXISTS "${_deformsim_windows_sdk_include_root}/um")
+    if(DEFINED CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION AND
+       NOT CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION STREQUAL "")
+      set(_deformsim_windows_sdk_include_root
+        "C:/Program Files (x86)/Windows Kits/10/Include/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+    elseif(DEFINED CMAKE_SYSTEM_VERSION AND NOT CMAKE_SYSTEM_VERSION STREQUAL "")
+      set(_deformsim_windows_sdk_include_root
+        "C:/Program Files (x86)/Windows Kits/10/Include/${CMAKE_SYSTEM_VERSION}")
+    endif()
+  endif()
 
   set(DEFORMSIM_RC_INCLUDE_DIRS
     "${_deformsim_atlmfc_include}"
@@ -110,6 +126,16 @@ get_filename_component(_deformsim_sdk_version_dir "${_deformsim_sdk_bin_dir}" DI
 get_filename_component(_deformsim_sdk_version "${_deformsim_sdk_version_dir}" NAME)
 get_filename_component(_deformsim_sdk_bin_root "${_deformsim_sdk_version_dir}" DIRECTORY)
 get_filename_component(_deformsim_sdk_root "${_deformsim_sdk_bin_root}" DIRECTORY)
+if(NOT EXISTS "${_deformsim_sdk_root}/lib/${_deformsim_sdk_version}")
+  if(DEFINED CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION AND
+     NOT CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION STREQUAL "")
+    set(_deformsim_sdk_root "C:/Program Files (x86)/Windows Kits/10")
+    set(_deformsim_sdk_version "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+  elseif(DEFINED CMAKE_SYSTEM_VERSION AND NOT CMAKE_SYSTEM_VERSION STREQUAL "")
+    set(_deformsim_sdk_root "C:/Program Files (x86)/Windows Kits/10")
+    set(_deformsim_sdk_version "${CMAKE_SYSTEM_VERSION}")
+  endif()
+endif()
 
 _deformsim_append_unique_existing_dir(DEFORMSIM_SYSTEM_LIB_DIRS "${_deformsim_sdk_root}/lib/${_deformsim_sdk_version}/ucrt/${_deformsim_target_arch}")
 _deformsim_append_unique_existing_dir(DEFORMSIM_SYSTEM_LIB_DIRS "${_deformsim_sdk_root}/lib/${_deformsim_sdk_version}/um/${_deformsim_target_arch}")
@@ -140,3 +166,8 @@ deformsim_require_file("${DEFORMSIM_DEVIL_LIB}" "DEFORMSIM_DEVIL_LIB")
 deformsim_require_file("${DEFORMSIM_ILU_LIB}" "DEFORMSIM_ILU_LIB")
 deformsim_require_file("${DEFORMSIM_ILUT_LIB}" "DEFORMSIM_ILUT_LIB")
 deformsim_require_file("${DEFORMSIM_GLUT32_LIB}" "DEFORMSIM_GLUT32_LIB")
+
+set(DEFORMSIM_RUNTIME_PATH_DIRS
+  "${DEFORMSIM_ONEAPI_MKL_BIN}"
+  "${DEFORMSIM_ONEAPI_COMPILER_BIN}"
+)
