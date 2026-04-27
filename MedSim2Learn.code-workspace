@@ -1,0 +1,18 @@
+{
+    "folders": [
+        {
+            "name": "DeformSim",
+            "path": "DeformSim"
+        },
+        {
+            "name": "ShapeReconstruction",
+            "path": "ShapeReconstruction"
+        }
+    ],
+    "settings": {
+        "cmake.useCMakePresets": "always",
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "python-envs.defaultEnvManager": "ms-python.python:conda",
+        "python-envs.defaultPackageManager": "ms-python.python:conda"
+    }
+}
