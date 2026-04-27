@@ -5,41 +5,68 @@
 #include <string>
 #include <vector>
 
-#include "mvrmesh/core/metrics.h"
 #include "mvrmesh/core/types.h"
 
 namespace mvrmesh {
 
-struct TetGenEvaluationOptions {
+struct DeformSimPressureOptions {
     std::string switches = "pYQ";
+    std::string input_ply;
+    double degeneracy_epsilon = 1e-12;
 };
 
-struct TetGenEvaluationResult {
+struct DeformSimIndexStats {
+    int min_index = 0;
+    int max_index = -1;
+    std::size_t out_of_range_count = 0;
+};
+
+struct DeformSimPressureResult {
     bool success = false;
     std::string switches;
+    std::string input_ply;
+    std::string stage = "startup";
     std::string diagnostic;
-    std::size_t input_vertex_count = 0;
-    std::size_t input_face_count = 0;
-    std::size_t output_vertex_count = 0;
-    std::size_t output_tetra_count = 0;
-    std::size_t output_boundary_face_count = 0;
-    TetraMeshMetrics tetra_metrics;
+    std::size_t surface_vertex_count = 0;
+    std::size_t surface_face_count = 0;
+    std::size_t object_node_count = 0;
+    std::size_t object_triangle_count = 0;
+    DeformSimIndexStats surface_face_indices;
+    DeformSimIndexStats object_face_indices;
+    std::size_t degenerate_surface_triangle_count = 0;
+    bool bounding_box_valid = false;
+    Vec3 bounding_box_min{};
+    Vec3 bounding_box_max{};
+    bool tetgen_completed = false;
+    int tetgen_firstnumber = 0;
+    std::size_t tetgen_output_vertex_count = 0;
+    std::size_t tetgen_output_tetra_count = 0;
+    std::size_t tetgen_output_boundary_face_count = 0;
+    DeformSimIndexStats tetgen_tetra_indices;
+    DeformSimIndexStats tetgen_triface_indices;
+    std::size_t estimated_unique_line_count = 0;
+    std::size_t line_capacity_nnode_times_32 = 0;
+    bool estimated_line_capacity_exceeded = false;
+    std::size_t estimated_matrix_node_count = 0;
+    std::size_t estimated_matrix_order = 0;
+    std::size_t estimated_dense_k_l_bytes = 0;
+    std::size_t estimated_element_scratch_bytes = 0;
     std::vector<Vec3> output_vertices;
     std::vector<Tet> output_tetrahedra;
     std::vector<Face> output_boundary_faces;
 };
 
-TetGenEvaluationResult evaluate_tetgen(
+DeformSimPressureResult evaluate_deformsim_pressure(
     const std::vector<Vec3>& surface_vertices,
     const std::vector<Face>& surface_faces,
-    const TetGenEvaluationOptions& options
+    const DeformSimPressureOptions& options
 );
 
-std::string tetgen_evaluation_to_json(const TetGenEvaluationResult& result);
+std::string deformsim_pressure_to_json(const DeformSimPressureResult& result);
 
-void write_tetgen_evaluation_json(
+void write_deformsim_pressure_json(
     const std::filesystem::path& path,
-    const TetGenEvaluationResult& result
+    const DeformSimPressureResult& result
 );
 
 }  // namespace mvrmesh

@@ -1,18 +1,27 @@
 #include "mvrmesh/backends/tetgen/tetgen_evaluator.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "mvrmesh/core/geometry.h"
 #include "tetgen.h"
 
 namespace mvrmesh {
 
 namespace {
+
+constexpr std::size_t kLineCapacityPerNode = 32;
+constexpr std::size_t kDenseMatrixCount = 2;
+constexpr std::size_t kElementScratchDoubles = 12 * 12 + 6 * 12;
 
 std::string json_escape(const std::string& value) {
     std::ostringstream out;
@@ -41,22 +50,139 @@ std::string json_escape(const std::string& value) {
     return out.str();
 }
 
-TetGenEvaluationResult make_base_result(
+std::size_t saturating_multiply(std::size_t lhs, std::size_t rhs) {
+    if (lhs != 0 && rhs > std::numeric_limits<std::size_t>::max() / lhs) {
+        return std::numeric_limits<std::size_t>::max();
+    }
+    return lhs * rhs;
+}
+
+DeformSimIndexStats empty_index_stats() {
+    return DeformSimIndexStats{};
+}
+
+void update_index_stats(DeformSimIndexStats& stats, int index, int lower, int upper_exclusive) {
+    if (stats.max_index < stats.min_index) {
+        stats.min_index = index;
+        stats.max_index = index;
+    } else {
+        stats.min_index = std::min(stats.min_index, index);
+        stats.max_index = std::max(stats.max_index, index);
+    }
+    if (index < lower || index >= upper_exclusive) {
+        ++stats.out_of_range_count;
+    }
+}
+
+DeformSimIndexStats face_index_stats(const std::vector<Face>& faces, std::size_t vertex_count) {
+    if (faces.empty()) {
+        return empty_index_stats();
+    }
+
+    DeformSimIndexStats stats;
+    const int upper = static_cast<int>(vertex_count);
+    for (const Face& face : faces) {
+        update_index_stats(stats, face[0], 0, upper);
+        update_index_stats(stats, face[1], 0, upper);
+        update_index_stats(stats, face[2], 0, upper);
+    }
+    return stats;
+}
+
+DeformSimIndexStats tet_index_stats(const std::vector<Tet>& tets, std::size_t vertex_count) {
+    if (tets.empty()) {
+        return empty_index_stats();
+    }
+
+    DeformSimIndexStats stats;
+    const int upper = static_cast<int>(vertex_count);
+    for (const Tet& tet : tets) {
+        update_index_stats(stats, tet[0], 0, upper);
+        update_index_stats(stats, tet[1], 0, upper);
+        update_index_stats(stats, tet[2], 0, upper);
+        update_index_stats(stats, tet[3], 0, upper);
+    }
+    return stats;
+}
+
+std::size_t count_degenerate_surface_triangles(
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces,
+    double epsilon
+) {
+    std::size_t count = 0;
+    for (const Face& face : faces) {
+        const Vec3& a = vertices.at(static_cast<std::size_t>(face[0]));
+        const Vec3& b = vertices.at(static_cast<std::size_t>(face[1]));
+        const Vec3& c = vertices.at(static_cast<std::size_t>(face[2]));
+        const double area = 0.5 * norm(cross(vsub(b, a), vsub(c, a)));
+        if (area <= epsilon) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void fill_bounding_box(const std::vector<Vec3>& vertices, DeformSimPressureResult& result) {
+    if (vertices.empty()) {
+        result.bounding_box_valid = false;
+        return;
+    }
+
+    result.bounding_box_valid = true;
+    result.bounding_box_min = vertices.front();
+    result.bounding_box_max = vertices.front();
+    for (const Vec3& vertex : vertices) {
+        result.bounding_box_min.x = std::min(result.bounding_box_min.x, vertex.x);
+        result.bounding_box_min.y = std::min(result.bounding_box_min.y, vertex.y);
+        result.bounding_box_min.z = std::min(result.bounding_box_min.z, vertex.z);
+        result.bounding_box_max.x = std::max(result.bounding_box_max.x, vertex.x);
+        result.bounding_box_max.y = std::max(result.bounding_box_max.y, vertex.y);
+        result.bounding_box_max.z = std::max(result.bounding_box_max.z, vertex.z);
+    }
+}
+
+std::size_t count_unique_lines_from_tets(const std::vector<Tet>& tets) {
+    std::set<std::pair<int, int>> lines;
+    for (const Tet& tet : tets) {
+        const int ids[4] = {tet[0], tet[1], tet[2], tet[3]};
+        for (int a = 0; a < 4; ++a) {
+            for (int b = a + 1; b < 4; ++b) {
+                lines.insert(std::make_pair(std::min(ids[a], ids[b]), std::max(ids[a], ids[b])));
+            }
+        }
+    }
+    return lines.size();
+}
+
+DeformSimPressureResult make_base_result(
     const std::vector<Vec3>& surface_vertices,
     const std::vector<Face>& surface_faces,
-    const TetGenEvaluationOptions& options
+    const DeformSimPressureOptions& options
 ) {
-    TetGenEvaluationResult result;
+    DeformSimPressureResult result;
     result.switches = options.switches;
-    result.input_vertex_count = surface_vertices.size();
-    result.input_face_count = surface_faces.size();
+    result.input_ply = options.input_ply;
+    result.stage = "precheck_surface";
+    result.diagnostic = "not started";
+    result.surface_vertex_count = surface_vertices.size();
+    result.surface_face_count = surface_faces.size();
+    result.object_node_count = surface_vertices.size();
+    result.object_triangle_count = surface_faces.size();
+    result.surface_face_indices = face_index_stats(surface_faces, surface_vertices.size());
+    result.object_face_indices = result.surface_face_indices;
+    fill_bounding_box(surface_vertices, result);
+    if (result.surface_face_indices.out_of_range_count == 0) {
+        result.degenerate_surface_triangle_count =
+            count_degenerate_surface_triangles(surface_vertices, surface_faces, options.degeneracy_epsilon);
+    }
     return result;
 }
 
 void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
     if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
         std::ostringstream oss;
-        oss << "Face index out of range for TetGen evaluation: " << idx
+        oss << "Face index out of range for DeformSim pressure evaluation: " << idx
             << ", n_vertices=" << vertices.size();
         throw std::runtime_error(oss.str());
     }
@@ -68,10 +194,10 @@ void validate_tetgen_input_size(
 ) {
     const auto max_int = static_cast<std::size_t>(std::numeric_limits<int>::max());
     if (vertices.size() > max_int) {
-        throw std::runtime_error("TetGen evaluation input has too many vertices for TetGen int indexing.");
+        throw std::runtime_error("DeformSim pressure input has too many vertices for TetGen int indexing.");
     }
     if (faces.size() > max_int) {
-        throw std::runtime_error("TetGen evaluation input has too many faces for TetGen int indexing.");
+        throw std::runtime_error("DeformSim pressure input has too many faces for TetGen int indexing.");
     }
 }
 
@@ -93,6 +219,7 @@ void fill_input_facets(
 ) {
     input.numberoffacets = static_cast<int>(faces.size());
     input.facetlist = new tetgenio::facet[static_cast<std::size_t>(input.numberoffacets)];
+    input.trifacemarkerlist = new int[static_cast<std::size_t>(input.numberoffacets)];
 
     for (std::size_t i = 0; i < faces.size(); ++i) {
         const Face& face = faces[i];
@@ -114,11 +241,8 @@ void fill_input_facets(
         polygon.vertexlist[0] = face[0] + 1;
         polygon.vertexlist[1] = face[1] + 1;
         polygon.vertexlist[2] = face[2] + 1;
+        input.trifacemarkerlist[i] = 0;
     }
-}
-
-int to_zero_based_index(int value, int first_number) {
-    return value - first_number;
 }
 
 void require_output_array(const void* data, std::size_t count, const std::string& name) {
@@ -133,10 +257,10 @@ int to_checked_zero_based_index(
     std::size_t vertex_count,
     const std::string& element_name
 ) {
-    const int idx = to_zero_based_index(value, first_number);
+    const int idx = value - first_number;
     if (idx < 0 || static_cast<std::size_t>(idx) >= vertex_count) {
         std::ostringstream oss;
-        oss << element_name << " index out of range for TetGen evaluation: " << idx
+        oss << element_name << " index out of range for DeformSim pressure evaluation: " << idx
             << ", n_vertices=" << vertex_count;
         throw std::runtime_error(oss.str());
     }
@@ -146,13 +270,13 @@ int to_checked_zero_based_index(
 void validate_result_index(std::size_t vertex_count, int idx, const std::string& element_name) {
     if (idx < 0 || static_cast<std::size_t>(idx) >= vertex_count) {
         std::ostringstream oss;
-        oss << element_name << " index out of range for TetGen evaluation: " << idx
+        oss << element_name << " index out of range for DeformSim pressure JSON: " << idx
             << ", n_vertices=" << vertex_count;
         throw std::runtime_error(oss.str());
     }
 }
 
-void validate_tetgen_result_indices(const TetGenEvaluationResult& result) {
+void validate_pressure_result_indices(const DeformSimPressureResult& result) {
     for (const Tet& tet : result.output_tetrahedra) {
         validate_result_index(result.output_vertices.size(), tet[0], "Tetrahedron");
         validate_result_index(result.output_vertices.size(), tet[1], "Tetrahedron");
@@ -166,17 +290,18 @@ void validate_tetgen_result_indices(const TetGenEvaluationResult& result) {
     }
 }
 
-void copy_tetgen_output(tetgenio& output, TetGenEvaluationResult& result) {
-    result.output_vertex_count = static_cast<std::size_t>(std::max(output.numberofpoints, 0));
-    result.output_tetra_count = static_cast<std::size_t>(std::max(output.numberoftetrahedra, 0));
-    result.output_boundary_face_count = static_cast<std::size_t>(std::max(output.numberoftrifaces, 0));
+void copy_tetgen_output(tetgenio& output, DeformSimPressureResult& result) {
+    result.tetgen_firstnumber = output.firstnumber;
+    result.tetgen_output_vertex_count = static_cast<std::size_t>(std::max(output.numberofpoints, 0));
+    result.tetgen_output_tetra_count = static_cast<std::size_t>(std::max(output.numberoftetrahedra, 0));
+    result.tetgen_output_boundary_face_count = static_cast<std::size_t>(std::max(output.numberoftrifaces, 0));
 
-    require_output_array(output.pointlist, result.output_vertex_count, "pointlist");
-    require_output_array(output.tetrahedronlist, result.output_tetra_count, "tetrahedronlist");
-    require_output_array(output.trifacelist, result.output_boundary_face_count, "trifacelist");
+    require_output_array(output.pointlist, result.tetgen_output_vertex_count, "pointlist");
+    require_output_array(output.tetrahedronlist, result.tetgen_output_tetra_count, "tetrahedronlist");
+    require_output_array(output.trifacelist, result.tetgen_output_boundary_face_count, "trifacelist");
 
-    result.output_vertices.reserve(result.output_vertex_count);
-    for (std::size_t i = 0; i < result.output_vertex_count; ++i) {
+    result.output_vertices.reserve(result.tetgen_output_vertex_count);
+    for (std::size_t i = 0; i < result.tetgen_output_vertex_count; ++i) {
         result.output_vertices.push_back(Vec3{
             static_cast<double>(output.pointlist[i * 3 + 0]),
             static_cast<double>(output.pointlist[i * 3 + 1]),
@@ -185,134 +310,211 @@ void copy_tetgen_output(tetgenio& output, TetGenEvaluationResult& result) {
     }
 
     const int corners = output.numberofcorners >= 4 ? output.numberofcorners : 4;
-    result.output_tetrahedra.reserve(result.output_tetra_count);
-    for (std::size_t i = 0; i < result.output_tetra_count; ++i) {
+    result.output_tetrahedra.reserve(result.tetgen_output_tetra_count);
+    for (std::size_t i = 0; i < result.tetgen_output_tetra_count; ++i) {
         result.output_tetrahedra.push_back(Tet{
             to_checked_zero_based_index(
                 output.tetrahedronlist[i * static_cast<std::size_t>(corners) + 0],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Tetrahedron"
             ),
             to_checked_zero_based_index(
                 output.tetrahedronlist[i * static_cast<std::size_t>(corners) + 1],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Tetrahedron"
             ),
             to_checked_zero_based_index(
                 output.tetrahedronlist[i * static_cast<std::size_t>(corners) + 2],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Tetrahedron"
             ),
             to_checked_zero_based_index(
                 output.tetrahedronlist[i * static_cast<std::size_t>(corners) + 3],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Tetrahedron"
             ),
         });
     }
 
-    result.output_boundary_faces.reserve(result.output_boundary_face_count);
-    for (std::size_t i = 0; i < result.output_boundary_face_count; ++i) {
+    result.output_boundary_faces.reserve(result.tetgen_output_boundary_face_count);
+    for (std::size_t i = 0; i < result.tetgen_output_boundary_face_count; ++i) {
         result.output_boundary_faces.push_back(Face{
             to_checked_zero_based_index(
                 output.trifacelist[i * 3 + 0],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Boundary face"
             ),
             to_checked_zero_based_index(
                 output.trifacelist[i * 3 + 1],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Boundary face"
             ),
             to_checked_zero_based_index(
                 output.trifacelist[i * 3 + 2],
                 output.firstnumber,
-                result.output_vertex_count,
+                result.tetgen_output_vertex_count,
                 "Boundary face"
             ),
         });
     }
-    result.tetra_metrics = compute_tetra_mesh_metrics(result.output_vertices, result.output_tetrahedra);
+
+    result.tetgen_tetra_indices = tet_index_stats(result.output_tetrahedra, result.output_vertices.size());
+    result.tetgen_triface_indices = face_index_stats(result.output_boundary_faces, result.output_vertices.size());
+    result.estimated_unique_line_count = count_unique_lines_from_tets(result.output_tetrahedra);
+    result.line_capacity_nnode_times_32 =
+        saturating_multiply(result.tetgen_output_vertex_count, kLineCapacityPerNode);
+    result.estimated_line_capacity_exceeded =
+        result.estimated_unique_line_count > result.line_capacity_nnode_times_32;
+    result.estimated_matrix_node_count = result.tetgen_output_vertex_count;
+    result.estimated_matrix_order = saturating_multiply(result.estimated_matrix_node_count, 3);
+    const std::size_t order_squared =
+        saturating_multiply(result.estimated_matrix_order, result.estimated_matrix_order);
+    result.estimated_dense_k_l_bytes =
+        saturating_multiply(saturating_multiply(order_squared, sizeof(double)), kDenseMatrixCount);
+    result.estimated_element_scratch_bytes = saturating_multiply(
+        saturating_multiply(result.tetgen_output_tetra_count, kElementScratchDoubles),
+        sizeof(double)
+    );
+}
+
+void write_index_stats(std::ostringstream& out, const char* name, const DeformSimIndexStats& stats) {
+    out << "  \"" << name << "\": {\n";
+    out << "    \"min_index\": " << stats.min_index << ",\n";
+    out << "    \"max_index\": " << stats.max_index << ",\n";
+    out << "    \"out_of_range_count\": " << stats.out_of_range_count << "\n";
+    out << "  }";
+}
+
+void write_bounding_box_fields(std::ostringstream& out, const DeformSimPressureResult& result) {
+    if (result.bounding_box_valid) {
+        out << "  \"bounding_box_min\": ["
+            << result.bounding_box_min.x << ", "
+            << result.bounding_box_min.y << ", "
+            << result.bounding_box_min.z << "],\n";
+        out << "  \"bounding_box_max\": ["
+            << result.bounding_box_max.x << ", "
+            << result.bounding_box_max.y << ", "
+            << result.bounding_box_max.z << "],\n";
+    } else {
+        out << "  \"bounding_box_min\": null,\n";
+        out << "  \"bounding_box_max\": null,\n";
+    }
+    out << "  \"bounding_box_valid\": " << (result.bounding_box_valid ? "true" : "false") << ",\n";
 }
 
 }  // namespace
 
-TetGenEvaluationResult evaluate_tetgen(
+DeformSimPressureResult evaluate_deformsim_pressure(
     const std::vector<Vec3>& surface_vertices,
     const std::vector<Face>& surface_faces,
-    const TetGenEvaluationOptions& options
+    const DeformSimPressureOptions& options
 ) {
-    TetGenEvaluationResult result = make_base_result(surface_vertices, surface_faces, options);
+    DeformSimPressureResult result = make_base_result(surface_vertices, surface_faces, options);
 
     try {
+        result.stage = "fill_tetgen_input";
         validate_tetgen_input_size(surface_vertices, surface_faces);
         tetgenio input;
         tetgenio output;
         fill_input_points(input, surface_vertices);
         fill_input_facets(input, surface_vertices, surface_faces);
 
+        result.stage = "tetgen_call";
         std::vector<char> switches(result.switches.begin(), result.switches.end());
         switches.push_back('\0');
         tetrahedralize(switches.data(), &input, &output);
 
         copy_tetgen_output(output, result);
         result.success = true;
-        result.diagnostic = "TetGen evaluation completed.";
+        result.tetgen_completed = true;
+        result.stage = "tetgen_output_validated";
+        result.diagnostic = "TetGen completed; diagnostic did not run DeformSim post-processing.";
     } catch (int code) {
         result.success = false;
+        result.tetgen_completed = false;
         std::ostringstream oss;
-        oss << "TetGen terminated with code " << code << ".";
+        oss << "TetGen terminated with code " << code;
         result.diagnostic = oss.str();
     } catch (const std::exception& ex) {
         result.success = false;
+        result.tetgen_completed = false;
         result.diagnostic = ex.what();
     }
     return result;
 }
 
-std::string tetgen_evaluation_to_json(const TetGenEvaluationResult& result) {
-    validate_tetgen_result_indices(result);
-    const TetraMeshMetrics tetra_metrics =
-        compute_tetra_mesh_metrics(result.output_vertices, result.output_tetrahedra);
+std::string deformsim_pressure_to_json(const DeformSimPressureResult& result) {
+    validate_pressure_result_indices(result);
     std::ostringstream out;
     out << std::setprecision(17);
     out << "{\n";
     out << "  \"success\": " << (result.success ? "true" : "false") << ",\n";
-    out << "  \"switches\": \"" << json_escape(result.switches) << "\",\n";
+    out << "  \"input_ply\": \"" << json_escape(result.input_ply) << "\",\n";
+    out << "  \"stage\": \"" << json_escape(result.stage) << "\",\n";
     out << "  \"diagnostic\": \"" << json_escape(result.diagnostic) << "\",\n";
-    out << "  \"input_vertex_count\": " << result.input_vertex_count << ",\n";
-    out << "  \"input_face_count\": " << result.input_face_count << ",\n";
-    out << "  \"output_vertex_count\": " << result.output_vertex_count << ",\n";
-    out << "  \"output_tetra_count\": " << result.output_tetra_count << ",\n";
-    out << "  \"output_boundary_face_count\": " << result.output_boundary_face_count << ",\n";
-    out << "  \"tetra_count\": " << tetra_metrics.tetra_count << ",\n";
-    out << "  \"degenerate_tetra_count\": " << tetra_metrics.degenerate_tetra_count << ",\n";
-    out << "  \"total_volume\": " << tetra_metrics.total_volume << ",\n";
-    out << "  \"min_tetra_volume\": " << tetra_metrics.min_tetra_volume << ",\n";
-    out << "  \"max_tetra_volume\": " << tetra_metrics.max_tetra_volume << ",\n";
-    out << "  \"mean_tetra_volume\": " << tetra_metrics.mean_tetra_volume << ",\n";
-    out << "  \"min_tetra_quality\": " << tetra_metrics.min_tetra_quality << ",\n";
-    out << "  \"max_tetra_quality\": " << tetra_metrics.max_tetra_quality << ",\n";
-    out << "  \"mean_tetra_quality\": " << tetra_metrics.mean_tetra_quality << "\n";
+    out << "  \"surface_vertex_count\": " << result.surface_vertex_count << ",\n";
+    out << "  \"surface_face_count\": " << result.surface_face_count << ",\n";
+    out << "  \"object_node_count\": " << result.object_node_count << ",\n";
+    out << "  \"object_triangle_count\": " << result.object_triangle_count << ",\n";
+    out << "  \"surface_face_index_min\": " << result.surface_face_indices.min_index << ",\n";
+    out << "  \"surface_face_index_max\": " << result.surface_face_indices.max_index << ",\n";
+    out << "  \"surface_face_index_out_of_range_count\": "
+        << result.surface_face_indices.out_of_range_count << ",\n";
+    out << "  \"object_face_index_min\": " << result.object_face_indices.min_index << ",\n";
+    out << "  \"object_face_index_max\": " << result.object_face_indices.max_index << ",\n";
+    out << "  \"object_face_index_out_of_range_count\": "
+        << result.object_face_indices.out_of_range_count << ",\n";
+    out << "  \"degenerate_surface_triangle_count\": "
+        << result.degenerate_surface_triangle_count << ",\n";
+    write_bounding_box_fields(out, result);
+    out << "  \"tetgen_completed\": " << (result.tetgen_completed ? "true" : "false") << ",\n";
+    out << "  \"tetgen_firstnumber\": " << result.tetgen_firstnumber << ",\n";
+    out << "  \"tetgen_output_vertex_count\": " << result.tetgen_output_vertex_count << ",\n";
+    out << "  \"tetgen_output_tetra_count\": " << result.tetgen_output_tetra_count << ",\n";
+    out << "  \"tetgen_output_boundary_face_count\": " << result.tetgen_output_boundary_face_count << ",\n";
+    out << "  \"tetgen_tetra_index_min\": " << result.tetgen_tetra_indices.min_index << ",\n";
+    out << "  \"tetgen_tetra_index_max\": " << result.tetgen_tetra_indices.max_index << ",\n";
+    out << "  \"tetgen_tetra_index_out_of_range_count\": "
+        << result.tetgen_tetra_indices.out_of_range_count << ",\n";
+    out << "  \"tetgen_triface_index_min\": " << result.tetgen_triface_indices.min_index << ",\n";
+    out << "  \"tetgen_triface_index_max\": " << result.tetgen_triface_indices.max_index << ",\n";
+    out << "  \"tetgen_triface_index_out_of_range_count\": "
+        << result.tetgen_triface_indices.out_of_range_count << ",\n";
+    write_index_stats(out, "surface_face_indices", result.surface_face_indices);
+    out << ",\n";
+    write_index_stats(out, "object_face_indices", result.object_face_indices);
+    out << ",\n";
+    write_index_stats(out, "tetgen_tetra_indices", result.tetgen_tetra_indices);
+    out << ",\n";
+    write_index_stats(out, "tetgen_triface_indices", result.tetgen_triface_indices);
+    out << ",\n";
+    out << "  \"estimated_unique_line_count\": " << result.estimated_unique_line_count << ",\n";
+    out << "  \"line_capacity_nnode_times_32\": " << result.line_capacity_nnode_times_32 << ",\n";
+    out << "  \"estimated_line_capacity_exceeded\": "
+        << (result.estimated_line_capacity_exceeded ? "true" : "false") << ",\n";
+    out << "  \"estimated_matrix_node_count\": " << result.estimated_matrix_node_count << ",\n";
+    out << "  \"estimated_matrix_order\": " << result.estimated_matrix_order << ",\n";
+    out << "  \"estimated_dense_k_l_bytes\": " << result.estimated_dense_k_l_bytes << ",\n";
+    out << "  \"estimated_element_scratch_bytes\": " << result.estimated_element_scratch_bytes << "\n";
     out << "}\n";
     return out.str();
 }
 
-void write_tetgen_evaluation_json(
+void write_deformsim_pressure_json(
     const std::filesystem::path& path,
-    const TetGenEvaluationResult& result
+    const DeformSimPressureResult& result
 ) {
     std::ofstream output(path, std::ios::out | std::ios::trunc);
     if (!output) {
-        throw std::runtime_error("Failed to open TetGen metrics output file: " + path.string());
+        throw std::runtime_error("Failed to open DeformSim pressure output file: " + path.string());
     }
-    output << tetgen_evaluation_to_json(result);
+    output << deformsim_pressure_to_json(result);
 }
 
 }  // namespace mvrmesh

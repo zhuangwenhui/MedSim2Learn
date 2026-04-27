@@ -7,7 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(MVRMESH_ENABLE_CGAL "Build the CGAL PMP surface backend" ON)
-option(MVRMESH_ENABLE_GMSH "Build the Gmsh tetrahedral evaluation backend" ON)
 option(MVRMESH_ENABLE_TETGEN "Build the TetGen tetrahedral evaluation backend" ON)
 
 include(cmake/MvrmeshCore.cmake)
@@ -26,15 +25,6 @@ else()
     list(APPEND MVRMESH_BACKEND_DEFINITIONS MVRMESH_CGAL_PMP_ENABLED=0)
 endif()
 
-if(MVRMESH_ENABLE_GMSH)
-    include(cmake/MvrmeshGmsh.cmake)
-    list(APPEND MVRMESH_BACKEND_SOURCES ${MVRMESH_GMSH_SOURCES})
-    list(APPEND MVRMESH_PUBLIC_LIBRARIES ${MVRMESH_GMSH_LIBRARIES})
-    list(APPEND MVRMESH_BACKEND_DEFINITIONS ${MVRMESH_GMSH_DEFINITIONS})
-else()
-    list(APPEND MVRMESH_BACKEND_DEFINITIONS MVRMESH_GMSH_ENABLED=0)
-endif()
-
 if(MVRMESH_ENABLE_TETGEN)
     include(cmake/MvrmeshTetGen.cmake)
     list(APPEND MVRMESH_BACKEND_SOURCES ${MVRMESH_TETGEN_SOURCES})
@@ -42,11 +32,6 @@ if(MVRMESH_ENABLE_TETGEN)
     list(APPEND MVRMESH_BACKEND_DEFINITIONS ${MVRMESH_TETGEN_DEFINITIONS})
 else()
     list(APPEND MVRMESH_BACKEND_DEFINITIONS MVRMESH_TETGEN_ENABLED=0)
-endif()
-
-if(NOT COMMAND mvrmesh_copy_gmsh_runtime)
-    function(mvrmesh_copy_gmsh_runtime target_name)
-    endfunction()
 endif()
 
 add_library(mvrmesh
@@ -75,6 +60,5 @@ add_executable(mvr_to_mesh_cli
 )
 
 target_link_libraries(mvr_to_mesh_cli PRIVATE mvrmesh)
-mvrmesh_copy_gmsh_runtime(mvr_to_mesh_cli)
 
 include(cmake/MvrmeshTests.cmake)

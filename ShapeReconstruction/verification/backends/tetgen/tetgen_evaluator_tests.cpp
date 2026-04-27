@@ -19,7 +19,7 @@ void require(bool cond, const std::string& message) {
     }
 }
 
-void test_tetgen_evaluation_tetrahedralizes_closed_surface() {
+void test_deformsim_pressure_tetrahedralizes_closed_surface() {
     const std::vector<mvrmesh::Vec3> vertices{
         mvrmesh::Vec3{0.0, 0.0, 0.0},
         mvrmesh::Vec3{1.0, 0.0, 0.0},
@@ -33,24 +33,44 @@ void test_tetgen_evaluation_tetrahedralizes_closed_surface() {
         mvrmesh::Face{2, 0, 3},
     };
 
-    const mvrmesh::TetGenEvaluationResult result =
-        mvrmesh::evaluate_tetgen(vertices, faces, mvrmesh::TetGenEvaluationOptions{});
+    const mvrmesh::DeformSimPressureResult result =
+        mvrmesh::evaluate_deformsim_pressure(vertices, faces, mvrmesh::DeformSimPressureOptions{});
 
     require(result.success, "TetGen-enabled build should tetrahedralize the closed tetrahedron");
-    require(result.output_vertex_count >= 4, "TetGen output should include vertices");
-    require(result.output_tetra_count >= 1, "TetGen output should include tetrahedra");
-    require(result.output_boundary_face_count >= 4, "TetGen output should include boundary faces");
+    require(result.tetgen_output_vertex_count >= 4, "TetGen output should include vertices");
+    require(result.tetgen_output_tetra_count >= 1, "TetGen output should include tetrahedra");
+    require(result.tetgen_output_boundary_face_count >= 4, "TetGen output should include boundary faces");
+    require(result.estimated_unique_line_count >= 6, "Pressure estimate should count tetra mesh lines");
+    require(
+        result.line_capacity_nnode_times_32 == result.tetgen_output_vertex_count * 32,
+        "Pressure estimate should match DeformSim line capacity heuristic"
+    );
 }
 
-void test_tetgen_evaluation_json_includes_counts() {
-    mvrmesh::TetGenEvaluationResult result;
+void test_deformsim_pressure_json_matches_diagnostic_shape() {
+    mvrmesh::DeformSimPressureResult result;
     result.success = true;
     result.switches = "pYQ";
-    result.input_vertex_count = 4;
-    result.input_face_count = 4;
-    result.output_vertex_count = 4;
-    result.output_tetra_count = 1;
-    result.output_boundary_face_count = 4;
+    result.input_ply = "D:/tmp/tiny.ply";
+    result.stage = "tetgen_output_validated";
+    result.diagnostic = "TetGen completed; diagnostic did not run DeformSim post-processing.";
+    result.surface_vertex_count = 4;
+    result.surface_face_count = 4;
+    result.object_node_count = 4;
+    result.object_triangle_count = 4;
+    result.bounding_box_valid = true;
+    result.bounding_box_min = mvrmesh::Vec3{0.0, 0.0, 0.0};
+    result.bounding_box_max = mvrmesh::Vec3{1.0, 1.0, 1.0};
+    result.tetgen_firstnumber = 1;
+    result.tetgen_output_vertex_count = 4;
+    result.tetgen_output_tetra_count = 1;
+    result.tetgen_output_boundary_face_count = 4;
+    result.estimated_unique_line_count = 6;
+    result.line_capacity_nnode_times_32 = 128;
+    result.estimated_matrix_node_count = 4;
+    result.estimated_matrix_order = 12;
+    result.estimated_dense_k_l_bytes = 2304;
+    result.estimated_element_scratch_bytes = 1728;
     result.output_vertices = {
         mvrmesh::Vec3{0.0, 0.0, 0.0},
         mvrmesh::Vec3{1.0, 0.0, 0.0},
@@ -59,16 +79,20 @@ void test_tetgen_evaluation_json_includes_counts() {
     };
     result.output_tetrahedra = {mvrmesh::Tet{0, 1, 2, 3}};
 
-    const std::string json = mvrmesh::tetgen_evaluation_to_json(result);
-    require(json.find("\"switches\": \"pYQ\"") != std::string::npos, "JSON should include switches");
-    require(json.find("\"output_tetra_count\": 1") != std::string::npos, "JSON should include tetra count");
-    require(json.find("\"total_volume\":") != std::string::npos, "JSON should include total volume");
-    require(json.find("\"min_tetra_quality\":") != std::string::npos, "JSON should include min tetra quality");
-    require(json.find("\"mean_tetra_quality\":") != std::string::npos, "JSON should include mean tetra quality");
+    const std::string json = mvrmesh::deformsim_pressure_to_json(result);
+    require(json.find("\"input_ply\": \"D:/tmp/tiny.ply\"") != std::string::npos, "JSON should include PLY handoff path");
+    require(json.find("\"stage\": \"tetgen_output_validated\"") != std::string::npos, "JSON should include diagnostic stage");
+    require(json.find("\"surface_vertex_count\": 4") != std::string::npos, "JSON should include surface vertex count");
+    require(json.find("\"object_node_count\": 4") != std::string::npos, "JSON should include DeformSim object node count");
+    require(json.find("\"bounding_box_valid\": true") != std::string::npos, "JSON should include bounding box validity");
+    require(json.find("\"tetgen_output_tetra_count\": 1") != std::string::npos, "JSON should include tetra count");
+    require(json.find("\"estimated_unique_line_count\": 6") != std::string::npos, "JSON should include unique line estimate");
+    require(json.find("\"line_capacity_nnode_times_32\": 128") != std::string::npos, "JSON should include line capacity");
+    require(json.find("\"estimated_dense_k_l_bytes\": 2304") != std::string::npos, "JSON should include dense matrix estimate");
 }
 
-void test_tetgen_json_rejects_out_of_range_boundary_face_index() {
-    mvrmesh::TetGenEvaluationResult result;
+void test_deformsim_pressure_json_rejects_out_of_range_boundary_face_index() {
+    mvrmesh::DeformSimPressureResult result;
     result.success = true;
     result.switches = "pYQ";
     result.output_vertices = {
@@ -82,7 +106,7 @@ void test_tetgen_json_rejects_out_of_range_boundary_face_index() {
 
     bool threw = false;
     try {
-        (void)mvrmesh::tetgen_evaluation_to_json(result);
+        (void)mvrmesh::deformsim_pressure_to_json(result);
     } catch (const std::runtime_error& ex) {
         threw = std::string(ex.what()).find("Boundary face index out of range") != std::string::npos;
     }
@@ -93,9 +117,9 @@ void test_tetgen_json_rejects_out_of_range_boundary_face_index() {
 
 int main() {
     try {
-        test_tetgen_evaluation_tetrahedralizes_closed_surface();
-        test_tetgen_evaluation_json_includes_counts();
-        test_tetgen_json_rejects_out_of_range_boundary_face_index();
+        test_deformsim_pressure_tetrahedralizes_closed_surface();
+        test_deformsim_pressure_json_matches_diagnostic_shape();
+        test_deformsim_pressure_json_rejects_out_of_range_boundary_face_index();
     } catch (const std::exception& ex) {
         std::cerr << "[fail] " << ex.what() << "\n";
         return 1;

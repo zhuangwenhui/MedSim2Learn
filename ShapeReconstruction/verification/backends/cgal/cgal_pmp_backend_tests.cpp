@@ -61,12 +61,25 @@ void test_cgal_options_validation() {
     );
 }
 
+void test_cgal_removes_isolated_vertices() {
+    std::vector<mvrmesh::Vec3> vertices = tetra_vertices();
+    vertices.push_back(mvrmesh::Vec3{10.0, 10.0, 10.0});
+
+    const mvrmesh::CgalPmpResult result =
+        mvrmesh::run_cgal_pmp_backend(vertices, tetra_faces(), mvrmesh::CgalPmpOptions{});
+
+    require(result.success, "CGAL cleanup should process an input with isolated vertices");
+    require(result.input_vertex_count == 5, "Test input should include the isolated vertex");
+    require(result.output_vertex_count == 4, "CGAL cleanup should remove the isolated vertex");
+}
+
 }  // namespace
 
 int main() {
     try {
         test_cgal_pmp_backend_availability_contract();
         test_cgal_options_validation();
+        test_cgal_removes_isolated_vertices();
     } catch (const std::exception& ex) {
         std::cerr << "[fail] " << ex.what() << "\n";
         return 1;

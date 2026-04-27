@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "mvrmesh/backends/cgal/cgal_pmp_backend.h"
-#include "mvrmesh/backends/gmsh/gmsh_evaluator.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/metrics.h"
 #include "mvrmesh/core/pipeline.h"
@@ -24,24 +23,16 @@ struct CliOptions {
     std::filesystem::path input;
     std::filesystem::path output;
     std::filesystem::path metrics_output;
-    std::filesystem::path gmsh_metrics_output;
-    std::filesystem::path tetgen_metrics_output;
+    std::filesystem::path deformsim_pressure_output;
     bool has_output = false;
     bool has_metrics_output = false;
-    bool evaluate_gmsh = false;
-    bool has_gmsh_metrics_output = false;
-    bool has_gmsh_algorithm3d = false;
-    bool evaluate_tetgen = false;
-    bool has_tetgen_metrics_output = false;
-    bool has_tetgen_switches = false;
     bool has_cgal_target_edge_length = false;
     bool has_cgal_iterations = false;
-    std::string tetgen_switches = "pYQ";
+    bool has_deformsim_pressure_output = false;
     mvrmesh::OutputFormat format = mvrmesh::OutputFormat::Both;
     SurfaceBackend surface_backend = SurfaceBackend::Native;
     mvrmesh::BuildOptions build;
     mvrmesh::CgalPmpOptions cgal;
-    mvrmesh::GmshEvaluationOptions gmsh;
 };
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
@@ -51,10 +42,7 @@ struct CliOptions {
         "[--format ply|stl|both] [--metrics-output <json_path>] "
         "[--surface-backend native|cgal] [--cgal-target-edge-length <value>] "
         "[--cgal-iterations <n>] "
-        "[--evaluate-gmsh] [--gmsh-algorithm3d <int>] "
-        "[--gmsh-metrics-output <json_path>] "
-        "[--evaluate-tetgen] [--tetgen-switches <switches>] "
-        "[--tetgen-metrics-output <json_path>] [--adaptive-remesh] "
+        "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
         "Default output (without --output): <project_root>/outPut/{PLY|STL}/<input_stem>"
@@ -124,34 +112,12 @@ CliOptions parse_args(int argc, char** argv) {
             }
             options.metrics_output = std::filesystem::path(argv[++i]);
             options.has_metrics_output = true;
-        } else if (arg == "--evaluate-gmsh") {
-            options.evaluate_gmsh = true;
-        } else if (arg == "--gmsh-algorithm3d") {
+        } else if (arg == "--deformsim-pressure-output") {
             if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --gmsh-algorithm3d.");
+                throw_usage_error("Missing value for --deformsim-pressure-output.");
             }
-            options.gmsh.algorithm3d = parse_int_value(argv[++i], "--gmsh-algorithm3d");
-            options.has_gmsh_algorithm3d = true;
-        } else if (arg == "--gmsh-metrics-output") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --gmsh-metrics-output.");
-            }
-            options.gmsh_metrics_output = std::filesystem::path(argv[++i]);
-            options.has_gmsh_metrics_output = true;
-        } else if (arg == "--evaluate-tetgen") {
-            options.evaluate_tetgen = true;
-        } else if (arg == "--tetgen-switches") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --tetgen-switches.");
-            }
-            options.tetgen_switches = argv[++i];
-            options.has_tetgen_switches = true;
-        } else if (arg == "--tetgen-metrics-output") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --tetgen-metrics-output.");
-            }
-            options.tetgen_metrics_output = std::filesystem::path(argv[++i]);
-            options.has_tetgen_metrics_output = true;
+            options.deformsim_pressure_output = std::filesystem::path(argv[++i]);
+            options.has_deformsim_pressure_output = true;
         } else if (arg == "--format") {
             if (i + 1 >= argc) {
                 throw_usage_error("Missing value for --format.");
@@ -207,20 +173,8 @@ CliOptions parse_args(int argc, char** argv) {
     if (!(options.build.adaptive_split_ratio > 0.0 && options.build.adaptive_split_ratio <= 1.0)) {
         throw std::runtime_error("--adaptive-split-ratio must be in (0, 1]");
     }
-    if (options.has_tetgen_metrics_output && !options.evaluate_tetgen) {
-        throw std::runtime_error("--tetgen-metrics-output requires --evaluate-tetgen");
-    }
-    if (options.has_tetgen_switches && !options.evaluate_tetgen) {
-        throw std::runtime_error("--tetgen-switches requires --evaluate-tetgen");
-    }
-    if (options.has_gmsh_metrics_output && !options.evaluate_gmsh) {
-        throw std::runtime_error("--gmsh-metrics-output requires --evaluate-gmsh");
-    }
-    if (options.has_gmsh_algorithm3d && !options.evaluate_gmsh) {
-        throw std::runtime_error("--gmsh-algorithm3d requires --evaluate-gmsh");
-    }
-    if (options.has_gmsh_algorithm3d && options.gmsh.algorithm3d <= 0) {
-        throw std::runtime_error("--gmsh-algorithm3d must be > 0");
+    if (options.has_deformsim_pressure_output && options.format == mvrmesh::OutputFormat::Stl) {
+        throw std::runtime_error("--deformsim-pressure-output requires --format ply or both");
     }
     if (options.surface_backend != SurfaceBackend::Cgal) {
         if (options.has_cgal_target_edge_length) {
@@ -379,6 +333,16 @@ void ensure_parent_directory(const std::filesystem::path& path) {
     }
 }
 
+std::filesystem::path first_ply_output(const std::vector<std::filesystem::path>& paths) {
+    for (const auto& path : paths) {
+        const std::string ext = path.extension().string();
+        if (ext == ".ply" || ext == ".PLY") {
+            return path;
+        }
+    }
+    return {};
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -428,56 +392,6 @@ int main(int argc, char** argv) {
                   << ", output vertices=" << result.vertices.size()
                   << ", faces=" << result.faces.size() << "\n";
 
-        if (args.evaluate_tetgen) {
-#if MVRMESH_TETGEN_ENABLED
-            mvrmesh::TetGenEvaluationOptions tetgen_options;
-            tetgen_options.switches = args.tetgen_switches;
-            const mvrmesh::TetGenEvaluationResult tetgen_result =
-                mvrmesh::evaluate_tetgen(result.vertices, result.faces, tetgen_options);
-            if (!tetgen_result.success) {
-                throw std::runtime_error("TetGen evaluation failed: " + tetgen_result.diagnostic);
-            }
-            std::cout << "[info] tetgen switches=" << tetgen_result.switches
-                      << ", output vertices=" << tetgen_result.output_vertex_count
-                      << ", tetrahedra=" << tetgen_result.output_tetra_count
-                      << ", boundary faces=" << tetgen_result.output_boundary_face_count << "\n";
-
-            if (args.has_tetgen_metrics_output) {
-                const std::filesystem::path tetgen_metrics_path =
-                    std::filesystem::absolute(args.tetgen_metrics_output);
-                ensure_parent_directory(tetgen_metrics_path);
-                mvrmesh::write_tetgen_evaluation_json(tetgen_metrics_path, tetgen_result);
-                std::cout << "[ok] wrote tetgen metrics " << tetgen_metrics_path.string() << "\n";
-            }
-#else
-            throw std::runtime_error("TetGen evaluation backend is disabled in this build.");
-#endif
-        }
-
-        if (args.evaluate_gmsh) {
-#if MVRMESH_GMSH_ENABLED
-            const mvrmesh::GmshEvaluationResult gmsh_result =
-                mvrmesh::evaluate_gmsh(result.vertices, result.faces, args.gmsh);
-            if (!gmsh_result.success) {
-                throw std::runtime_error("Gmsh evaluation failed: " + gmsh_result.diagnostic);
-            }
-            std::cout << "[info] gmsh algorithm3d=" << gmsh_result.algorithm3d
-                      << ", output vertices=" << gmsh_result.output_vertex_count
-                      << ", tetrahedra=" << gmsh_result.output_tetra_count
-                      << ", boundary faces=" << gmsh_result.output_boundary_face_count << "\n";
-
-            if (args.has_gmsh_metrics_output) {
-                const std::filesystem::path gmsh_metrics_path =
-                    std::filesystem::absolute(args.gmsh_metrics_output);
-                ensure_parent_directory(gmsh_metrics_path);
-                mvrmesh::write_gmsh_evaluation_json(gmsh_metrics_path, gmsh_result);
-                std::cout << "[ok] wrote gmsh metrics " << gmsh_metrics_path.string() << "\n";
-            }
-#else
-            throw std::runtime_error("Gmsh evaluation backend is disabled in this build.");
-#endif
-        }
-
         for (const auto& out_path : out_paths) {
             ensure_parent_directory(out_path);
 
@@ -490,6 +404,31 @@ int main(int argc, char** argv) {
                 throw std::runtime_error("Unsupported output extension: " + out_path.extension().string());
             }
             std::cout << "[ok] wrote " << out_path.string() << "\n";
+        }
+
+        if (args.has_deformsim_pressure_output) {
+#if MVRMESH_TETGEN_ENABLED
+            mvrmesh::DeformSimPressureOptions pressure_options;
+            pressure_options.input_ply = first_ply_output(out_paths).string();
+            const mvrmesh::DeformSimPressureResult pressure_result =
+                mvrmesh::evaluate_deformsim_pressure(result.vertices, result.faces, pressure_options);
+            if (!pressure_result.success) {
+                throw std::runtime_error("DeformSim pressure evaluation failed: " + pressure_result.diagnostic);
+            }
+            std::cout << "[info] deformsim pressure: tetgen vertices="
+                      << pressure_result.tetgen_output_vertex_count
+                      << ", tetrahedra=" << pressure_result.tetgen_output_tetra_count
+                      << ", matrix order=" << pressure_result.estimated_matrix_order
+                      << ", dense K/L bytes=" << pressure_result.estimated_dense_k_l_bytes << "\n";
+
+            const std::filesystem::path pressure_path =
+                std::filesystem::absolute(args.deformsim_pressure_output);
+            ensure_parent_directory(pressure_path);
+            mvrmesh::write_deformsim_pressure_json(pressure_path, pressure_result);
+            std::cout << "[ok] wrote deformsim pressure " << pressure_path.string() << "\n";
+#else
+            throw std::runtime_error("TetGen pressure evaluation backend is disabled in this build.");
+#endif
         }
 
         if (args.has_metrics_output) {

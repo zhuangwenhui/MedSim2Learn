@@ -6,6 +6,7 @@
 #include <string>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/remesh.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/helpers.h>
@@ -142,6 +143,10 @@ CgalPmpResult run_cgal_pmp_backend(
         if (!build_cgal_mesh(vertices, faces, mesh, result)) {
             return result;
         }
+        PMP::remove_isolated_vertices(mesh);
+        if (mesh.has_garbage()) {
+            mesh.collect_garbage();
+        }
 
         if (options.target_edge_length > 0.0) {
             PMP::isotropic_remeshing(
@@ -152,6 +157,10 @@ CgalPmpResult run_cgal_pmp_backend(
                     static_cast<unsigned int>(options.remesh_iterations)
                 )
             );
+            if (mesh.has_garbage()) {
+                mesh.collect_garbage();
+            }
+            PMP::remove_isolated_vertices(mesh);
             if (mesh.has_garbage()) {
                 mesh.collect_garbage();
             }
@@ -167,8 +176,8 @@ CgalPmpResult run_cgal_pmp_backend(
 
         result.success = true;
         result.diagnostic = options.target_edge_length > 0.0
-                                ? "CGAL PMP backend remeshed the surface"
-                                : "CGAL PMP backend validated the surface";
+                                ? "CGAL PMP backend cleaned and remeshed the surface"
+                                : "CGAL PMP backend cleaned and validated the surface";
         return result;
     } catch (const std::exception& ex) {
         result.success = false;
