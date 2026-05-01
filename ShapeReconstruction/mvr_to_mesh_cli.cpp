@@ -33,6 +33,17 @@ struct CliOptions {
     SurfaceBackend surface_backend = SurfaceBackend::Native;
     mvrmesh::BuildOptions build;
     mvrmesh::CgalPmpOptions cgal;
+
+    // robust pipeline (Task 7)
+    bool robust_pipeline = false;
+    bool has_max_dense_kl_bytes = false;
+    bool has_sharp_edge_degrees = false;
+    bool has_robust_target_edge_length = false;
+    bool has_remesh_iterations = false;
+    std::size_t max_dense_kl_bytes = 4ull * 1024 * 1024 * 1024;  // 4 GiB default
+    double sharp_edge_degrees = 60.0;
+    double robust_target_edge_length = 0.0;
+    int remesh_iterations = 3;
 };
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
@@ -43,7 +54,9 @@ struct CliOptions {
         "[--surface-backend native|cgal] [--cgal-target-edge-length <value>] "
         "[--cgal-iterations <n>] "
         "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
-        "[--adaptive-iterations N] [--adaptive-split-ratio R]\n"
+        "[--adaptive-iterations N] [--adaptive-split-ratio R] "
+        "[--robust-pipeline [--max-dense-kl-bytes B] [--sharp-edge-degrees D] "
+        "[--target-edge-length L] [--remesh-iterations N]]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
         "Default output (without --output): <project_root>/outPut/{PLY|STL}/<input_stem>"
     );
@@ -65,6 +78,15 @@ double parse_double_value(const std::string& text, const std::string& flag_name)
         throw std::runtime_error("Invalid value for " + flag_name + ": " + text);
     }
     return value;
+}
+
+std::size_t parse_size_t_value(const std::string& text, const std::string& flag_name) {
+    std::size_t consumed = 0;
+    const unsigned long long value = std::stoull(text, &consumed);
+    if (consumed != text.size()) {
+        throw std::runtime_error("Invalid value for " + flag_name + ": " + text);
+    }
+    return static_cast<std::size_t>(value);
 }
 
 SurfaceBackend parse_surface_backend(const std::string& text) {
@@ -140,6 +162,36 @@ CliOptions parse_args(int argc, char** argv) {
             }
             options.cgal.remesh_iterations = parse_int_value(argv[++i], "--cgal-iterations");
             options.has_cgal_iterations = true;
+        } else if (arg == "--robust-pipeline") {
+            options.robust_pipeline = true;
+        } else if (arg == "--max-dense-kl-bytes") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --max-dense-kl-bytes.");
+            }
+            options.max_dense_kl_bytes = parse_size_t_value(
+                argv[++i], "--max-dense-kl-bytes");
+            options.has_max_dense_kl_bytes = true;
+        } else if (arg == "--sharp-edge-degrees") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --sharp-edge-degrees.");
+            }
+            options.sharp_edge_degrees = parse_double_value(
+                argv[++i], "--sharp-edge-degrees");
+            options.has_sharp_edge_degrees = true;
+        } else if (arg == "--target-edge-length") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --target-edge-length.");
+            }
+            options.robust_target_edge_length = parse_double_value(
+                argv[++i], "--target-edge-length");
+            options.has_robust_target_edge_length = true;
+        } else if (arg == "--remesh-iterations") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --remesh-iterations.");
+            }
+            options.remesh_iterations = parse_int_value(
+                argv[++i], "--remesh-iterations");
+            options.has_remesh_iterations = true;
         } else if (arg == "--adaptive-remesh") {
             options.build.adaptive_remesh = true;
         } else if (arg == "--adaptive-iterations") {
@@ -189,6 +241,47 @@ CliOptions parse_args(int argc, char** argv) {
     }
     if (options.has_cgal_iterations && options.cgal.remesh_iterations < 1) {
         throw std::runtime_error("--cgal-iterations must be >= 1");
+    }
+
+    // Robust pipeline validation (Task 7)
+    if (options.robust_pipeline) {
+        if (options.surface_backend == SurfaceBackend::Cgal) {
+            throw std::runtime_error("--robust-pipeline conflicts with --surface-backend cgal");
+        }
+        if (options.build.adaptive_remesh) {
+            throw std::runtime_error("--robust-pipeline conflicts with --adaptive-remesh");
+        }
+        if (options.has_cgal_target_edge_length) {
+            throw std::runtime_error("--robust-pipeline conflicts with --cgal-target-edge-length");
+        }
+        if (options.has_cgal_iterations) {
+            throw std::runtime_error("--robust-pipeline conflicts with --cgal-iterations");
+        }
+        if (options.max_dense_kl_bytes == 0) {
+            throw std::runtime_error("--max-dense-kl-bytes must be > 0");
+        }
+        if (!(options.sharp_edge_degrees > 0.0 && options.sharp_edge_degrees < 180.0)) {
+            throw std::runtime_error("--sharp-edge-degrees must be in (0, 180)");
+        }
+        if (options.robust_target_edge_length < 0.0) {
+            throw std::runtime_error("--target-edge-length must be >= 0");
+        }
+        if (options.remesh_iterations < 1) {
+            throw std::runtime_error("--remesh-iterations must be >= 1");
+        }
+    } else {
+        if (options.has_max_dense_kl_bytes) {
+            throw std::runtime_error("--max-dense-kl-bytes requires --robust-pipeline");
+        }
+        if (options.has_sharp_edge_degrees) {
+            throw std::runtime_error("--sharp-edge-degrees requires --robust-pipeline");
+        }
+        if (options.has_robust_target_edge_length) {
+            throw std::runtime_error("--target-edge-length requires --robust-pipeline");
+        }
+        if (options.has_remesh_iterations) {
+            throw std::runtime_error("--remesh-iterations requires --robust-pipeline");
+        }
     }
 
     return options;
