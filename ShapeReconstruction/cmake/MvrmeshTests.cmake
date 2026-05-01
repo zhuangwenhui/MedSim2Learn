@@ -42,6 +42,33 @@ if(MVRMESH_ENABLE_CGAL)
         )
         target_link_libraries(mvrmesh_robust_pipeline_tests PRIVATE mvrmesh)
         add_test(NAME mvrmesh_robust_pipeline COMMAND mvrmesh_robust_pipeline_tests)
+
+        # Note: tiny_surface.mvr is the corner tetrahedron whose adjacent-face-normal
+        # angles all exceed 60 deg, which would trip stage 2's all-edges-sharp guard
+        # under the default --sharp-edge-degrees=60. The override to 130 mirrors what
+        # test_pipeline_happy_path_tetrahedron and the stage-2 unit tests already do
+        # for the same fixture geometry.
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline
+                --sharp-edge-degrees 130
+                --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust"
+        )
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_with_pressure
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline
+                --sharp-edge-degrees 130
+                --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure"
+                --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure.json"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_with_pressure PROPERTIES
+            PASS_REGULAR_EXPRESSION "step 3 \\(simplify\\): skipped")
     endif()
 endif()
 
