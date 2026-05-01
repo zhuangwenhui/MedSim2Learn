@@ -304,6 +304,75 @@ void test_remesh_throws_when_all_edges_sharp() {
     require(threw, "expected runtime_error when threshold flags all edges as sharp");
 }
 
+// ---------- Stage 3: simplify_to_budget_step ----------
+
+void test_simplify_skipped_when_under_budget() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    // Single tetrahedron: tiny mesh, budget = 4 GiB -> always within budget
+    const std::vector<Vec3> vertices{
+        Vec3{0.0, 0.0, 0.0},
+        Vec3{1.0, 0.0, 0.0},
+        Vec3{0.0, 1.0, 0.0},
+        Vec3{0.0, 0.0, 1.0},
+    };
+    const std::vector<Face> faces{
+        Face{0, 2, 1}, Face{0, 1, 3}, Face{1, 2, 3}, Face{2, 0, 3},
+    };
+
+    const auto io = mvrmesh::detail::simplify_to_budget_step(
+        vertices, faces, /*max_dense_kl_bytes=*/4ull * 1024 * 1024 * 1024,
+        /*safety_margin=*/0.9);
+    require(io.report.skipped_within_budget,
+            "tiny mesh under 4 GiB budget must skip simplification");
+    require(io.vertices.size() == vertices.size(),
+            "skipped step must preserve vertex count");
+    require(io.report.bytes_initial == io.report.bytes_final,
+            "skipped step records bytes_initial == bytes_final");
+    require(io.final_pressure_result.success,
+            "first pressure evaluation must succeed for tetrahedron");
+}
+
+void test_simplify_throws_when_target_below_three() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    // 6 verts + 8 faces (regular octahedron). With budget = 1 byte, the derived
+    // N_target = floor(N * sqrt(B/C) * margin) is forced below 3, which the step
+    // rejects early.
+    const std::vector<Vec3> vertices{
+        Vec3{ 1.0,  0.0,  0.0},
+        Vec3{-1.0,  0.0,  0.0},
+        Vec3{ 0.0,  1.0,  0.0},
+        Vec3{ 0.0, -1.0,  0.0},
+        Vec3{ 0.0,  0.0,  1.0},
+        Vec3{ 0.0,  0.0, -1.0},
+    };
+    const std::vector<Face> faces{
+        Face{0, 2, 4}, Face{2, 1, 4}, Face{1, 3, 4}, Face{3, 0, 4},
+        Face{2, 0, 5}, Face{1, 2, 5}, Face{3, 1, 5}, Face{0, 3, 5},
+    };
+
+    bool threw = false;
+    try {
+        // Budget = 1 byte forces N_target = 0
+        mvrmesh::detail::simplify_to_budget_step(
+            vertices, faces, /*max_dense_kl_bytes=*/1, /*safety_margin=*/0.9);
+    } catch (const std::runtime_error& ex) {
+        threw = true;
+        const std::string msg = ex.what();
+        require(message_contains(msg, "step 3"), "message must contain 'step 3'");
+        require(message_contains(msg, "too tight") || message_contains(msg, "minimum 3"),
+                "message must indicate target below 3");
+    }
+    require(threw, "expected runtime_error when budget yields N_target < 3");
+}
+
+// Stage 3 "actually reduces vertices" test deferred: constructing a mesh that exceeds
+// 4 GiB while staying under unit-test memory is impractical. Real-data coverage comes
+// via the conditional kidney CLI test in Task 10.
+
 }  // namespace
 
 int main() {
@@ -318,10 +387,12 @@ int main() {
         test_remesh_target_edge_length_auto_resolves_to_mean();
         test_remesh_detects_sharp_edge_in_flat_bipyramid();
         test_remesh_throws_when_all_edges_sharp();
+        test_simplify_skipped_when_under_budget();
+        test_simplify_throws_when_target_below_three();
     } catch (const std::exception& ex) {
         std::cerr << "[fail] " << ex.what() << "\n";
         return 1;
     }
-    std::cout << "[ok] cgal_robust_pipeline_tests (stages 1+2) passed\n";
+    std::cout << "[ok] cgal_robust_pipeline_tests (stages 1+2+3) passed\n";
     return 0;
 }

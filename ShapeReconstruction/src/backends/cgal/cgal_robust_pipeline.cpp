@@ -3,12 +3,14 @@
 #if MVRMESH_CGAL_PMP_ENABLED
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <CGAL/Polygon_mesh_processing/detect_features.h>
@@ -20,6 +22,14 @@
 #include <CGAL/Polygon_mesh_processing/triangulate_hole.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
+#include <CGAL/Surface_mesh_simplification/edge_collapse.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Bounded_normal_change_filter.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/Edge_count_stop_predicate.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/LindstromTurk_cost.h>
+#include <CGAL/Surface_mesh_simplification/Policies/Edge_collapse/LindstromTurk_placement.h>
+// Note: GarlandHeckbert_plane_policies requires Eigen3, which is not installed in this
+// vcpkg environment. LindstromTurk (also QEM-based) is used as a drop-in substitute
+// until Eigen3 is added to vcpkg dependencies.
 
 namespace mvrmesh {
 
@@ -326,11 +336,112 @@ ProtectedRemeshStepIO protected_remesh_step(
 }
 
 SimplifyToBudgetStepIO simplify_to_budget_step(
-    const std::vector<Vec3>& /*vertices*/,
-    const std::vector<Face>& /*faces*/,
-    std::size_t /*max_dense_kl_bytes*/,
-    double      /*safety_margin*/) {
-    throw std::runtime_error("simplify_to_budget_step: not implemented yet");
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces,
+    std::size_t max_dense_kl_bytes,
+    double      safety_margin) {
+    if (max_dense_kl_bytes == 0) {
+        throw std::runtime_error("step 3 (simplify): max_dense_kl_bytes must be > 0");
+    }
+    if (!(safety_margin > 0.0 && safety_margin <= 1.0)) {
+        throw std::runtime_error("step 3 (simplify): safety_margin must be in (0, 1]");
+    }
+
+    SimplifyToBudgetStepIO io;
+    io.report.input_vertex_count = vertices.size();
+    io.report.input_face_count   = faces.size();
+    io.report.budget_bytes       = max_dense_kl_bytes;
+
+    // First pressure evaluation
+    DeformSimPressureOptions po;  // defaults: switches="pYQ"
+    po.input_ply = "robust_pipeline_internal";
+    DeformSimPressureResult p0 = evaluate_deformsim_pressure(vertices, faces, po);
+    if (!p0.success) {
+        std::ostringstream oss;
+        oss << "step 3 (simplify): TetGen failed during initial pressure evaluation. "
+            << p0.diagnostic << ". Cannot determine if simplification is needed.";
+        throw std::runtime_error(oss.str());
+    }
+    io.report.bytes_initial = p0.estimated_dense_k_l_bytes;
+
+    if (p0.estimated_dense_k_l_bytes <= max_dense_kl_bytes) {
+        io.report.skipped_within_budget = true;
+        io.report.bytes_final           = p0.estimated_dense_k_l_bytes;
+        io.report.output_vertex_count   = vertices.size();
+        io.report.output_face_count     = faces.size();
+        io.report.target_vertex_count   = 0;
+        io.vertices                     = vertices;
+        io.faces                        = faces;
+        io.final_pressure_result        = std::move(p0);
+        return io;
+    }
+
+    // Derive target vertex count
+    const double ratio = static_cast<double>(max_dense_kl_bytes) /
+                         static_cast<double>(p0.estimated_dense_k_l_bytes);
+    const double n_target_raw = static_cast<double>(vertices.size()) * std::sqrt(ratio);
+    const std::size_t n_target = static_cast<std::size_t>(
+        std::floor(n_target_raw * safety_margin));
+    io.report.target_vertex_count = n_target;
+    if (n_target < 3) {
+        std::ostringstream oss;
+        oss << "step 3 (simplify): budget " << max_dense_kl_bytes
+            << " is too tight; target vertex count " << n_target
+            << " is below the minimum 3 to form a closed surface. "
+            << "Raise --max-dense-kl-bytes.";
+        throw std::runtime_error(oss.str());
+    }
+
+    // Build CGAL Surface_mesh and run edge_collapse
+    CgalSurfaceMesh mesh;
+    mvrmesh_to_surface_mesh(vertices, faces, mesh);
+
+    namespace SMS = CGAL::Surface_mesh_simplification;
+    try {
+        // Edge_count_stop_predicate stops on EDGE count, not vertex count.
+        // For a triangulated manifold surface mesh, Euler's formula gives
+        // E ~= 3V - 6, so to stop at ~n_target vertices we set the edge
+        // target to 3 * n_target. The post-check pressure evaluation below
+        // still validates the final byte budget, so any small approximation
+        // error here is bounded by that envelope.
+        const std::size_t edge_target = 3u * n_target;
+        SMS::Edge_count_stop_predicate<CgalSurfaceMesh> stop(edge_target);
+        SMS::edge_collapse(
+            mesh, stop,
+            CGAL::parameters::get_cost(SMS::LindstromTurk_cost<CgalSurfaceMesh>())
+                             .get_placement(SMS::LindstromTurk_placement<CgalSurfaceMesh>())
+                             .filter(SMS::Bounded_normal_change_filter<>()));
+    } catch (const std::exception& ex) {
+        std::ostringstream oss;
+        oss << "step 3 (simplify): edge_collapse failed: " << ex.what();
+        throw std::runtime_error(oss.str());
+    }
+
+    surface_mesh_to_mvrmesh(mesh, io.vertices, io.faces);
+    io.report.output_vertex_count = io.vertices.size();
+    io.report.output_face_count   = io.faces.size();
+
+    // Second pressure evaluation
+    DeformSimPressureResult p1 = evaluate_deformsim_pressure(io.vertices, io.faces, po);
+    if (!p1.success) {
+        std::ostringstream oss;
+        oss << "step 3 (simplify): TetGen failed during final pressure verification. "
+            << p1.diagnostic << ". Final mesh may be valid but pressure cannot be confirmed.";
+        throw std::runtime_error(oss.str());
+    }
+    io.report.bytes_final = p1.estimated_dense_k_l_bytes;
+    if (p1.estimated_dense_k_l_bytes > max_dense_kl_bytes) {
+        std::ostringstream oss;
+        oss << "step 3 (simplify): envelope predicate prevented sufficient collapse; "
+            << "target=" << n_target << " reached=" << io.vertices.size()
+            << "; final bytes=" << p1.estimated_dense_k_l_bytes
+            << " > budget=" << max_dense_kl_bytes
+            << ". Consider raising --max-dense-kl-bytes from " << max_dense_kl_bytes << ".";
+        throw std::runtime_error(oss.str());
+    }
+
+    io.final_pressure_result = std::move(p1);
+    return io;
 }
 
 }  // namespace detail
