@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -168,6 +169,46 @@ double mean_edge_length(const CgalSurfaceMesh& mesh) {
         total += PMP::edge_length(mesh.halfedge(e), mesh);
     }
     return total / static_cast<double>(mesh.number_of_edges());
+}
+
+void log_repair(const RepairStepReport& r) {
+    std::cout << "[info] robust pipeline step 1 (repair): "
+              << "in_v="    << r.input_vertex_count
+              << " in_f="   << r.input_face_count
+              << " out_v="  << r.output_vertex_count
+              << " out_f="  << r.output_face_count
+              << " dups="   << r.removed_duplicate_vertices
+              << " degen="  << r.removed_degenerate_faces
+              << " holes="  << r.holes_filled << "\n";
+}
+
+void log_remesh(const ProtectedRemeshStepReport& r) {
+    std::cout << "[info] robust pipeline step 2 (remesh): "
+              << "in_v="           << r.input_vertex_count
+              << " in_f="          << r.input_face_count
+              << " out_v="         << r.output_vertex_count
+              << " out_f="         << r.output_face_count
+              << " sharp_edges="   << r.sharp_edges_detected
+              << " target_edge="   << r.target_edge_length_used
+              << " iters="         << r.remesh_iterations_used << "\n";
+}
+
+void log_simplify(const SimplifyToBudgetStepReport& r) {
+    if (r.skipped_within_budget) {
+        std::cout << "[info] robust pipeline step 3 (simplify): "
+                  << "skipped (within_budget): bytes=" << r.bytes_initial
+                  << " budget=" << r.budget_bytes << "\n";
+        return;
+    }
+    std::cout << "[info] robust pipeline step 3 (simplify): "
+              << "in_v="     << r.input_vertex_count
+              << " in_f="    << r.input_face_count
+              << " out_v="   << r.output_vertex_count
+              << " out_f="   << r.output_face_count
+              << " budget="  << r.budget_bytes
+              << " init="    << r.bytes_initial
+              << " final="   << r.bytes_final
+              << " target_v=" << r.target_vertex_count << "\n";
 }
 
 }  // namespace
@@ -447,10 +488,33 @@ SimplifyToBudgetStepIO simplify_to_budget_step(
 }  // namespace detail
 
 RobustPipelineResult run_cgal_robust_pipeline(
-    const std::vector<Vec3>& /*vertices*/,
-    const std::vector<Face>& /*faces*/,
-    const RobustPipelineOptions& /*options*/) {
-    throw std::runtime_error("run_cgal_robust_pipeline: not implemented yet");
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces,
+    const RobustPipelineOptions& options) {
+    auto repair = detail::repair_polygon_soup_step(vertices, faces);
+    log_repair(repair.report);
+
+    auto remesh = detail::protected_remesh_step(
+        repair.vertices, repair.faces,
+        options.sharp_edge_dihedral_degrees,
+        options.target_edge_length,
+        options.remesh_iterations);
+    log_remesh(remesh.report);
+
+    auto simplify = detail::simplify_to_budget_step(
+        remesh.vertices, remesh.faces,
+        options.max_dense_kl_bytes,
+        options.simplify_safety_margin);
+    log_simplify(simplify.report);
+
+    RobustPipelineResult result;
+    result.vertices              = std::move(simplify.vertices);
+    result.faces                 = std::move(simplify.faces);
+    result.repair_report         = repair.report;
+    result.remesh_report         = remesh.report;
+    result.simplify_report       = simplify.report;
+    result.final_pressure_result = std::move(simplify.final_pressure_result);
+    return result;
 }
 
 }  // namespace mvrmesh
