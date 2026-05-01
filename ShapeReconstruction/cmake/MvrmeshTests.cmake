@@ -69,6 +69,70 @@ if(MVRMESH_ENABLE_CGAL)
         )
         set_tests_properties(mvrmesh_cli_robust_pipeline_with_pressure PROPERTIES
             PASS_REGULAR_EXPRESSION "step 3 \\(simplify\\): skipped")
+
+        # Negative: --robust-pipeline conflicts (use WILL_FAIL TRUE so CTest passes
+        # when the CLI exits non-zero). Each rule has its own test entry -- do not
+        # combine multiple rule violations into one test, since parse_args returns
+        # on the FIRST violation and we'd lose coverage of the later rules.
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_rejects_surface_backend_cgal
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline --surface-backend cgal --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_sb"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_surface_backend_cgal
+            PROPERTIES WILL_FAIL TRUE)
+
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline --adaptive-remesh --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ar"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
+            PROPERTIES WILL_FAIL TRUE)
+
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_rejects_cgal_target_edge_length
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline --cgal-target-edge-length 0.5 --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ctel"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_cgal_target_edge_length
+            PROPERTIES WILL_FAIL TRUE)
+
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_rejects_cgal_iterations
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline --cgal-iterations 2 --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ci"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_cgal_iterations
+            PROPERTIES WILL_FAIL TRUE)
+
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_rejects_zero_budget
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --robust-pipeline --max-dense-kl-bytes 0 --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_zb"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_zero_budget
+            PROPERTIES WILL_FAIL TRUE)
+
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_TEST_FIXTURE}"
+                --max-dense-kl-bytes 4294967296 --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_no_pipeline"
+        )
+        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
+            PROPERTIES WILL_FAIL TRUE)
     endif()
 endif()
 
