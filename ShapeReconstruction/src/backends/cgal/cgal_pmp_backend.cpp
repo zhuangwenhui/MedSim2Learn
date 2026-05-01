@@ -5,9 +5,9 @@
 #include <limits>
 #include <string>
 
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/remesh.h>
+#include <CGAL/Polygon_mesh_processing/repair.h>
+#include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/boost/graph/helpers.h>
 
@@ -15,7 +15,13 @@ namespace mvrmesh {
 
 namespace {
 
-using CgalKernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+// Simple_cartesian<double> is sufficient for isotropic_remeshing and
+// remove_isolated_vertices: those operations rely on linear constructions
+// (midpoints, tangential relaxation) and topological predicates only, so the
+// extra robustness of Exact_predicates_inexact_constructions_kernel is not
+// needed here. Avoiding EPICK keeps this translation unit out of the
+// CGAL::Interval_nt / GMP code path on inexact-construction operations.
+using CgalKernel = CGAL::Simple_cartesian<double>;
 using CgalPoint = CgalKernel::Point_3;
 using CgalSurfaceMesh = CGAL::Surface_mesh<CgalPoint>;
 namespace PMP = CGAL::Polygon_mesh_processing;

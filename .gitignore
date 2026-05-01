@@ -9,6 +9,7 @@ __pycache__/
 # Local IDE/user files
 .superpowers/
 .vscode/settings.json
+.claude/
 .vs/
 *.suo
 *.user

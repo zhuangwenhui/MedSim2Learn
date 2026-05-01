@@ -21,6 +21,7 @@
         "cmake.useCMakePresets": "always",
         "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
         "python-envs.defaultEnvManager": "ms-python.python:conda",
-        "python-envs.defaultPackageManager": "ms-python.python:conda"
+        "python-envs.defaultPackageManager": "ms-python.python:conda",
+        "terminal.integrated.useWslProfiles": false
     }
 }

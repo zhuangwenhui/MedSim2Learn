@@ -1,5 +1,3 @@
-enable_testing()
-
 set(MVRMESH_TEST_FIXTURE
     "${CMAKE_CURRENT_SOURCE_DIR}/verification/fixtures/tiny_surface.mvr"
 )

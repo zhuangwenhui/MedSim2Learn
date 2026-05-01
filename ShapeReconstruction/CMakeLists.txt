@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(MVRMESH_ENABLE_CGAL "Build the CGAL PMP surface backend" ON)
 option(MVRMESH_ENABLE_TETGEN "Build the TetGen tetrahedral evaluation backend" ON)
+option(MVRMESH_BUILD_TESTS "Build mvrmesh CTest suites (smoke, backends, CLI)" ON)
 
 include(cmake/MvrmeshCore.cmake)
 
@@ -61,4 +62,11 @@ add_executable(mvr_to_mesh_cli
 
 target_link_libraries(mvr_to_mesh_cli PRIVATE mvrmesh)
 
-include(cmake/MvrmeshTests.cmake)
+# enable_testing() must be called unconditionally so CMake regenerates an
+# up-to-date CTestTestfile.cmake on every configure. Otherwise toggling
+# MVRMESH_BUILD_TESTS off leaves stale add_test entries from a prior ON build.
+enable_testing()
+
+if(MVRMESH_BUILD_TESTS)
+    include(cmake/MvrmeshTests.cmake)
+endif()
