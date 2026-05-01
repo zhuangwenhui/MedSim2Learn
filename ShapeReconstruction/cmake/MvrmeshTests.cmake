@@ -35,6 +35,14 @@ if(MVRMESH_ENABLE_CGAL)
     target_link_libraries(mvrmesh_cgal_pmp_tests PRIVATE mvrmesh)
 
     add_test(NAME mvrmesh_cgal_pmp COMMAND mvrmesh_cgal_pmp_tests)
+
+    if(MVRMESH_ENABLE_TETGEN)
+        add_executable(mvrmesh_robust_pipeline_tests
+            verification/backends/cgal/cgal_robust_pipeline_tests.cpp
+        )
+        target_link_libraries(mvrmesh_robust_pipeline_tests PRIVATE mvrmesh)
+        add_test(NAME mvrmesh_robust_pipeline COMMAND mvrmesh_robust_pipeline_tests)
+    endif()
 endif()
 
 add_test(
