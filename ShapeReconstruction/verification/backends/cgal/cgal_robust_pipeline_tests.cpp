@@ -185,6 +185,125 @@ void test_repair_throws_on_out_of_range_index() {
     require(threw, "expected runtime_error on out-of-range index");
 }
 
+// ---------- Stage 2: protected_remesh_step ----------
+
+void test_remesh_clean_octahedron_runs() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    // Regular octahedron: 6 vertices, 8 faces
+    const std::vector<Vec3> vertices{
+        Vec3{ 1.0,  0.0,  0.0},
+        Vec3{-1.0,  0.0,  0.0},
+        Vec3{ 0.0,  1.0,  0.0},
+        Vec3{ 0.0, -1.0,  0.0},
+        Vec3{ 0.0,  0.0,  1.0},
+        Vec3{ 0.0,  0.0, -1.0},
+    };
+    const std::vector<Face> faces{
+        Face{0, 2, 4}, Face{2, 1, 4}, Face{1, 3, 4}, Face{3, 0, 4},
+        Face{2, 0, 5}, Face{1, 2, 5}, Face{3, 1, 5}, Face{0, 3, 5},
+    };
+
+    // Threshold 130 deg keeps regular octahedron's ~70.53 deg adjacent-face-normal
+    // angle below the sharp threshold (so guard does not fire).
+    // Target 0.5 < 4/3 * sqrt(2)/4 ensures isotropic_remeshing actually splits edges
+    // instead of leaving the input topology untouched.
+    const auto io = mvrmesh::detail::protected_remesh_step(
+        vertices, faces, /*sharp_edge_dihedral_degrees=*/130.0, /*target_edge_length=*/0.5,
+        /*remesh_iterations=*/2);
+    require(io.faces.size() > faces.size(),
+            "isotropic_remeshing should add faces by splitting edges");
+    require(io.report.target_edge_length_used > 0.0,
+            "resolved target edge length must be positive");
+}
+
+void test_remesh_target_edge_length_auto_resolves_to_mean() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    const std::vector<Vec3> vertices{
+        Vec3{0.0, 0.0, 0.0},
+        Vec3{1.0, 0.0, 0.0},
+        Vec3{0.0, 1.0, 0.0},
+        Vec3{0.0, 0.0, 1.0},
+    };
+    const std::vector<Face> faces{
+        Face{0, 2, 1}, Face{0, 1, 3}, Face{1, 2, 3}, Face{2, 0, 3},
+    };
+
+    // Threshold 130 deg keeps the corner-tetrahedron's adjacent-face-normal angles
+    // (90 deg between the three right-angle faces, ~125 deg involving the slanted
+    // face) below the sharp threshold so the over-constraint guard does not fire.
+    const auto io = mvrmesh::detail::protected_remesh_step(
+        vertices, faces, 130.0, /*target_edge_length=*/0.0, /*remesh_iterations=*/1);
+    // Tetrahedron has 6 unique edges with lengths {1, 1, 1, sqrt2, sqrt2, sqrt2}
+    // Mean = (3 * 1 + 3 * sqrt2) / 6 = (1 + sqrt(2)) / 2 ~= 1.2071
+    const double expected_mean = (1.0 + std::sqrt(2.0)) / 2.0;
+    const double diff = std::abs(io.report.target_edge_length_used - expected_mean);
+    require(diff < 1e-6, "auto-resolved target edge length must equal mean of input edges");
+}
+
+void test_remesh_detects_sharp_edge_in_flat_bipyramid() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    // Flattened bipyramid: regular octahedron with the two apexes pulled close
+    // to the xy equator plane. CGAL's detect_sharp_edges marks border edges as
+    // feature by default, so an open "tent" cannot satisfy the assertion at
+    // any threshold. A closed bipyramid avoids that pitfall: the 4 equator
+    // edges have ~180 deg outward-normal angle (sharp), and the 8 apex-to-
+    // equator edges have ~0 deg (not sharp). At threshold 60 deg, sharp_count
+    // = 4 < total = 12, so the over-constraint guard does not fire.
+    const std::vector<Vec3> vertices{
+        Vec3{ 0.3,  0.0,  0.0 },
+        Vec3{-0.3,  0.0,  0.0 },
+        Vec3{ 0.0,  0.3,  0.0 },
+        Vec3{ 0.0, -0.3,  0.0 },
+        Vec3{ 0.0,  0.0,  0.02},
+        Vec3{ 0.0,  0.0, -0.02},
+    };
+    const std::vector<Face> faces{
+        Face{0, 2, 4}, Face{2, 1, 4}, Face{1, 3, 4}, Face{3, 0, 4},
+        Face{2, 0, 5}, Face{1, 2, 5}, Face{3, 1, 5}, Face{0, 3, 5},
+    };
+
+    const auto io = mvrmesh::detail::protected_remesh_step(
+        vertices, faces, /*sharp_edge_dihedral_degrees=*/60.0,
+        /*target_edge_length=*/0.5, /*remesh_iterations=*/1);
+    require(io.report.sharp_edges_detected >= 1,
+            "flat bipyramid must yield at least one sharp equator edge at threshold 60");
+}
+
+void test_remesh_throws_when_all_edges_sharp() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    const std::vector<Vec3> vertices{
+        Vec3{0.0, 0.0, 0.0},
+        Vec3{1.0, 0.0, 0.0},
+        Vec3{0.0, 1.0, 0.0},
+        Vec3{0.0, 0.0, 1.0},
+    };
+    const std::vector<Face> faces{
+        Face{0, 2, 1}, Face{0, 1, 3}, Face{1, 2, 3}, Face{2, 0, 3},
+    };
+
+    bool threw = false;
+    try {
+        // Threshold of 1.0 degree -> any non-coplanar edges are flagged
+        mvrmesh::detail::protected_remesh_step(
+            vertices, faces, /*sharp_edge_dihedral_degrees=*/1.0,
+            /*target_edge_length=*/0.0, /*remesh_iterations=*/1);
+    } catch (const std::runtime_error& ex) {
+        threw = true;
+        const std::string msg = ex.what();
+        require(message_contains(msg, "step 2"), "message must contain 'step 2'");
+        require(message_contains(msg, "every edge"), "message must contain 'every edge'");
+    }
+    require(threw, "expected runtime_error when threshold flags all edges as sharp");
+}
+
 }  // namespace
 
 int main() {
@@ -195,10 +314,14 @@ int main() {
         test_repair_fills_simple_quadrilateral_hole();
         test_repair_throws_on_empty_after_repair();
         test_repair_throws_on_out_of_range_index();
+        test_remesh_clean_octahedron_runs();
+        test_remesh_target_edge_length_auto_resolves_to_mean();
+        test_remesh_detects_sharp_edge_in_flat_bipyramid();
+        test_remesh_throws_when_all_edges_sharp();
     } catch (const std::exception& ex) {
         std::cerr << "[fail] " << ex.what() << "\n";
         return 1;
     }
-    std::cout << "[ok] cgal_robust_pipeline_tests (stage 1) passed\n";
+    std::cout << "[ok] cgal_robust_pipeline_tests (stages 1+2) passed\n";
     return 0;
 }
