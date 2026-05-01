@@ -181,4 +181,20 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
             --format ply
             -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_direct_cpp"
     )
+
+    if(MVRMESH_ENABLE_CGAL AND MVRMESH_ENABLE_TETGEN)
+        # Real-data integration probe. Uses default --sharp-edge-degrees=60 deliberately --
+        # the point is to surface kidney's actual behavior under production defaults.
+        # If this test fails, it is valuable feedback (which stage tripped on real data)
+        # rather than a fixture-tuning bug. Outcome captured in Task 11 evidence.
+        add_test(
+            NAME mvrmesh_cli_robust_pipeline_kidney
+            COMMAND mvr_to_mesh_cli
+                "${MVRMESH_SAMPLE_INPUT}"
+                --robust-pipeline
+                --format ply
+                -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust"
+                --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust_pressure.json"
+        )
+    endif()
 endif()
