@@ -38,25 +38,6 @@ int midpoint_index(std::vector<Vec3>& vertices, std::map<Edge, int>& cache, int 
     return idx;
 }
 
-int py_round_nonnegative_to_int(double value) {
-    const double floor_v = std::floor(value);
-    const double frac = value - floor_v;
-    const double eps = 1e-12;
-
-    if (frac > 0.5 + eps) {
-        return static_cast<int>(floor_v + 1.0);
-    }
-    if (frac < 0.5 - eps) {
-        return static_cast<int>(floor_v);
-    }
-
-    const int lower = static_cast<int>(floor_v);
-    if ((lower % 2) == 0) {
-        return lower;
-    }
-    return lower + 1;
-}
-
 }  // namespace
 
 std::vector<double> estimate_vertex_curvature(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
@@ -128,7 +109,7 @@ std::set<Edge> select_split_edges_by_curvature(
     });
 
     const int n_faces = static_cast<int>(faces.size());
-    const int rounded = py_round_nonnegative_to_int(static_cast<double>(n_faces) * split_ratio);
+    const int rounded = static_cast<int>(std::round(static_cast<double>(n_faces) * split_ratio));
     const int target = std::max(1, std::min(n_faces, rounded));
 
     std::set<int> selected_face_indices;

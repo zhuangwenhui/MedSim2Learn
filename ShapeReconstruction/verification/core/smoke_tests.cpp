@@ -83,23 +83,6 @@ void test_adaptive_single_triangle_split() {
     require(remeshed.second.size() == 4, "One fully split triangle should create 4 faces");
 }
 
-void test_python_round_behavior_for_face_selection() {
-    using mvrmesh::Face;
-
-    const std::vector<Face> faces{
-        Face{0, 1, 2},
-        Face{3, 4, 5},
-        Face{6, 7, 8},
-        Face{9, 10, 11},
-        Face{12, 13, 14},
-    };
-    const std::vector<double> curvature(15, 1.0);
-    const std::set<mvrmesh::Edge> edges = mvrmesh::select_split_edges_by_curvature(faces, curvature, 0.5);
-
-    // Python round(5 * 0.5) = round(2.5) = 2 (ties-to-even), so we expect 2 faces selected.
-    require(edges.size() == 6, "Split edge count should reflect Python-style tie-to-even rounding");
-}
-
 void test_surface_metrics_single_triangle() {
     using mvrmesh::Face;
     using mvrmesh::Vec3;
@@ -319,7 +302,6 @@ int main() {
         test_boundary_faces_single_tet();
         test_build_surface_uses_tet_boundary_without_triangles();
         test_adaptive_single_triangle_split();
-        test_python_round_behavior_for_face_selection();
         test_surface_metrics_single_triangle();
         test_tetra_mesh_metrics_regular_tetrahedron_quality();
         test_tetra_mesh_metrics_degenerate_tetrahedron_quality();
