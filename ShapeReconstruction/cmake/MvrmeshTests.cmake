@@ -33,7 +33,7 @@ if(MVRMESH_ENABLE_CGAL)
             verification/backends/cgal/cgal_mesh_tests.cpp
         )
         target_link_libraries(mvrmesh_cgal_mesh_tests PRIVATE mvrmesh)
-        add_test(NAME mvrmesh_robust_pipeline COMMAND mvrmesh_cgal_mesh_tests)
+        add_test(NAME mvrmesh_cgal_mesh COMMAND mvrmesh_cgal_mesh_tests)
 
         # Note: tiny_surface.mvr is the corner tetrahedron whose adjacent-face-normal
         # angles all exceed 60 deg, which would trip stage 2's all-edges-sharp guard
@@ -41,7 +41,7 @@ if(MVRMESH_ENABLE_CGAL)
         # test_pipeline_happy_path_tetrahedron and the stage-2 unit tests already do
         # for the same fixture geometry.
         add_test(
-            NAME mvrmesh_cli_robust_pipeline
+            NAME mvrmesh_cli_cgal_mesh
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
                 --cgal-mesh
@@ -63,23 +63,23 @@ if(MVRMESH_ENABLE_CGAL)
         # combine multiple rule violations into one test, since parse_args returns
         # on the FIRST violation and we'd lose coverage of the later rules.
         add_test(
-            NAME mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
+            NAME mvrmesh_cli_cgal_mesh_rejects_adaptive_remesh
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
                 --cgal-mesh --adaptive-remesh
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ar"
         )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
+        set_tests_properties(mvrmesh_cli_cgal_mesh_rejects_adaptive_remesh
             PROPERTIES WILL_FAIL TRUE)
 
         add_test(
-            NAME mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
+            NAME mvrmesh_cli_cgal_mesh_rejects_unrelated_flag_without_pipeline
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
                 --target-edge-length 0.5
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_no_pipeline"
         )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
+        set_tests_properties(mvrmesh_cli_cgal_mesh_rejects_unrelated_flag_without_pipeline
             PROPERTIES WILL_FAIL TRUE)
     endif()
 endif()
@@ -115,7 +115,7 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
         # If this test fails, it is valuable feedback (which stage tripped on real data)
         # rather than a fixture-tuning bug. Outcome captured in Task 11 evidence.
         add_test(
-            NAME mvrmesh_cli_robust_pipeline_kidney
+            NAME mvrmesh_cli_cgal_mesh_kidney
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_SAMPLE_INPUT}"
                 --cgal-mesh
