@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Module scope
 
-`ShapeReconstruction` is the C++20 surface-reconstruction stage of MedSim2Learn. The library `mvrmesh` reads `.mvr` volumetric data (vertices + triangles + tetrahedra) and produces watertight triangle surfaces (PLY) plus optional pre-flight diagnostics for the downstream `DeformSim` solver. The CLI `mvr_to_mesh_cli` is the only executable entry point; `legacy/mvr_to_mesh.py` is kept for parity reference and is not built.
+`ShapeReconstruction` is the C++20 surface-reconstruction stage of MedSim2Learn. The library `mvrmesh` reads `.mvr` volumetric data (vertices + triangles + tetrahedra) and produces watertight triangle surfaces (PLY) plus optional pre-flight diagnostics for the downstream `DeformSim` solver. The CLI `mvr_to_mesh_cli` is the only executable entry point; `legacy/mvr_to_mesh.py` is kept for parity reference and is not built. For user-facing build, run, and CLI flag documentation, see [README.md](README.md).
 
 ## Build and test
 
@@ -31,7 +31,7 @@ ctest --preset vs2022-x64-debug
 
 # Run a single test by name (regex).
 ctest --preset vs2022-x64-debug -R mvrmesh_smoke
-ctest --preset vs2022-x64-debug -R mvrmesh_cli_deformsim_pressure
+ctest --preset vs2022-x64-debug -R mvrmesh_pressure_matrix_kidney
 ```
 
 CGAL (via vcpkg) and TetGen (vendored at `D:/dev/tetgen-1.6.0`) are mandatory dependencies; cmake config fails fast if either is missing.
@@ -47,14 +47,11 @@ Each suite is registered via `cmake/MvrmeshTests.cmake`:
 | `mvrmesh_tetgen_no_direct_exit` | `verification/cmake/check_tetgen_no_direct_exit.cmake` | Guards that the vendored TetGen source contains no raw `exit(1)` — must use `terminatetetgen(1)` so `TETLIBRARY` callers can recover. |
 | `mvrmesh_cgal_mesh` | `verification/backends/cgal/cgal_mesh_tests.cpp` | Unit tests for the `run_cgal_mesh` two-stage pipeline. |
 | `mvrmesh_cli_cgal_mesh` | direct CLI invocation | CLI smoke test: runs `--cgal-mesh --sharp-edge-degrees 130` on `tiny_surface.mvr`. Requires CGAL+TetGen. |
-| `mvrmesh_cli_robust_pipeline_with_pressure` | direct CLI invocation | CLI run with `--cgal-mesh` and `--deformsim-pressure-output` on `tiny_surface.mvr` (retains old name, scheduled for deletion in P5). |
 | `mvrmesh_cli_cgal_mesh_rejects_adaptive_remesh` | direct CLI invocation | Negative test (WILL_FAIL): verifies that `--cgal-mesh --adaptive-remesh` is rejected. |
 | `mvrmesh_cli_cgal_mesh_rejects_unrelated_flag_without_pipeline` | direct CLI invocation | Negative test (WILL_FAIL): verifies that `--target-edge-length` without `--cgal-mesh` is rejected. |
-| `mvrmesh_cli_deformsim_pressure` | `run_cli_deformsim_pressure.cmake` + `check_deformsim_pressure_json.cmake` | Runs the CLI with `--deformsim-pressure-output` and substring-matches expected fields in the JSON (e.g. `"tetgen_output_tetra_count": 1`). Scheduled for deletion in P5 alongside the flag. |
 | `mvrmesh_cli_direct` | direct CLI invocation | Only added if `originalData/MVR/kidney.mvr` is present — runs the default mesh path end-to-end on the kidney sample. |
-| `mvrmesh_cli_cgal_mesh_kidney` | direct CLI invocation | Only added if `originalData/MVR/kidney.mvr` is present — runs `--cgal-mesh` with `--deformsim-pressure-output` on the kidney sample. |
-
-The CMake-script tests (`check_deformsim_pressure_json.cmake`) do **literal substring matching** on the JSON payload. Adding/removing whitespace or renaming a field is a breaking change for these tests; update the expected strings together with the producer.
+| `mvrmesh_cli_cgal_mesh_kidney` | direct CLI invocation | Only added if `originalData/MVR/kidney.mvr` is present — runs `--cgal-mesh` on the kidney sample. |
+| `mvrmesh_pressure_matrix_kidney` | `scripts/run_pressure_matrix.ps1` | Only added if `originalData/MVR/kidney.mvr` is present — runs the 6-candidate algorithm comparison matrix and produces `pressure_matrix.md`. |
 
 ## Architecture
 
@@ -76,15 +73,7 @@ The headers are deliberately small and free-function-oriented (no big "Mesh" cla
 
 ### Pipeline (the surface build path)
 
-End-to-end path through `mvr_to_mesh_cli.cpp:main`:
-
-1. `parse_args` -> `CliOptions` (validates flag combinations: `--cgal-mesh` conflicts with `--adaptive-remesh`; `--sharp-edge-degrees`, `--target-edge-length`, and `--remesh-iterations` each require `--cgal-mesh`; `--sharp-edge-degrees` must be in `(0, 180)`, `--target-edge-length` must be `>= 0`, `--remesh-iterations` must be `>= 1`).
-2. `find_project_root(argv0)` walks up from cwd or the executable path looking for a directory containing both `originalData/` and `CMakeLists.txt` — this is how the CLI resolves relative input paths and chooses default outputs.
-3. `parse_mvr` (`core/io.cpp`) -> `ParsedMvr { vertices, triangles, tetrahedra }`.
-4. `build_surface` (`core/pipeline.cpp`) selects between explicit triangles and tet-boundary extraction (`topology::boundary_faces_from_tets`) and optionally runs `algorithms::adaptive_remesh` curvature-based midpoint subdivision.
-5. If `--cgal-mesh`, `run_cgal_mesh` runs a two-stage pipeline (Stage 1: repair self-intersections; Stage 2: protected isotropic remesh) at `backends/cgal/cgal_mesh.cpp`.
-6. Output is a single PLY written via `write_ply`.
-7. Optional `--deformsim-pressure-output` triggers `evaluate_deformsim_pressure` (TetGen). This is **diagnostic only**: it tetrahedralizes the surface, then estimates the dense `K`/`L` matrix order and byte size DeformSim would need, plus a unique-line/edge upper bound. Result is written via `write_deformsim_pressure_json`.
+End-to-end pipeline through `mvr_to_mesh_cli.cpp:main` is documented for users in [README.md § 4](README.md#4-algorithm-reference). For the agent's reference, the high-level dispatch is: `parse_args` → `find_project_root` (locates `originalData/` + `CMakeLists.txt`) → `parse_mvr` → `build_surface` (selects boundary extraction or `algorithms::adaptive_remesh`) → optional `run_cgal_mesh` (Stage 1 repair + Stage 2 remesh) → `write_ply`. When modifying any of these, also update README.md § 4.
 
 ### Default I/O conventions
 
