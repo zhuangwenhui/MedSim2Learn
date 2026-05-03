@@ -28,14 +28,6 @@ if(MVRMESH_ENABLE_TETGEN)
 endif()
 
 if(MVRMESH_ENABLE_CGAL)
-    add_executable(mvrmesh_cgal_pmp_tests
-        verification/backends/cgal/cgal_pmp_backend_tests.cpp
-    )
-
-    target_link_libraries(mvrmesh_cgal_pmp_tests PRIVATE mvrmesh)
-
-    add_test(NAME mvrmesh_cgal_pmp COMMAND mvrmesh_cgal_pmp_tests)
-
     if(MVRMESH_ENABLE_TETGEN)
         add_executable(mvrmesh_robust_pipeline_tests
             verification/backends/cgal/cgal_robust_pipeline_tests.cpp
@@ -75,16 +67,6 @@ if(MVRMESH_ENABLE_CGAL)
         # combine multiple rule violations into one test, since parse_args returns
         # on the FIRST violation and we'd lose coverage of the later rules.
         add_test(
-            NAME mvrmesh_cli_robust_pipeline_rejects_surface_backend_cgal
-            COMMAND mvr_to_mesh_cli
-                "${MVRMESH_TEST_FIXTURE}"
-                --robust-pipeline --surface-backend cgal --format ply
-                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_sb"
-        )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_surface_backend_cgal
-            PROPERTIES WILL_FAIL TRUE)
-
-        add_test(
             NAME mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
@@ -92,26 +74,6 @@ if(MVRMESH_ENABLE_CGAL)
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ar"
         )
         set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
-            PROPERTIES WILL_FAIL TRUE)
-
-        add_test(
-            NAME mvrmesh_cli_robust_pipeline_rejects_cgal_target_edge_length
-            COMMAND mvr_to_mesh_cli
-                "${MVRMESH_TEST_FIXTURE}"
-                --robust-pipeline --cgal-target-edge-length 0.5 --format ply
-                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ctel"
-        )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_cgal_target_edge_length
-            PROPERTIES WILL_FAIL TRUE)
-
-        add_test(
-            NAME mvrmesh_cli_robust_pipeline_rejects_cgal_iterations
-            COMMAND mvr_to_mesh_cli
-                "${MVRMESH_TEST_FIXTURE}"
-                --robust-pipeline --cgal-iterations 2 --format ply
-                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ci"
-        )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_cgal_iterations
             PROPERTIES WILL_FAIL TRUE)
 
         add_test(
@@ -154,17 +116,6 @@ if(MVRMESH_ENABLE_TETGEN)
             -DOUTPUT_BASE=${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_deformsim_pressure
             -DPRESSURE_JSON=${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_deformsim_pressure.json
             -P ${CMAKE_CURRENT_SOURCE_DIR}/verification/cmake/run_cli_deformsim_pressure.cmake
-    )
-endif()
-
-if(MVRMESH_ENABLE_CGAL)
-    add_test(
-        NAME mvrmesh_cli_cgal_backend
-        COMMAND mvr_to_mesh_cli
-            "${MVRMESH_TEST_FIXTURE}"
-            --surface-backend cgal
-            --format ply
-            -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_cgal"
     )
 endif()
 

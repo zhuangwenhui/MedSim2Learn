@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "mvrmesh/backends/cgal/cgal_pmp_backend.h"
 #include "mvrmesh/backends/cgal/cgal_robust_pipeline.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/metrics.h"
@@ -16,11 +15,6 @@
 
 namespace {
 
-enum class SurfaceBackend {
-    Native,
-    Cgal
-};
-
 struct CliOptions {
     std::filesystem::path input;
     std::filesystem::path output;
@@ -28,13 +22,9 @@ struct CliOptions {
     std::filesystem::path deformsim_pressure_output;
     bool has_output = false;
     bool has_metrics_output = false;
-    bool has_cgal_target_edge_length = false;
-    bool has_cgal_iterations = false;
     bool has_deformsim_pressure_output = false;
     mvrmesh::OutputFormat format = mvrmesh::OutputFormat::Both;
-    SurfaceBackend surface_backend = SurfaceBackend::Native;
     mvrmesh::BuildOptions build;
-    mvrmesh::CgalPmpOptions cgal;
 
     // robust pipeline (Task 7)
     bool robust_pipeline = false;
@@ -53,8 +43,6 @@ struct CliOptions {
         message +
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
         "[--format ply|stl|both] [--metrics-output <json_path>] "
-        "[--surface-backend native|cgal] [--cgal-target-edge-length <value>] "
-        "[--cgal-iterations <n>] "
         "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
         "[--robust-pipeline [--max-dense-kl-bytes B] [--sharp-edge-degrees D] "
@@ -89,26 +77,6 @@ std::size_t parse_size_t_value(const std::string& text, const std::string& flag_
         throw std::runtime_error("Invalid value for " + flag_name + ": " + text);
     }
     return static_cast<std::size_t>(value);
-}
-
-SurfaceBackend parse_surface_backend(const std::string& text) {
-    if (text == "native") {
-        return SurfaceBackend::Native;
-    }
-    if (text == "cgal") {
-        return SurfaceBackend::Cgal;
-    }
-    throw std::runtime_error("Invalid value for --surface-backend: " + text);
-}
-
-std::string surface_backend_to_string(SurfaceBackend backend) {
-    switch (backend) {
-        case SurfaceBackend::Native:
-            return "native";
-        case SurfaceBackend::Cgal:
-            return "cgal";
-    }
-    return "unknown";
 }
 
 CliOptions parse_args(int argc, char** argv) {
@@ -147,23 +115,6 @@ CliOptions parse_args(int argc, char** argv) {
                 throw_usage_error("Missing value for --format.");
             }
             options.format = mvrmesh::parse_output_format(argv[++i]);
-        } else if (arg == "--surface-backend") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --surface-backend.");
-            }
-            options.surface_backend = parse_surface_backend(argv[++i]);
-        } else if (arg == "--cgal-target-edge-length") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --cgal-target-edge-length.");
-            }
-            options.cgal.target_edge_length = parse_double_value(argv[++i], "--cgal-target-edge-length");
-            options.has_cgal_target_edge_length = true;
-        } else if (arg == "--cgal-iterations") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --cgal-iterations.");
-            }
-            options.cgal.remesh_iterations = parse_int_value(argv[++i], "--cgal-iterations");
-            options.has_cgal_iterations = true;
         } else if (arg == "--robust-pipeline") {
             options.robust_pipeline = true;
         } else if (arg == "--max-dense-kl-bytes") {
@@ -230,34 +181,11 @@ CliOptions parse_args(int argc, char** argv) {
     if (options.has_deformsim_pressure_output && options.format == mvrmesh::OutputFormat::Stl) {
         throw std::runtime_error("--deformsim-pressure-output requires --format ply or both");
     }
-    if (options.surface_backend != SurfaceBackend::Cgal) {
-        if (options.has_cgal_target_edge_length) {
-            throw std::runtime_error("--cgal-target-edge-length requires --surface-backend cgal");
-        }
-        if (options.has_cgal_iterations) {
-            throw std::runtime_error("--cgal-iterations requires --surface-backend cgal");
-        }
-    }
-    if (options.has_cgal_target_edge_length && !(options.cgal.target_edge_length > 0.0)) {
-        throw std::runtime_error("--cgal-target-edge-length must be > 0");
-    }
-    if (options.has_cgal_iterations && options.cgal.remesh_iterations < 1) {
-        throw std::runtime_error("--cgal-iterations must be >= 1");
-    }
 
     // Robust pipeline validation (Task 7)
     if (options.robust_pipeline) {
-        if (options.surface_backend == SurfaceBackend::Cgal) {
-            throw std::runtime_error("--robust-pipeline conflicts with --surface-backend cgal");
-        }
         if (options.build.adaptive_remesh) {
             throw std::runtime_error("--robust-pipeline conflicts with --adaptive-remesh");
-        }
-        if (options.has_cgal_target_edge_length) {
-            throw std::runtime_error("--robust-pipeline conflicts with --cgal-target-edge-length");
-        }
-        if (options.has_cgal_iterations) {
-            throw std::runtime_error("--robust-pipeline conflicts with --cgal-iterations");
         }
         if (options.max_dense_kl_bytes == 0) {
             throw std::runtime_error("--max-dense-kl-bytes must be > 0");
@@ -470,7 +398,6 @@ int main(int argc, char** argv) {
                   << ", output vertices=" << result.vertices.size()
                   << ", faces=" << result.faces.size() << "\n";
 
-        // Robust pipeline takes precedence over the legacy --surface-backend cgal path.
         std::optional<mvrmesh::DeformSimPressureResult> robust_pressure_cache;
         if (args.robust_pipeline) {
 #if MVRMESH_CGAL_PMP_ENABLED && MVRMESH_TETGEN_ENABLED
@@ -489,22 +416,9 @@ int main(int argc, char** argv) {
             throw std::runtime_error(
                 "--robust-pipeline requires both CGAL and TetGen backends to be enabled at build time.");
 #endif
-        } else if (args.surface_backend == SurfaceBackend::Cgal) {
-#if MVRMESH_CGAL_PMP_ENABLED
-            const mvrmesh::CgalPmpResult cgal_result =
-                mvrmesh::run_cgal_pmp_backend(result.vertices, result.faces, args.cgal);
-            if (!cgal_result.success) {
-                throw std::runtime_error("CGAL PMP backend failed: " + cgal_result.diagnostic);
-            }
-            result.vertices = std::move(cgal_result.output_vertices);
-            result.faces = std::move(cgal_result.output_faces);
-#else
-            throw std::runtime_error("CGAL PMP backend is disabled in this build.");
-#endif
         }
         std::cout << "[info] surface backend="
-                  << (args.robust_pipeline ? "robust_pipeline"
-                                           : surface_backend_to_string(args.surface_backend))
+                  << (args.robust_pipeline ? "robust_pipeline" : "native")
                   << ", output vertices=" << result.vertices.size()
                   << ", faces=" << result.faces.size() << "\n";
 

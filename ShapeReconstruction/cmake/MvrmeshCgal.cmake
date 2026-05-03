@@ -1,7 +1,6 @@
 find_package(CGAL CONFIG REQUIRED)
 
 set(MVRMESH_CGAL_SOURCES
-    src/backends/cgal/cgal_pmp_backend.cpp
     src/backends/cgal/cgal_robust_pipeline.cpp
 )
 
