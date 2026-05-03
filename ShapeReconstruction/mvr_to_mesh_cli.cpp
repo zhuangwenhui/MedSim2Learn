@@ -22,7 +22,7 @@ struct CliOptions {
     mvrmesh::BuildOptions build;
 
     // robust pipeline (Task 7)
-    bool robust_pipeline = false;
+    bool cgal_mesh = false;
     bool has_sharp_edge_degrees = false;
     bool has_robust_target_edge_length = false;
     bool has_remesh_iterations = false;
@@ -37,7 +37,7 @@ struct CliOptions {
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
         "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
-        "[--robust-pipeline [--sharp-edge-degrees D] "
+        "[--cgal-mesh [--sharp-edge-degrees D] "
         "[--target-edge-length L] [--remesh-iterations N]]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
         "Default output (without --output): <project_root>/outPut/PLY/<input_stem>.ply"
@@ -87,8 +87,8 @@ CliOptions parse_args(int argc, char** argv) {
             }
             options.deformsim_pressure_output = std::filesystem::path(argv[++i]);
             options.has_deformsim_pressure_output = true;
-        } else if (arg == "--robust-pipeline") {
-            options.robust_pipeline = true;
+        } else if (arg == "--cgal-mesh") {
+            options.cgal_mesh = true;
         } else if (arg == "--sharp-edge-degrees") {
             if (i + 1 >= argc) {
                 throw_usage_error("Missing value for --sharp-edge-degrees.");
@@ -145,9 +145,9 @@ CliOptions parse_args(int argc, char** argv) {
     }
 
     // Robust pipeline validation (Task 7)
-    if (options.robust_pipeline) {
+    if (options.cgal_mesh) {
         if (options.build.adaptive_remesh) {
-            throw std::runtime_error("--robust-pipeline conflicts with --adaptive-remesh");
+            throw std::runtime_error("--cgal-mesh conflicts with --adaptive-remesh");
         }
         if (!(options.sharp_edge_degrees > 0.0 && options.sharp_edge_degrees < 180.0)) {
             throw std::runtime_error("--sharp-edge-degrees must be in (0, 180)");
@@ -160,13 +160,13 @@ CliOptions parse_args(int argc, char** argv) {
         }
     } else {
         if (options.has_sharp_edge_degrees) {
-            throw std::runtime_error("--sharp-edge-degrees requires --robust-pipeline");
+            throw std::runtime_error("--sharp-edge-degrees requires --cgal-mesh");
         }
         if (options.has_robust_target_edge_length) {
-            throw std::runtime_error("--target-edge-length requires --robust-pipeline");
+            throw std::runtime_error("--target-edge-length requires --cgal-mesh");
         }
         if (options.has_remesh_iterations) {
-            throw std::runtime_error("--remesh-iterations requires --robust-pipeline");
+            throw std::runtime_error("--remesh-iterations requires --cgal-mesh");
         }
     }
 
@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
                   << ", output vertices=" << result.vertices.size()
                   << ", faces=" << result.faces.size() << "\n";
 
-        if (args.robust_pipeline) {
+        if (args.cgal_mesh) {
 #if MVRMESH_CGAL_PMP_ENABLED && MVRMESH_TETGEN_ENABLED
             mvrmesh::RobustPipelineOptions ropts;
             ropts.sharp_edge_dihedral_degrees = args.sharp_edge_degrees;
@@ -355,11 +355,11 @@ int main(int argc, char** argv) {
             result.faces    = std::move(robust.faces);
 #else
             throw std::runtime_error(
-                "--robust-pipeline requires both CGAL and TetGen backends to be enabled at build time.");
+                "--cgal-mesh requires both CGAL and TetGen backends to be enabled at build time.");
 #endif
         }
         std::cout << "[info] surface backend="
-                  << (args.robust_pipeline ? "robust_pipeline" : "native")
+                  << (args.cgal_mesh ? "cgal_mesh" : "native")
                   << ", output vertices=" << result.vertices.size()
                   << ", faces=" << result.faces.size() << "\n";
 
