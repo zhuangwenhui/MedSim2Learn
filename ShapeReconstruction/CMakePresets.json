@@ -9,9 +9,7 @@
             "binaryDir": "${sourceParentDir}/build/ShapeReconstruction/vs2022-x64",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_TARGET_TRIPLET": "x64-windows",
-                "MVRMESH_ENABLE_CGAL": "ON",
-                "MVRMESH_ENABLE_TETGEN": "ON"
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
             }
         }
     ],

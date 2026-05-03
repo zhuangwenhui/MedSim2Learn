@@ -34,7 +34,7 @@ ctest --preset vs2022-x64-debug -R mvrmesh_smoke
 ctest --preset vs2022-x64-debug -R mvrmesh_cli_deformsim_pressure
 ```
 
-Backends can be toggled at configure time via `-DMVRMESH_ENABLE_CGAL=OFF` / `-DMVRMESH_ENABLE_TETGEN=OFF`. Disabling a backend disables both its sources and the CTest cases that depend on it (the relevant `MVRMESH_*_ENABLED` macro is set to `0` so call sites compile out cleanly — see the conditional `#if MVRMESH_*_ENABLED` blocks in `mvr_to_mesh_cli.cpp`).
+CGAL (via vcpkg) and TetGen (vendored at `D:/dev/tetgen-1.6.0`) are mandatory dependencies; cmake config fails fast if either is missing.
 
 ## Test matrix
 
@@ -43,9 +43,9 @@ Each suite is registered via `cmake/MvrmeshTests.cmake`:
 | Test name | Source | What it covers |
 |-----------|--------|----------------|
 | `mvrmesh_smoke` | `verification/core/smoke_tests.cpp` | Pure unit tests for `mvrmesh::*` core APIs (topology, algorithms, indexing). |
-| `mvrmesh_pressure_evaluator` | `verification/pressure/pressure_evaluator_tests.cpp` | TetGen-based pressure pre-flight unit tests. Requires `MVRMESH_ENABLE_TETGEN=ON`. |
+| `mvrmesh_pressure_evaluator` | `verification/pressure/pressure_evaluator_tests.cpp` | TetGen-based pressure pre-flight unit tests. |
 | `mvrmesh_tetgen_no_direct_exit` | `verification/cmake/check_tetgen_no_direct_exit.cmake` | Guards that the vendored TetGen source contains no raw `exit(1)` — must use `terminatetetgen(1)` so `TETLIBRARY` callers can recover. |
-| `mvrmesh_cgal_mesh` | `verification/backends/cgal/cgal_mesh_tests.cpp` | Unit tests for the `run_cgal_mesh` two-stage pipeline. Requires `MVRMESH_ENABLE_CGAL=ON` and `MVRMESH_ENABLE_TETGEN=ON`. |
+| `mvrmesh_cgal_mesh` | `verification/backends/cgal/cgal_mesh_tests.cpp` | Unit tests for the `run_cgal_mesh` two-stage pipeline. |
 | `mvrmesh_cli_cgal_mesh` | direct CLI invocation | CLI smoke test: runs `--cgal-mesh --sharp-edge-degrees 130` on `tiny_surface.mvr`. Requires CGAL+TetGen. |
 | `mvrmesh_cli_robust_pipeline_with_pressure` | direct CLI invocation | CLI run with `--cgal-mesh` and `--deformsim-pressure-output` on `tiny_surface.mvr` (retains old name, scheduled for deletion in P5). |
 | `mvrmesh_cli_cgal_mesh_rejects_adaptive_remesh` | direct CLI invocation | Negative test (WILL_FAIL): verifies that `--cgal-mesh --adaptive-remesh` is rejected. |
@@ -110,5 +110,4 @@ The TetGen library in `D:/dev/tetgen-1.6.0` is built as a static library with `T
 
 - C++20. `std::runtime_error` for I/O and CLI argument errors is fine — `mvr_to_mesh_cli.cpp` catches them at `main`.
 - Free functions in `mvrmesh::` namespace; no global state; no singletons.
-- Backend feature gates are compile-time only (`#if MVRMESH_CGAL_PMP_ENABLED`, `#if MVRMESH_TETGEN_ENABLED`). Don't introduce runtime feature flags for these.
 - Python parity tests are load-bearing — when in doubt, mirror the legacy script's behavior.

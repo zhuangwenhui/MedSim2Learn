@@ -7,10 +7,6 @@
 #include "mvrmesh/pressure/pressure_evaluator.h"
 #include "mvrmesh/core/types.h"
 
-#ifndef MVRMESH_TETGEN_ENABLED
-#error "TetGen evaluation is required in this branch; configure TetGen sources instead of compiling without the dependency."
-#endif
-
 namespace {
 
 void require(bool cond, const std::string& message) {

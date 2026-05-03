@@ -325,7 +325,6 @@ int main(int argc, char** argv) {
                   << ", faces=" << result.faces.size() << "\n";
 
         if (args.cgal_mesh) {
-#if MVRMESH_CGAL_PMP_ENABLED && MVRMESH_TETGEN_ENABLED
             mvrmesh::CgalMeshOptions ropts;
             ropts.sharp_edge_dihedral_degrees = args.sharp_edge_degrees;
             ropts.target_edge_length          = args.robust_target_edge_length;
@@ -334,10 +333,6 @@ int main(int argc, char** argv) {
                 mvrmesh::run_cgal_mesh(result.vertices, result.faces, ropts);
             result.vertices = std::move(robust.vertices);
             result.faces    = std::move(robust.faces);
-#else
-            throw std::runtime_error(
-                "--cgal-mesh requires both CGAL and TetGen backends to be enabled at build time.");
-#endif
         }
         std::cout << "[info] surface backend="
                   << (args.cgal_mesh ? "cgal_mesh" : "native")

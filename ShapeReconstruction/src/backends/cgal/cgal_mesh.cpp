@@ -1,7 +1,5 @@
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 
-#if MVRMESH_CGAL_PMP_ENABLED
-
 #include <cstddef>
 #include <iostream>
 #include <set>
@@ -372,5 +370,3 @@ CgalMeshResult run_cgal_mesh(
 }
 
 }  // namespace mvrmesh
-
-#endif  // MVRMESH_CGAL_PMP_ENABLED

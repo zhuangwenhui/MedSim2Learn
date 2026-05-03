@@ -40,6 +40,3 @@ set(MVRMESH_PRESSURE_SOURCES
     src/pressure/pressure_evaluator.cpp
 )
 
-set(MVRMESH_TETGEN_DEFINITIONS
-    MVRMESH_TETGEN_ENABLED=1
-)
