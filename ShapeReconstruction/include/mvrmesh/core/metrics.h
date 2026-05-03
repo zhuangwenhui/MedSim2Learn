@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -29,31 +28,12 @@ struct SurfaceMetrics {
     BoundingBox bounding_box;
 };
 
-struct TetraMeshMetrics {
-    std::size_t tetra_count = 0;
-    std::size_t degenerate_tetra_count = 0;
-    double total_volume = 0.0;
-    double min_tetra_volume = 0.0;
-    double max_tetra_volume = 0.0;
-    double mean_tetra_volume = 0.0;
-    double min_tetra_quality = 0.0;
-    double max_tetra_quality = 0.0;
-    double mean_tetra_quality = 0.0;
-};
-
 SurfaceMetrics compute_surface_metrics(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
     double degeneracy_epsilon = 1e-12
 );
 
-TetraMeshMetrics compute_tetra_mesh_metrics(
-    const std::vector<Vec3>& vertices,
-    const std::vector<Tet>& tetrahedra
-);
-
 std::string metrics_to_json(const SurfaceMetrics& metrics);
-
-void write_metrics_json(const std::filesystem::path& path, const SurfaceMetrics& metrics);
 
 }  // namespace mvrmesh

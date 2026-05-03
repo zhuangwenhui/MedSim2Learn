@@ -119,53 +119,6 @@ void test_surface_metrics_single_triangle() {
     );
 }
 
-void test_tetra_mesh_metrics_regular_tetrahedron_quality() {
-    using mvrmesh::Tet;
-    using mvrmesh::Vec3;
-
-    const double sqrt3 = std::sqrt(3.0);
-    const double sqrt_two_thirds = std::sqrt(2.0 / 3.0);
-    const std::vector<Vec3> vertices{
-        Vec3{0.0, 0.0, 0.0},
-        Vec3{1.0, 0.0, 0.0},
-        Vec3{0.5, sqrt3 / 2.0, 0.0},
-        Vec3{0.5, sqrt3 / 6.0, sqrt_two_thirds},
-    };
-    const std::vector<Tet> tets{Tet{0, 1, 2, 3}};
-
-    const mvrmesh::TetraMeshMetrics metrics = mvrmesh::compute_tetra_mesh_metrics(vertices, tets);
-    require(metrics.tetra_count == 1, "Tetra metrics should report tetra count");
-    require(metrics.degenerate_tetra_count == 0, "Regular tetrahedron should not be degenerate");
-    require(std::abs(metrics.total_volume - (std::sqrt(2.0) / 12.0)) < 1e-12, "Regular tetra volume should match analytic value");
-    require(std::abs(metrics.min_tetra_volume - metrics.total_volume) < 1e-12, "Single tetra min volume should match total volume");
-    require(std::abs(metrics.max_tetra_volume - metrics.total_volume) < 1e-12, "Single tetra max volume should match total volume");
-    require(std::abs(metrics.mean_tetra_volume - metrics.total_volume) < 1e-12, "Single tetra mean volume should match total volume");
-    require(std::abs(metrics.min_tetra_quality - 1.0) < 1e-12, "Regular tetra mean-ratio quality should be 1");
-    require(std::abs(metrics.max_tetra_quality - 1.0) < 1e-12, "Regular tetra max quality should be 1");
-    require(std::abs(metrics.mean_tetra_quality - 1.0) < 1e-12, "Regular tetra mean quality should be 1");
-}
-
-void test_tetra_mesh_metrics_degenerate_tetrahedron_quality() {
-    using mvrmesh::Tet;
-    using mvrmesh::Vec3;
-
-    const std::vector<Vec3> vertices{
-        Vec3{0.0, 0.0, 0.0},
-        Vec3{1.0, 0.0, 0.0},
-        Vec3{2.0, 0.0, 0.0},
-        Vec3{3.0, 0.0, 0.0},
-    };
-    const std::vector<Tet> tets{Tet{0, 1, 2, 3}};
-
-    const mvrmesh::TetraMeshMetrics metrics = mvrmesh::compute_tetra_mesh_metrics(vertices, tets);
-    require(metrics.tetra_count == 1, "Degenerate tetra metrics should report tetra count");
-    require(metrics.degenerate_tetra_count == 1, "Collinear tetrahedron should be degenerate");
-    require(metrics.total_volume == 0.0, "Degenerate tetrahedron volume should be zero");
-    require(metrics.min_tetra_quality == 0.0, "Degenerate tetrahedron min quality should be zero");
-    require(metrics.max_tetra_quality == 0.0, "Degenerate tetrahedron max quality should be zero");
-    require(metrics.mean_tetra_quality == 0.0, "Degenerate tetrahedron mean quality should be zero");
-}
-
 void test_surface_metrics_degenerate_face() {
     using mvrmesh::Face;
     using mvrmesh::Vec3;
@@ -339,8 +292,6 @@ int main() {
         test_build_surface_uses_tet_boundary_without_triangles();
         test_adaptive_single_triangle_split();
         test_surface_metrics_single_triangle();
-        test_tetra_mesh_metrics_regular_tetrahedron_quality();
-        test_tetra_mesh_metrics_degenerate_tetrahedron_quality();
         test_surface_metrics_degenerate_face();
         test_surface_metrics_closed_tetrahedron();
         test_surface_metrics_duplicate_and_orientation_issues();

@@ -2,8 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
-#include <fstream>
 #include <iomanip>
 #include <map>
 #include <numeric>
@@ -90,38 +88,6 @@ void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
             << ", n_vertices=" << vertices.size();
         throw std::runtime_error(oss.str());
     }
-}
-
-void validate_tet_index(const std::vector<Vec3>& vertices, int idx) {
-    if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
-        std::ostringstream oss;
-        oss << "Tetrahedron index out of range while computing metrics: " << idx
-            << ", n_vertices=" << vertices.size();
-        throw std::runtime_error(oss.str());
-    }
-}
-
-double squared_distance(const Vec3& a, const Vec3& b) {
-    const Vec3 diff = vsub(a, b);
-    return dot(diff, diff);
-}
-
-double tetra_volume(const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& d) {
-    return std::abs(dot(vsub(b, a), cross(vsub(c, a), vsub(d, a)))) / 6.0;
-}
-
-double tetra_mean_ratio_quality(const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& d, double volume) {
-    const double edge_squared_sum =
-        squared_distance(a, b) +
-        squared_distance(a, c) +
-        squared_distance(a, d) +
-        squared_distance(b, c) +
-        squared_distance(b, d) +
-        squared_distance(c, d);
-    if (volume <= 0.0 || edge_squared_sum <= 0.0) {
-        return 0.0;
-    }
-    return 12.0 * std::pow(3.0 * volume, 2.0 / 3.0) / edge_squared_sum;
 }
 
 }  // namespace
@@ -217,56 +183,6 @@ SurfaceMetrics compute_surface_metrics(
     return metrics;
 }
 
-TetraMeshMetrics compute_tetra_mesh_metrics(
-    const std::vector<Vec3>& vertices,
-    const std::vector<Tet>& tetrahedra
-) {
-    TetraMeshMetrics metrics;
-    metrics.tetra_count = tetrahedra.size();
-    if (tetrahedra.empty()) {
-        return metrics;
-    }
-
-    constexpr double degeneracy_epsilon = 1e-15;
-    bool first = true;
-    for (const Tet& tet : tetrahedra) {
-        validate_tet_index(vertices, tet[0]);
-        validate_tet_index(vertices, tet[1]);
-        validate_tet_index(vertices, tet[2]);
-        validate_tet_index(vertices, tet[3]);
-
-        const Vec3& a = vertices[static_cast<std::size_t>(tet[0])];
-        const Vec3& b = vertices[static_cast<std::size_t>(tet[1])];
-        const Vec3& c = vertices[static_cast<std::size_t>(tet[2])];
-        const Vec3& d = vertices[static_cast<std::size_t>(tet[3])];
-        const double volume = tetra_volume(a, b, c, d);
-        const double quality = tetra_mean_ratio_quality(a, b, c, d, volume);
-
-        if (volume <= degeneracy_epsilon) {
-            ++metrics.degenerate_tetra_count;
-        }
-        metrics.total_volume += volume;
-
-        if (first) {
-            metrics.min_tetra_volume = volume;
-            metrics.max_tetra_volume = volume;
-            metrics.min_tetra_quality = quality;
-            metrics.max_tetra_quality = quality;
-            first = false;
-        } else {
-            metrics.min_tetra_volume = std::min(metrics.min_tetra_volume, volume);
-            metrics.max_tetra_volume = std::max(metrics.max_tetra_volume, volume);
-            metrics.min_tetra_quality = std::min(metrics.min_tetra_quality, quality);
-            metrics.max_tetra_quality = std::max(metrics.max_tetra_quality, quality);
-        }
-        metrics.mean_tetra_quality += quality;
-    }
-
-    metrics.mean_tetra_volume = metrics.total_volume / static_cast<double>(metrics.tetra_count);
-    metrics.mean_tetra_quality /= static_cast<double>(metrics.tetra_count);
-    return metrics;
-}
-
 std::string metrics_to_json(const SurfaceMetrics& metrics) {
     std::ostringstream out;
     out << std::setprecision(17);
@@ -294,14 +210,6 @@ std::string metrics_to_json(const SurfaceMetrics& metrics) {
     out << "  }\n";
     out << "}\n";
     return out.str();
-}
-
-void write_metrics_json(const std::filesystem::path& path, const SurfaceMetrics& metrics) {
-    std::ofstream output(path, std::ios::out | std::ios::trunc);
-    if (!output) {
-        throw std::runtime_error("Failed to open metrics output file: " + path.string());
-    }
-    output << metrics_to_json(metrics);
 }
 
 }  // namespace mvrmesh
