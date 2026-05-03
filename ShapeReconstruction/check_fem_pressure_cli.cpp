@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <cstdio>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -88,6 +90,171 @@ void write_single_json(
         out << ",\n  \"failure_reason\": \"" << m.failure_reason << "\"";
     }
     out << "\n}\n";
+}
+
+std::string format_bytes_human(std::size_t bytes) {
+    constexpr double KIB = 1024.0;
+    constexpr double MIB = KIB * 1024.0;
+    constexpr double GIB = MIB * 1024.0;
+    char buf[64];
+    if (bytes >= GIB) {
+        std::snprintf(buf, sizeof(buf), "%.2f GiB", static_cast<double>(bytes) / GIB);
+    } else if (bytes >= MIB) {
+        std::snprintf(buf, sizeof(buf), "%.2f MiB", static_cast<double>(bytes) / MIB);
+    } else if (bytes >= KIB) {
+        std::snprintf(buf, sizeof(buf), "%.2f KiB", static_cast<double>(bytes) / KIB);
+    } else {
+        std::snprintf(buf, sizeof(buf), "%zu B", bytes);
+    }
+    return std::string(buf);
+}
+
+std::string format_flops_sci(double flops) {
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "%.2e", flops);
+    return std::string(buf);
+}
+
+struct MatrixRow {
+    std::string config;
+    std::string args;
+    PressureMetrics metrics;
+    bool is_baseline = false;
+};
+
+void write_matrix_md(
+    const std::filesystem::path& output_path,
+    const std::filesystem::path& input_mvr_hint,
+    const std::vector<MatrixRow>& rows,
+    std::size_t n_samples,
+    const std::string& switches)
+{
+    std::filesystem::create_directories(output_path.parent_path());
+    std::ofstream out(output_path);
+    if (!out) throw std::runtime_error("cannot open: " + output_path.string());
+
+    auto t = std::time(nullptr);
+    char timestr[64];
+    std::tm tm_local{};
+#if defined(_MSC_VER)
+    localtime_s(&tm_local, &t);
+#else
+    tm_local = *std::localtime(&t);
+#endif
+    std::strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", &tm_local);
+
+    out << "# FEM Pressure Matrix Report\n\n";
+    out << "**Input MVR**: " << input_mvr_hint.string() << "\n";
+    out << "**Generated**: " << timestr << "\n";
+    out << "**N_samples** (DeformSim default per run): " << n_samples << "\n";
+    out << "**TetGen switches**: " << switches << "\n\n";
+
+    out << "## Pressure dimensions explained\n\n";
+    out << "- **V_surf** -- .ply vertex count\n";
+    out << "- **V_tet** -- TetGen tetrahedralized internal vertex count\n";
+    out << "- **Memory (K+L)** -- (3V_tet)^2 * 16 bytes, peak for entire DeformSim run\n";
+    out << "- **DGETRI flops** -- (3V_tet)^3 * 2, one-time matrix inversion\n";
+    out << "- **DGEMV total flops** -- (3V_tet)^2 * 2 * N_samples, per-sample solve total\n";
+    out << "- **Output disk** -- N_samples * (V_surf * 64 bytes), output PLY total\n\n";
+
+    out << "## Results\n\n";
+    out << "| Config | Args | V_surf | V_tet | Memory (K+L) | DGETRI flops | DGEMV total | Output disk |\n";
+    out << "|--------|------|--------|-------|--------------|--------------|-------------|-------------|\n";
+
+    for (const auto& row : rows) {
+        if (row.is_baseline) out << "| **(baseline)** ";
+        else out << "| ";
+        out << row.config << " | ";
+        out << "`" << row.args << "` | ";
+        if (!row.metrics.tetgen_success) {
+            out << "(failed: " << row.metrics.failure_reason << ") | -- | -- | -- | -- | -- |\n";
+            continue;
+        }
+        out << row.metrics.v_surface << " | "
+            << row.metrics.v_tet << " | "
+            << format_bytes_human(row.metrics.memory_peak_bytes_kl) << " | "
+            << format_flops_sci(row.metrics.dgetri_flops) << " | "
+            << format_flops_sci(row.metrics.dgemv_total_flops) << " | "
+            << format_bytes_human(row.metrics.estimated_disk_per_run_bytes) << " |\n";
+    }
+    out << "\n";
+
+    out << "## Interpretation\n\n";
+    out << "- Critical V where DGETRI overtakes DGEMV: V_surf ~= 2500 (assuming TetGen expansion ~= 3)\n";
+    out << "- Below this V: DGEMV total dominates (per-sample work x N_samples)\n";
+    out << "- Above this V: DGETRI dominates (one-time inversion)\n";
+}
+
+int run_matrix(
+    const std::vector<std::filesystem::path>& inputs,
+    const std::filesystem::path& output_md,
+    const std::filesystem::path& baseline_ply,
+    const std::vector<std::pair<std::filesystem::path, std::string>>& labels,
+    std::size_t n_samples,
+    const std::string& switches)
+{
+    std::vector<MatrixRow> rows;
+
+    auto resolve_label = [&](const std::filesystem::path& p) -> std::string {
+        for (const auto& kv : labels) {
+            std::error_code ec;
+            if (std::filesystem::equivalent(kv.first, p, ec)) return kv.second;
+        }
+        return p.filename().string();
+    };
+
+    for (const auto& p : inputs) {
+        MatrixRow row;
+        row.config = resolve_label(p);
+        row.args = "(see candidate list)";
+        if (!std::filesystem::exists(p)) {
+            row.metrics.tetgen_success = false;
+            row.metrics.failure_reason = "input not found";
+            rows.push_back(row);
+            continue;
+        }
+        std::vector<mvrmesh::Vec3> v;
+        std::vector<mvrmesh::Face> f;
+        try {
+            mvrmesh::read_ply(p, v, f);
+        } catch (const std::exception& ex) {
+            row.metrics.tetgen_success = false;
+            row.metrics.failure_reason = std::string("read_ply failed: ") + ex.what();
+            rows.push_back(row);
+            continue;
+        }
+        row.metrics = compute_metrics(v, f, n_samples, switches);
+        rows.push_back(row);
+    }
+
+    if (!baseline_ply.empty()) {
+        MatrixRow row;
+        row.config = baseline_ply.filename().string();
+        row.args = "(DeformSim current input)";
+        row.is_baseline = true;
+        if (!std::filesystem::exists(baseline_ply)) {
+            row.metrics.tetgen_success = false;
+            row.metrics.failure_reason = "baseline not found";
+        } else {
+            std::vector<mvrmesh::Vec3> v;
+            std::vector<mvrmesh::Face> f;
+            try {
+                mvrmesh::read_ply(baseline_ply, v, f);
+                row.metrics = compute_metrics(v, f, n_samples, switches);
+            } catch (const std::exception& ex) {
+                row.metrics.tetgen_success = false;
+                row.metrics.failure_reason = std::string("read_ply failed: ") + ex.what();
+            }
+        }
+        rows.push_back(row);
+    }
+
+    std::filesystem::path mvr_hint = inputs.empty() ? std::filesystem::path{} : inputs.front();
+    write_matrix_md(output_md, mvr_hint, rows, n_samples, switches);
+
+    std::cout << "[ok] check_fem_pressure matrix: " << rows.size()
+              << " rows -> " << output_md.string() << "\n";
+    return 0;
 }
 
 void usage(const char* argv0) {
@@ -189,8 +356,11 @@ int main(int argc, char** argv) {
         }
 
         if (matrix_mode) {
-            std::cerr << "[error] matrix mode not yet implemented (Task 4.4)\n";
-            return 2;
+            if (matrix_inputs.empty()) {
+                std::cerr << "[error] --matrix requires at least one .ply input\n";
+                return 2;
+            }
+            return run_matrix(matrix_inputs, output_path, baseline_ply, labels, n_samples, switches);
         }
 
         if (input_ply.empty()) {
