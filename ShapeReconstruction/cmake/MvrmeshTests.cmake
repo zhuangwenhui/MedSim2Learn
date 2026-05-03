@@ -81,6 +81,19 @@ if(MVRMESH_ENABLE_CGAL)
         )
         set_tests_properties(mvrmesh_cli_cgal_mesh_rejects_unrelated_flag_without_pipeline
             PROPERTIES WILL_FAIL TRUE)
+
+        # Single-file pressure evaluation: mvr_to_mesh_cli produces a tiny .ply
+        # via --cgal-mesh, then check_fem_pressure runs TetGen on it and emits
+        # the 4-dimensional pressure JSON. Driver script substring-matches keys.
+        add_test(
+            NAME check_fem_pressure_single
+            COMMAND ${CMAKE_COMMAND}
+                -DCLI_EXE=$<TARGET_FILE:mvr_to_mesh_cli>
+                -DPRESSURE_EXE=$<TARGET_FILE:check_fem_pressure>
+                -DTEST_FIXTURE=${MVRMESH_TEST_FIXTURE}
+                -DOUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/verification/cmake/run_check_fem_pressure_single.cmake
+        )
     endif()
 endif()
 
