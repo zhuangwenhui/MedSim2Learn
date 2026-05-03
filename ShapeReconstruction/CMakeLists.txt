@@ -69,6 +69,12 @@ add_executable(mvr_to_mesh_cli
 
 target_link_libraries(mvr_to_mesh_cli PRIVATE mvrmesh)
 
+add_executable(check_fem_pressure
+    check_fem_pressure_cli.cpp
+)
+
+target_link_libraries(check_fem_pressure PRIVATE mvrmesh)
+
 # enable_testing() must be called unconditionally so CMake regenerates an
 # up-to-date CTestTestfile.cmake on every configure. Otherwise toggling
 # MVRMESH_BUILD_TESTS off leaves stale add_test entries from a prior ON build.
