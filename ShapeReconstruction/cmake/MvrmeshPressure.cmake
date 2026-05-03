@@ -36,8 +36,8 @@ set(MVRMESH_TETGEN_LIBRARIES
     mvrmesh_tetgen
 )
 
-set(MVRMESH_TETGEN_SOURCES
-    src/backends/tetgen/tetgen_evaluator.cpp
+set(MVRMESH_PRESSURE_SOURCES
+    src/pressure/pressure_evaluator.cpp
 )
 
 set(MVRMESH_TETGEN_DEFINITIONS

@@ -11,13 +11,13 @@ target_link_libraries(mvrmesh_smoke_tests PRIVATE mvrmesh)
 add_test(NAME mvrmesh_smoke COMMAND mvrmesh_smoke_tests)
 
 if(MVRMESH_ENABLE_TETGEN)
-    add_executable(mvrmesh_tetgen_evaluator_tests
-        verification/backends/tetgen/tetgen_evaluator_tests.cpp
+    add_executable(mvrmesh_pressure_evaluator_tests
+        verification/pressure/pressure_evaluator_tests.cpp
     )
 
-    target_link_libraries(mvrmesh_tetgen_evaluator_tests PRIVATE mvrmesh)
+    target_link_libraries(mvrmesh_pressure_evaluator_tests PRIVATE mvrmesh)
 
-    add_test(NAME mvrmesh_tetgen_evaluator COMMAND mvrmesh_tetgen_evaluator_tests)
+    add_test(NAME mvrmesh_pressure_evaluator COMMAND mvrmesh_pressure_evaluator_tests)
 
     add_test(
         NAME mvrmesh_tetgen_no_direct_exit

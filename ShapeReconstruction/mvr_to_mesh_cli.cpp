@@ -8,7 +8,7 @@
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/pipeline.h"
-#include "mvrmesh/backends/tetgen/tetgen_evaluator.h"
+#include "mvrmesh/pressure/pressure_evaluator.h"
 #include "mvrmesh/core/types.h"
 
 namespace {

@@ -43,7 +43,7 @@ Each suite is registered via `cmake/MvrmeshTests.cmake`:
 | Test name | Source | What it covers |
 |-----------|--------|----------------|
 | `mvrmesh_smoke` | `verification/core/smoke_tests.cpp` | Pure unit tests for `mvrmesh::*` core APIs (topology, algorithms, indexing). |
-| `mvrmesh_tetgen_evaluator` | `verification/backends/tetgen/tetgen_evaluator_tests.cpp` | TetGen-based pressure pre-flight unit tests. Requires `MVRMESH_ENABLE_TETGEN=ON`. |
+| `mvrmesh_pressure_evaluator` | `verification/pressure/pressure_evaluator_tests.cpp` | TetGen-based pressure pre-flight unit tests. Requires `MVRMESH_ENABLE_TETGEN=ON`. |
 | `mvrmesh_tetgen_no_direct_exit` | `verification/cmake/check_tetgen_no_direct_exit.cmake` | Guards that the vendored TetGen source contains no raw `exit(1)` — must use `terminatetetgen(1)` so `TETLIBRARY` callers can recover. |
 | `mvrmesh_cgal_mesh` | `verification/backends/cgal/cgal_mesh_tests.cpp` | Unit tests for the `run_cgal_mesh` two-stage pipeline. Requires `MVRMESH_ENABLE_CGAL=ON` and `MVRMESH_ENABLE_TETGEN=ON`. |
 | `mvrmesh_cli_cgal_mesh` | direct CLI invocation | CLI smoke test: runs `--cgal-mesh --sharp-edge-degrees 130` on `tiny_surface.mvr`. Requires CGAL+TetGen. |
@@ -65,9 +65,9 @@ The `mvrmesh` target is a single library composed of two layers:
 ```
 include/mvrmesh/
 ├── core/        # Pure C++20, no third-party deps. The reconstruction kernel.
-└── backends/
-    ├── cgal/    # Optional CGAL Polygon Mesh Processing remesh.
-    └── tetgen/  # Optional TetGen-based pre-flight for DeformSim.
+├── backends/
+│   └── cgal/    # Optional CGAL Polygon Mesh Processing remesh.
+└── pressure/    # TetGen-based DeformSim pressure evaluator (used by check_fem_pressure).
 ```
 
 Core is self-contained — `core/types.h` defines `Vec3`, `Face`, `Tet`, `Edge`, `ParsedMvr`, `SurfaceMode`, `BuildOptions`, `BuildResult`; everything else in `core/` builds on those types only. Backends depend on core but never on each other, and are guarded by `MVRMESH_*_ENABLED` macros so the library still compiles with either disabled.
@@ -104,7 +104,7 @@ When changing any of these, update both the implementation and the smoke-test as
 
 ### TetGen integration constraint
 
-The TetGen library in `D:/dev/tetgen-1.6.0` is built as a static library with `TETLIBRARY` defined (see `cmake/MvrmeshTetGen.cmake`). Stock TetGen calls `exit(1)` on internal errors, which would terminate the entire CLI process. The vendored copy must be patched to call `terminatetetgen(1)` instead so it throws and the C++ wrapper can catch it. The `mvrmesh_tetgen_no_direct_exit` CTest enforces this — if it fails, the TetGen source has regressed; fix the source rather than disabling the test.
+The TetGen library in `D:/dev/tetgen-1.6.0` is built as a static library with `TETLIBRARY` defined (see `cmake/MvrmeshPressure.cmake`). Stock TetGen calls `exit(1)` on internal errors, which would terminate the entire CLI process. The vendored copy must be patched to call `terminatetetgen(1)` instead so it throws and the C++ wrapper can catch it. The `mvrmesh_tetgen_no_direct_exit` CTest enforces this — if it fails, the TetGen source has regressed; fix the source rather than disabling the test.
 
 ## Module-local conventions
 
