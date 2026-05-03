@@ -8,7 +8,6 @@
 
 #include "mvrmesh/backends/cgal/cgal_robust_pipeline.h"
 #include "mvrmesh/core/io.h"
-#include "mvrmesh/core/metrics.h"
 #include "mvrmesh/core/pipeline.h"
 #include "mvrmesh/backends/tetgen/tetgen_evaluator.h"
 #include "mvrmesh/core/types.h"
@@ -18,10 +17,8 @@ namespace {
 struct CliOptions {
     std::filesystem::path input;
     std::filesystem::path output;
-    std::filesystem::path metrics_output;
     std::filesystem::path deformsim_pressure_output;
     bool has_output = false;
-    bool has_metrics_output = false;
     bool has_deformsim_pressure_output = false;
     mvrmesh::OutputFormat format = mvrmesh::OutputFormat::Both;
     mvrmesh::BuildOptions build;
@@ -42,7 +39,7 @@ struct CliOptions {
     throw std::runtime_error(
         message +
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
-        "[--format ply|stl|both] [--metrics-output <json_path>] "
+        "[--format ply|stl|both] "
         "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
         "[--robust-pipeline [--max-dense-kl-bytes B] [--sharp-edge-degrees D] "
@@ -98,12 +95,6 @@ CliOptions parse_args(int argc, char** argv) {
             }
             options.output = std::filesystem::path(argv[++i]);
             options.has_output = true;
-        } else if (arg == "--metrics-output") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --metrics-output.");
-            }
-            options.metrics_output = std::filesystem::path(argv[++i]);
-            options.has_metrics_output = true;
         } else if (arg == "--deformsim-pressure-output") {
             if (i + 1 >= argc) {
                 throw_usage_error("Missing value for --deformsim-pressure-output.");
@@ -469,14 +460,6 @@ int main(int argc, char** argv) {
 #endif
         }
 
-        if (args.has_metrics_output) {
-            const std::filesystem::path metrics_path = std::filesystem::absolute(args.metrics_output);
-            ensure_parent_directory(metrics_path);
-            const mvrmesh::SurfaceMetrics metrics =
-                mvrmesh::compute_surface_metrics(result.vertices, result.faces);
-            mvrmesh::write_metrics_json(metrics_path, metrics);
-            std::cout << "[ok] wrote metrics " << metrics_path.string() << "\n";
-        }
     } catch (const std::exception& ex) {
         std::cerr << ex.what() << "\n";
         return 1;

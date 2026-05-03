@@ -98,15 +98,6 @@ if(MVRMESH_ENABLE_CGAL)
     endif()
 endif()
 
-add_test(
-    NAME mvrmesh_cli_metrics
-    COMMAND mvr_to_mesh_cli
-        "${MVRMESH_TEST_FIXTURE}"
-        --format ply
-        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_metrics"
-        --metrics-output "${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_metrics.json"
-)
-
 if(MVRMESH_ENABLE_TETGEN)
     add_test(
         NAME mvrmesh_cli_deformsim_pressure
