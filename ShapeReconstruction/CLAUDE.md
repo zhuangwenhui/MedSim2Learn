@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Module scope
 
-`ShapeReconstruction` is the C++20 surface-reconstruction stage of MedSim2Learn. The library `mvrmesh` reads `.mvr` volumetric data (vertices + triangles + tetrahedra) and produces watertight triangle surfaces (PLY/STL) plus optional pre-flight diagnostics for the downstream `DeformSim` solver. The CLI `mvr_to_mesh_cli` is the only executable entry point; `legacy/mvr_to_mesh.py` is kept for parity reference and is not built.
+`ShapeReconstruction` is the C++20 surface-reconstruction stage of MedSim2Learn. The library `mvrmesh` reads `.mvr` volumetric data (vertices + triangles + tetrahedra) and produces watertight triangle surfaces (PLY) plus optional pre-flight diagnostics for the downstream `DeformSim` solver. The CLI `mvr_to_mesh_cli` is the only executable entry point; `legacy/mvr_to_mesh.py` is kept for parity reference and is not built.
 
 ## Build and test
 
@@ -34,7 +34,7 @@ ctest --preset vs2022-x64-debug -R mvrmesh_smoke
 ctest --preset vs2022-x64-debug -R mvrmesh_cli_deformsim_pressure
 ```
 
-Backends can be toggled at configure time via `-DMVRMESH_ENABLE_CGAL=OFF` / `-DMVRMESH_ENABLE_TETGEN=OFF`. Disabling a backend disables both its sources and the CTest cases that depend on it (the relevant `MVRMESH_*_ENABLED` macro is set to `0` so call sites compile out cleanly — see `mvr_to_mesh_cli.cpp:378-432`).
+Backends can be toggled at configure time via `-DMVRMESH_ENABLE_CGAL=OFF` / `-DMVRMESH_ENABLE_TETGEN=OFF`. Disabling a backend disables both its sources and the CTest cases that depend on it (the relevant `MVRMESH_*_ENABLED` macro is set to `0` so call sites compile out cleanly — see the conditional `#if MVRMESH_*_ENABLED` blocks in `mvr_to_mesh_cli.cpp`).
 
 ## Test matrix
 
@@ -42,14 +42,17 @@ Each suite is registered via `cmake/MvrmeshTests.cmake`:
 
 | Test name | Source | What it covers |
 |-----------|--------|----------------|
-| `mvrmesh_smoke` | `verification/core/smoke_tests.cpp` | Pure unit tests for `mvrmesh::*` core APIs (topology, algorithms, metrics). |
-| `mvrmesh_cgal_pmp` | `verification/backends/cgal/cgal_pmp_backend_tests.cpp` | CGAL PMP isotropic remesh backend. Only registered if `MVRMESH_ENABLE_CGAL=ON`. |
-| `mvrmesh_tetgen_evaluator` | `verification/backends/tetgen/tetgen_evaluator_tests.cpp` | TetGen-based pressure pre-flight. Requires `MVRMESH_ENABLE_TETGEN=ON`. |
+| `mvrmesh_smoke` | `verification/core/smoke_tests.cpp` | Pure unit tests for `mvrmesh::*` core APIs (topology, algorithms, indexing). |
+| `mvrmesh_tetgen_evaluator` | `verification/backends/tetgen/tetgen_evaluator_tests.cpp` | TetGen-based pressure pre-flight unit tests. Requires `MVRMESH_ENABLE_TETGEN=ON`. |
 | `mvrmesh_tetgen_no_direct_exit` | `verification/cmake/check_tetgen_no_direct_exit.cmake` | Guards that the vendored TetGen source contains no raw `exit(1)` — must use `terminatetetgen(1)` so `TETLIBRARY` callers can recover. |
-| `mvrmesh_cli_metrics` | direct CLI invocation | End-to-end CLI run on `verification/fixtures/tiny_surface.mvr`, asserts metrics JSON is produced. |
-| `mvrmesh_cli_deformsim_pressure` | `run_cli_deformsim_pressure.cmake` + `check_deformsim_pressure_json.cmake` | Runs the CLI with `--deformsim-pressure-output` and string-matches expected fields in the JSON (e.g. `"tetgen_output_tetra_count": 1`). |
-| `mvrmesh_cli_cgal_backend` | direct CLI | Smoke test of `--surface-backend cgal`. |
-| `mvrmesh_cli_direct` | direct CLI | Only added if `originalData/MVR/kidney.mvr` is present — runs the kidney sample end-to-end. |
+| `mvrmesh_cgal_mesh` | `verification/backends/cgal/cgal_mesh_tests.cpp` | Unit tests for the `run_cgal_mesh` two-stage pipeline. Requires `MVRMESH_ENABLE_CGAL=ON` and `MVRMESH_ENABLE_TETGEN=ON`. |
+| `mvrmesh_cli_cgal_mesh` | direct CLI invocation | CLI smoke test: runs `--cgal-mesh --sharp-edge-degrees 130` on `tiny_surface.mvr`. Requires CGAL+TetGen. |
+| `mvrmesh_cli_robust_pipeline_with_pressure` | direct CLI invocation | CLI run with `--cgal-mesh` and `--deformsim-pressure-output` on `tiny_surface.mvr` (retains old name, scheduled for deletion in P5). |
+| `mvrmesh_cli_cgal_mesh_rejects_adaptive_remesh` | direct CLI invocation | Negative test (WILL_FAIL): verifies that `--cgal-mesh --adaptive-remesh` is rejected. |
+| `mvrmesh_cli_cgal_mesh_rejects_unrelated_flag_without_pipeline` | direct CLI invocation | Negative test (WILL_FAIL): verifies that `--target-edge-length` without `--cgal-mesh` is rejected. |
+| `mvrmesh_cli_deformsim_pressure` | `run_cli_deformsim_pressure.cmake` + `check_deformsim_pressure_json.cmake` | Runs the CLI with `--deformsim-pressure-output` and substring-matches expected fields in the JSON (e.g. `"tetgen_output_tetra_count": 1`). Scheduled for deletion in P5 alongside the flag. |
+| `mvrmesh_cli_direct` | direct CLI invocation | Only added if `originalData/MVR/kidney.mvr` is present — runs the default mesh path end-to-end on the kidney sample. |
+| `mvrmesh_cli_cgal_mesh_kidney` | direct CLI invocation | Only added if `originalData/MVR/kidney.mvr` is present — runs `--cgal-mesh` with `--deformsim-pressure-output` on the kidney sample. |
 
 The CMake-script tests (`check_deformsim_pressure_json.cmake`) do **literal substring matching** on the JSON payload. Adding/removing whitespace or renaming a field is a breaking change for these tests; update the expected strings together with the producer.
 
@@ -67,7 +70,7 @@ include/mvrmesh/
     └── tetgen/  # Optional TetGen-based pre-flight for DeformSim.
 ```
 
-Core is self-contained — `core/types.h` defines `Vec3`, `Face`, `Tet`, `BuildOptions`, `BuildResult`, `OutputFormat`, `SurfaceMode`; everything else in `core/` builds on those types only. Backends depend on core but never on each other, and are guarded by `MVRMESH_*_ENABLED` macros so the library still compiles with either disabled.
+Core is self-contained — `core/types.h` defines `Vec3`, `Face`, `Tet`, `Edge`, `ParsedMvr`, `SurfaceMode`, `BuildOptions`, `BuildResult`; everything else in `core/` builds on those types only. Backends depend on core but never on each other, and are guarded by `MVRMESH_*_ENABLED` macros so the library still compiles with either disabled.
 
 The headers are deliberately small and free-function-oriented (no big "Mesh" class). Add new functionality as free functions in the matching header rather than introducing a new class hierarchy.
 
@@ -75,27 +78,25 @@ The headers are deliberately small and free-function-oriented (no big "Mesh" cla
 
 End-to-end path through `mvr_to_mesh_cli.cpp:main`:
 
-1. `parse_args` -> `CliOptions` (validates flag combinations; e.g. `--cgal-*` flags require `--surface-backend cgal`, `--deformsim-pressure-output` is incompatible with `--format stl`).
+1. `parse_args` -> `CliOptions` (validates flag combinations: `--cgal-mesh` conflicts with `--adaptive-remesh`; `--sharp-edge-degrees`, `--target-edge-length`, and `--remesh-iterations` each require `--cgal-mesh`; `--sharp-edge-degrees` must be in `(0, 180)`, `--target-edge-length` must be `>= 0`, `--remesh-iterations` must be `>= 1`).
 2. `find_project_root(argv0)` walks up from cwd or the executable path looking for a directory containing both `originalData/` and `CMakeLists.txt` — this is how the CLI resolves relative input paths and chooses default outputs.
 3. `parse_mvr` (`core/io.cpp`) -> `ParsedMvr { vertices, triangles, tetrahedra }`.
 4. `build_surface` (`core/pipeline.cpp`) selects between explicit triangles and tet-boundary extraction (`topology::boundary_faces_from_tets`) and optionally runs `algorithms::adaptive_remesh` curvature-based midpoint subdivision.
-5. If `--surface-backend cgal`, `run_cgal_pmp_backend` re-meshes with CGAL PMP isotropic remeshing (`backends/cgal/cgal_pmp_backend.cpp`).
-6. Outputs are written via `write_ply` / `write_stl`. `outputs_for_mode` decides the file list from the requested `OutputFormat`.
+5. If `--cgal-mesh`, `run_cgal_mesh` runs a two-stage pipeline (Stage 1: repair self-intersections; Stage 2: protected isotropic remesh) at `backends/cgal/cgal_mesh.cpp`.
+6. Output is a single PLY written via `write_ply`.
 7. Optional `--deformsim-pressure-output` triggers `evaluate_deformsim_pressure` (TetGen). This is **diagnostic only**: it tetrahedralizes the surface, then estimates the dense `K`/`L` matrix order and byte size DeformSim would need, plus a unique-line/edge upper bound. Result is written via `write_deformsim_pressure_json`.
-8. Optional `--metrics-output` produces a `SurfaceMetrics` JSON (vertex/face counts, degeneracies, boundary/non-manifold/orientation edges, surface area, bbox).
 
 ### Default I/O conventions
 
 The CLI applies project-aware path defaults — keep them when adding new flags:
 - Relative input paths are searched in cwd, then `<project_root>/`, then `<project_root>/originalData/`.
-- Without `--output`, outputs are written under `<project_root>/outPut/PLY/<stem>.ply` and/or `<project_root>/outPut/STL/<stem>.stl`.
+- Without `--output`, output is written under `<project_root>/outPut/PLY/<stem>.ply`.
 - Project root is detected via the `originalData/` + `CMakeLists.txt` pair, not hardcoded.
 
-### Python-parity quirks
+### Indexing-parity quirks
 
 The C++ port preserves a few subtle behaviors of `legacy/mvr_to_mesh.py` because tests assert them:
 
-- `select_split_edges_by_curvature` uses **Python-style banker's rounding** (ties to even), not C++ `std::round`. See `test_python_round_behavior_for_face_selection` in `verification/core/smoke_tests.cpp:86-101`.
 - `normalize_faces_indices` / `normalize_tet_indices` auto-detect 1-based vs 0-based indexing and convert when needed.
 - `boundary_faces_from_tets` orients each boundary face outward using the opposite tet vertex, matching the Python output exactly.
 

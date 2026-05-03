@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Folder | Role |
 |--------|------|
-| `ShapeReconstruction/` | C++20 surface reconstruction (`.mvr` -> PLY/STL) and DeformSim pre-flight diagnostics. |
+| `ShapeReconstruction/` | C++20 surface reconstruction (`.mvr` -> PLY) and DeformSim pre-flight diagnostics. |
 | `DeformSim/` | Deformation simulation solver. |
 | `Deform_post/` | Post-processing of DeformSim outputs. |
 | `KiDKNet/` | Learning-based component. |
