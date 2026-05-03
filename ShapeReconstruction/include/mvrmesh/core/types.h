@@ -23,12 +23,6 @@ struct ParsedMvr {
     std::vector<Tet> tetrahedra;
 };
 
-enum class OutputFormat {
-    Ply,
-    Stl,
-    Both
-};
-
 enum class SurfaceMode {
     DirectSurface,
     AdaptiveRemesh

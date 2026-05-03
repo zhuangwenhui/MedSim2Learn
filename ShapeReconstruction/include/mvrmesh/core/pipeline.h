@@ -16,11 +16,9 @@ BuildResult build_surface(
 );
 
 std::vector<std::filesystem::path> outputs_for_mode(
-    const std::filesystem::path& base_output,
-    OutputFormat format
+    const std::filesystem::path& base_output
 );
 
-OutputFormat parse_output_format(const std::string& text);
 std::string surface_mode_to_string(SurfaceMode mode);
 
 }  // namespace mvrmesh

@@ -4,13 +4,12 @@ foreach(required IN ITEMS CLI_EXE INPUT_MVR OUTPUT_BASE PRESSURE_JSON)
     endif()
 endforeach()
 
-file(REMOVE "${PRESSURE_JSON}" "${OUTPUT_BASE}.ply" "${OUTPUT_BASE}.stl")
+file(REMOVE "${PRESSURE_JSON}" "${OUTPUT_BASE}.ply")
 
 execute_process(
     COMMAND
         "${CLI_EXE}"
         "${INPUT_MVR}"
-        --format ply
         -o "${OUTPUT_BASE}"
         --deformsim-pressure-output "${PRESSURE_JSON}"
     RESULT_VARIABLE result

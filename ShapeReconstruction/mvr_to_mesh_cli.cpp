@@ -20,7 +20,6 @@ struct CliOptions {
     std::filesystem::path deformsim_pressure_output;
     bool has_output = false;
     bool has_deformsim_pressure_output = false;
-    mvrmesh::OutputFormat format = mvrmesh::OutputFormat::Both;
     mvrmesh::BuildOptions build;
 
     // robust pipeline (Task 7)
@@ -39,13 +38,12 @@ struct CliOptions {
     throw std::runtime_error(
         message +
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
-        "[--format ply|stl|both] "
         "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
         "[--robust-pipeline [--max-dense-kl-bytes B] [--sharp-edge-degrees D] "
         "[--target-edge-length L] [--remesh-iterations N]]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
-        "Default output (without --output): <project_root>/outPut/{PLY|STL}/<input_stem>"
+        "Default output (without --output): <project_root>/outPut/PLY/<input_stem>.ply"
     );
 }
 
@@ -101,11 +99,6 @@ CliOptions parse_args(int argc, char** argv) {
             }
             options.deformsim_pressure_output = std::filesystem::path(argv[++i]);
             options.has_deformsim_pressure_output = true;
-        } else if (arg == "--format") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --format.");
-            }
-            options.format = mvrmesh::parse_output_format(argv[++i]);
         } else if (arg == "--robust-pipeline") {
             options.robust_pipeline = true;
         } else if (arg == "--max-dense-kl-bytes") {
@@ -168,9 +161,6 @@ CliOptions parse_args(int argc, char** argv) {
     }
     if (!(options.build.adaptive_split_ratio > 0.0 && options.build.adaptive_split_ratio <= 1.0)) {
         throw std::runtime_error("--adaptive-split-ratio must be in (0, 1]");
-    }
-    if (options.has_deformsim_pressure_output && options.format == mvrmesh::OutputFormat::Stl) {
-        throw std::runtime_error("--deformsim-pressure-output requires --format ply or both");
     }
 
     // Robust pipeline validation (Task 7)
@@ -313,23 +303,12 @@ std::filesystem::path resolve_input_path(
 
 std::vector<std::filesystem::path> default_outputs_for_input(
     const std::filesystem::path& in_path,
-    mvrmesh::OutputFormat format,
     const std::filesystem::path& project_root
 ) {
     const std::filesystem::path root =
         project_root.empty() ? infer_project_root_from_input(in_path) : project_root;
     const std::string stem = in_path.stem().string();
-    std::vector<std::filesystem::path> outputs;
-
-    if (format == mvrmesh::OutputFormat::Ply) {
-        outputs.push_back(root / "outPut" / "PLY" / (stem + ".ply"));
-    } else if (format == mvrmesh::OutputFormat::Stl) {
-        outputs.push_back(root / "outPut" / "STL" / (stem + ".stl"));
-    } else {
-        outputs.push_back(root / "outPut" / "PLY" / (stem + ".ply"));
-        outputs.push_back(root / "outPut" / "STL" / (stem + ".stl"));
-    }
-    return outputs;
+    return { root / "outPut" / "PLY" / (stem + ".ply") };
 }
 
 void ensure_parent_directory(const std::filesystem::path& path) {
@@ -371,8 +350,8 @@ int main(int argc, char** argv) {
 
         const std::vector<std::filesystem::path> out_paths =
             args.has_output
-                ? mvrmesh::outputs_for_mode(std::filesystem::absolute(args.output), args.format)
-                : default_outputs_for_input(in_path, args.format, project_root);
+                ? mvrmesh::outputs_for_mode(std::filesystem::absolute(args.output))
+                : default_outputs_for_input(in_path, project_root);
 
         const mvrmesh::ParsedMvr parsed = mvrmesh::parse_mvr(in_path);
         std::cout << "[info] source: vertices=" << parsed.vertices.size()
@@ -417,13 +396,10 @@ int main(int argc, char** argv) {
             ensure_parent_directory(out_path);
 
             const std::string ext = out_path.extension().string();
-            if (ext == ".ply" || ext == ".PLY") {
-                mvrmesh::write_ply(out_path, result.vertices, result.faces);
-            } else if (ext == ".stl" || ext == ".STL") {
-                mvrmesh::write_stl(out_path, result.vertices, result.faces);
-            } else {
+            if (ext != ".ply" && ext != ".PLY") {
                 throw std::runtime_error("Unsupported output extension: " + out_path.extension().string());
             }
+            mvrmesh::write_ply(out_path, result.vertices, result.faces);
             std::cout << "[ok] wrote " << out_path.string() << "\n";
         }
 

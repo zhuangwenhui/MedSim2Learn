@@ -1,7 +1,5 @@
 #include "mvrmesh/core/pipeline.h"
 
-#include <algorithm>
-#include <cctype>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -56,45 +54,11 @@ BuildResult build_surface(
 }
 
 std::vector<std::filesystem::path> outputs_for_mode(
-    const std::filesystem::path& base_output,
-    OutputFormat format
+    const std::filesystem::path& base_output
 ) {
-    std::vector<std::filesystem::path> outputs;
-    if (format == OutputFormat::Ply) {
-        std::filesystem::path p = base_output;
-        p.replace_extension(".ply");
-        outputs.push_back(std::move(p));
-    } else if (format == OutputFormat::Stl) {
-        std::filesystem::path p = base_output;
-        p.replace_extension(".stl");
-        outputs.push_back(std::move(p));
-    } else {
-        std::filesystem::path p = base_output;
-        p.replace_extension(".ply");
-        outputs.push_back(p);
-        p = base_output;
-        p.replace_extension(".stl");
-        outputs.push_back(std::move(p));
-    }
-    return outputs;
-}
-
-OutputFormat parse_output_format(const std::string& text) {
-    std::string lowered = text;
-    std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch) {
-        return static_cast<char>(std::tolower(ch));
-    });
-
-    if (lowered == "ply") {
-        return OutputFormat::Ply;
-    }
-    if (lowered == "stl") {
-        return OutputFormat::Stl;
-    }
-    if (lowered == "both") {
-        return OutputFormat::Both;
-    }
-    throw std::runtime_error("Invalid --format value: " + text + " (expected: ply, stl, both)");
+    std::filesystem::path p = base_output;
+    p.replace_extension(".ply");
+    return { std::move(p) };
 }
 
 std::string surface_mode_to_string(SurfaceMode mode) {

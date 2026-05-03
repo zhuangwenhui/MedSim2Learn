@@ -46,7 +46,6 @@ if(MVRMESH_ENABLE_CGAL)
                 "${MVRMESH_TEST_FIXTURE}"
                 --robust-pipeline
                 --sharp-edge-degrees 130
-                --format ply
                 -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust"
         )
         add_test(
@@ -55,7 +54,6 @@ if(MVRMESH_ENABLE_CGAL)
                 "${MVRMESH_TEST_FIXTURE}"
                 --robust-pipeline
                 --sharp-edge-degrees 130
-                --format ply
                 -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure"
                 --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure.json"
         )
@@ -70,7 +68,7 @@ if(MVRMESH_ENABLE_CGAL)
             NAME mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
-                --robust-pipeline --adaptive-remesh --format ply
+                --robust-pipeline --adaptive-remesh
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_ar"
         )
         set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_adaptive_remesh
@@ -80,7 +78,7 @@ if(MVRMESH_ENABLE_CGAL)
             NAME mvrmesh_cli_robust_pipeline_rejects_zero_budget
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
-                --robust-pipeline --max-dense-kl-bytes 0 --format ply
+                --robust-pipeline --max-dense-kl-bytes 0
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_zb"
         )
         set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_zero_budget
@@ -90,7 +88,7 @@ if(MVRMESH_ENABLE_CGAL)
             NAME mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
-                --max-dense-kl-bytes 4294967296 --format ply
+                --max-dense-kl-bytes 4294967296
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_no_pipeline"
         )
         set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
@@ -120,7 +118,6 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
         NAME mvrmesh_cli_direct
         COMMAND mvr_to_mesh_cli
             "${MVRMESH_SAMPLE_INPUT}"
-            --format ply
             -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_direct_cpp"
     )
 
@@ -134,7 +131,6 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_SAMPLE_INPUT}"
                 --robust-pipeline
-                --format ply
                 -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust"
                 --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust_pressure.json"
         )

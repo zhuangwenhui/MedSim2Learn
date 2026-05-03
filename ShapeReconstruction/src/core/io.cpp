@@ -13,7 +13,6 @@
 #include <utility>
 #include <vector>
 
-#include "mvrmesh/core/geometry.h"
 #include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
@@ -209,42 +208,6 @@ void write_ply(
     for (const Face& f : faces) {
         output << "3 " << f[0] << " " << f[1] << " " << f[2] << "\n";
     }
-}
-
-void write_stl(
-    const std::filesystem::path& path,
-    const std::vector<Vec3>& vertices,
-    const std::vector<Face>& faces
-) {
-    std::ofstream output(path, std::ios::out | std::ios::trunc);
-    if (!output) {
-        throw std::runtime_error("Failed to open output file: " + path.string());
-    }
-
-    std::string name = path.stem().string();
-    if (name.empty()) {
-        name = "mesh";
-    }
-    std::replace(name.begin(), name.end(), ' ', '_');
-
-    output << "solid " << name << "\n";
-    output << std::setprecision(9) << std::defaultfloat;
-
-    for (const Face& f : faces) {
-        const Vec3& v1 = vertices.at(static_cast<std::size_t>(f[0]));
-        const Vec3& v2 = vertices.at(static_cast<std::size_t>(f[1]));
-        const Vec3& v3 = vertices.at(static_cast<std::size_t>(f[2]));
-        const Vec3 n = face_normal(v1, v2, v3);
-        output << "  facet normal " << n.x << " " << n.y << " " << n.z << "\n";
-        output << "    outer loop\n";
-        output << "      vertex " << v1.x << " " << v1.y << " " << v1.z << "\n";
-        output << "      vertex " << v2.x << " " << v2.y << " " << v2.z << "\n";
-        output << "      vertex " << v3.x << " " << v3.y << " " << v3.z << "\n";
-        output << "    endloop\n";
-        output << "  endfacet\n";
-    }
-
-    output << "endsolid " << name << "\n";
 }
 
 }  // namespace mvrmesh
