@@ -13,7 +13,7 @@ option(MVRMESH_BUILD_TESTS "Build mvrmesh CTest suites (smoke, backends, CLI)" O
 if(MVRMESH_ENABLE_CGAL AND NOT MVRMESH_ENABLE_TETGEN)
     message(FATAL_ERROR
         "MVRMESH_ENABLE_CGAL=ON requires MVRMESH_ENABLE_TETGEN=ON because the robust "
-        "pipeline (cgal_robust_pipeline.cpp) calls evaluate_deformsim_pressure. "
+        "pipeline (cgal_mesh.cpp) calls evaluate_deformsim_pressure. "
         "Either disable CGAL or enable TetGen.")
 endif()
 

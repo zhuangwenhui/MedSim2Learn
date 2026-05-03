@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "mvrmesh/backends/cgal/cgal_robust_pipeline.h"
+#include "mvrmesh/backends/cgal/cgal_mesh.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/pipeline.h"
 #include "mvrmesh/backends/tetgen/tetgen_evaluator.h"
@@ -345,12 +345,12 @@ int main(int argc, char** argv) {
 
         if (args.cgal_mesh) {
 #if MVRMESH_CGAL_PMP_ENABLED && MVRMESH_TETGEN_ENABLED
-            mvrmesh::RobustPipelineOptions ropts;
+            mvrmesh::CgalMeshOptions ropts;
             ropts.sharp_edge_dihedral_degrees = args.sharp_edge_degrees;
             ropts.target_edge_length          = args.robust_target_edge_length;
             ropts.remesh_iterations           = args.remesh_iterations;
-            mvrmesh::RobustPipelineResult robust =
-                mvrmesh::run_cgal_robust_pipeline(result.vertices, result.faces, ropts);
+            mvrmesh::CgalMeshResult robust =
+                mvrmesh::run_cgal_mesh(result.vertices, result.faces, ropts);
             result.vertices = std::move(robust.vertices);
             result.faces    = std::move(robust.faces);
 #else

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "mvrmesh/backends/cgal/cgal_robust_pipeline.h"
+#include "mvrmesh/backends/cgal/cgal_mesh.h"
 #include "mvrmesh/core/types.h"
 
 namespace {
@@ -304,7 +304,7 @@ void test_remesh_throws_when_all_edges_sharp() {
     require(threw, "expected runtime_error when threshold flags all edges as sharp");
 }
 
-// ---------- Orchestrator: run_cgal_robust_pipeline ----------
+// ---------- Orchestrator: run_cgal_mesh ----------
 
 void test_pipeline_happy_path_tetrahedron() {
     using mvrmesh::Face;
@@ -320,14 +320,14 @@ void test_pipeline_happy_path_tetrahedron() {
         Face{0, 2, 1}, Face{0, 1, 3}, Face{1, 2, 3}, Face{2, 0, 3},
     };
 
-    mvrmesh::RobustPipelineOptions opts;
+    mvrmesh::CgalMeshOptions opts;
     // Override the 60-deg default: the corner tetrahedron's adjacent-face-normal
     // angles (90 deg between right-angle faces, ~125 deg involving the slanted
     // face) all exceed 60 deg, which would make stage 2's all-edges-sharp guard
     // throw before stage 3 runs. 130 deg matches the threshold used in the
     // stage-2 unit tests for the same fixture.
     opts.sharp_edge_dihedral_degrees = 130.0;
-    const auto result = mvrmesh::run_cgal_robust_pipeline(vertices, faces, opts);
+    const auto result = mvrmesh::run_cgal_mesh(vertices, faces, opts);
     require(result.repair_report.oriented_successfully, "repair must succeed");
     require(result.remesh_report.target_edge_length_used > 0.0,
             "remesh must record a positive resolved target edge length");
@@ -350,10 +350,10 @@ void test_pipeline_propagates_step1_failure() {
         Face{2, 2, 0},
     };
 
-    mvrmesh::RobustPipelineOptions opts;
+    mvrmesh::CgalMeshOptions opts;
     bool threw = false;
     try {
-        mvrmesh::run_cgal_robust_pipeline(vertices, faces, opts);
+        mvrmesh::run_cgal_mesh(vertices, faces, opts);
     } catch (const std::runtime_error& ex) {
         threw = true;
         const std::string msg = ex.what();
@@ -383,6 +383,6 @@ int main() {
         std::cerr << "[fail] " << ex.what() << "\n";
         return 1;
     }
-    std::cout << "[ok] cgal_robust_pipeline_tests (full) passed\n";
+    std::cout << "[ok] cgal_mesh_tests (full) passed\n";
     return 0;
 }

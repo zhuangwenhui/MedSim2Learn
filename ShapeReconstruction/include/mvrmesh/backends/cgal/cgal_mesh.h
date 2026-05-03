@@ -7,7 +7,7 @@
 
 namespace mvrmesh {
 
-struct RobustPipelineOptions {
+struct CgalMeshOptions {
     // Stage 2 tunables
     double sharp_edge_dihedral_degrees = 60.0;
     double target_edge_length          = 0.0;   // 0 -> auto = mean edge length of stage 1 output
@@ -35,17 +35,17 @@ struct ProtectedRemeshStepReport {
     int         remesh_iterations_used   = 0;
 };
 
-struct RobustPipelineResult {
+struct CgalMeshResult {
     std::vector<Vec3>          vertices;
     std::vector<Face>          faces;
     RepairStepReport           repair_report;
     ProtectedRemeshStepReport  remesh_report;
 };
 
-RobustPipelineResult run_cgal_robust_pipeline(
+CgalMeshResult run_cgal_mesh(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
-    const RobustPipelineOptions& options);
+    const CgalMeshOptions& options);
 
 namespace detail {
 

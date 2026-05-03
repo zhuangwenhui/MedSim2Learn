@@ -1,4 +1,4 @@
-#include "mvrmesh/backends/cgal/cgal_robust_pipeline.h"
+#include "mvrmesh/backends/cgal/cgal_mesh.h"
 
 #if MVRMESH_CGAL_PMP_ENABLED
 
@@ -221,7 +221,7 @@ RepairStepIO repair_polygon_soup_step(
         throw std::runtime_error(
             "step 1 (repair): input cannot be oriented (Mobius-strip-like topology or "
             "self-intersection density too high). Consider externally repairing the input "
-            "before --robust-pipeline.");
+            "before --cgal-mesh.");
     }
 
     CgalSurfaceMesh mesh;
@@ -349,10 +349,10 @@ ProtectedRemeshStepIO protected_remesh_step(
 
 }  // namespace detail
 
-RobustPipelineResult run_cgal_robust_pipeline(
+CgalMeshResult run_cgal_mesh(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
-    const RobustPipelineOptions& options) {
+    const CgalMeshOptions& options) {
     auto repair = detail::repair_polygon_soup_step(vertices, faces);
     log_repair(repair.report);
 
@@ -363,7 +363,7 @@ RobustPipelineResult run_cgal_robust_pipeline(
         options.remesh_iterations);
     log_remesh(remesh.report);
 
-    RobustPipelineResult result;
+    CgalMeshResult result;
     result.vertices      = std::move(remesh.vertices);
     result.faces         = std::move(remesh.faces);
     result.repair_report = repair.report;

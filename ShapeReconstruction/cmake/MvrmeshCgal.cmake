@@ -1,7 +1,7 @@
 find_package(CGAL CONFIG REQUIRED)
 
 set(MVRMESH_CGAL_SOURCES
-    src/backends/cgal/cgal_robust_pipeline.cpp
+    src/backends/cgal/cgal_mesh.cpp
 )
 
 set(MVRMESH_CGAL_LIBRARIES

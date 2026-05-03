@@ -29,11 +29,11 @@ endif()
 
 if(MVRMESH_ENABLE_CGAL)
     if(MVRMESH_ENABLE_TETGEN)
-        add_executable(mvrmesh_robust_pipeline_tests
-            verification/backends/cgal/cgal_robust_pipeline_tests.cpp
+        add_executable(mvrmesh_cgal_mesh_tests
+            verification/backends/cgal/cgal_mesh_tests.cpp
         )
-        target_link_libraries(mvrmesh_robust_pipeline_tests PRIVATE mvrmesh)
-        add_test(NAME mvrmesh_robust_pipeline COMMAND mvrmesh_robust_pipeline_tests)
+        target_link_libraries(mvrmesh_cgal_mesh_tests PRIVATE mvrmesh)
+        add_test(NAME mvrmesh_robust_pipeline COMMAND mvrmesh_cgal_mesh_tests)
 
         # Note: tiny_surface.mvr is the corner tetrahedron whose adjacent-face-normal
         # angles all exceed 60 deg, which would trip stage 2's all-edges-sharp guard
