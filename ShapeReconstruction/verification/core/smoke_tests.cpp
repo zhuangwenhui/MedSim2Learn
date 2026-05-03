@@ -1,5 +1,6 @@
 #include <cmath>
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <set>
 #include <stdexcept>
@@ -7,6 +8,7 @@
 #include <vector>
 
 #include "mvrmesh/core/algorithms.h"
+#include "mvrmesh/core/io.h"
 #include "mvrmesh/core/metrics.h"
 #include "mvrmesh/core/pipeline.h"
 #include "mvrmesh/core/topology.h"
@@ -294,6 +296,40 @@ void test_metrics_json_includes_quality_fields() {
     require(json.find("\"degeneracy_epsilon\":") != std::string::npos, "JSON should include degeneracy epsilon");
 }
 
+void test_read_ply_round_trip() {
+    std::vector<mvrmesh::Vec3> orig_v = {
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0},
+        {0.0, 0.0, 1.0},
+    };
+    std::vector<mvrmesh::Face> orig_f = {
+        {0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3},
+    };
+
+    const std::filesystem::path tmp =
+        std::filesystem::temp_directory_path() / "mvrmesh_test_round_trip.ply";
+    mvrmesh::write_ply(tmp, orig_v, orig_f);
+
+    std::vector<mvrmesh::Vec3> read_v;
+    std::vector<mvrmesh::Face> read_f;
+    mvrmesh::read_ply(tmp, read_v, read_f);
+
+    require(read_v.size() == orig_v.size(), "read_ply should preserve vertex count");
+    require(read_f.size() == orig_f.size(), "read_ply should preserve face count");
+    for (std::size_t i = 0; i < orig_v.size(); ++i) {
+        require(std::abs(read_v[i].x - orig_v[i].x) < 1e-6, "x coord round-trip");
+        require(std::abs(read_v[i].y - orig_v[i].y) < 1e-6, "y coord round-trip");
+        require(std::abs(read_v[i].z - orig_v[i].z) < 1e-6, "z coord round-trip");
+    }
+    for (std::size_t i = 0; i < orig_f.size(); ++i) {
+        require(read_f[i][0] == orig_f[i][0], "face vertex 0 round-trip");
+        require(read_f[i][1] == orig_f[i][1], "face vertex 1 round-trip");
+        require(read_f[i][2] == orig_f[i][2], "face vertex 2 round-trip");
+    }
+    std::filesystem::remove(tmp);
+}
+
 }  // namespace
 
 int main() {
@@ -311,6 +347,7 @@ int main() {
         test_surface_metrics_non_manifold_edge();
         test_surface_metrics_disconnected_components();
         test_metrics_json_includes_quality_fields();
+        test_read_ply_round_trip();
     } catch (const std::exception& ex) {
         std::cerr << "[fail] " << ex.what() << "\n";
         return 1;

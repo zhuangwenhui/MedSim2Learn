@@ -210,4 +210,80 @@ void write_ply(
     }
 }
 
+void read_ply(
+    const std::filesystem::path& path,
+    std::vector<Vec3>& out_vertices,
+    std::vector<Face>& out_faces
+) {
+    out_vertices.clear();
+    out_faces.clear();
+
+    std::ifstream in(path);
+    if (!in) {
+        throw std::runtime_error("read_ply: cannot open " + path.string());
+    }
+
+    std::string line;
+    if (!std::getline(in, line) || line != "ply") {
+        throw std::runtime_error("read_ply: expected 'ply' magic in " + path.string());
+    }
+
+    bool ascii = false;
+    std::size_t v_count = 0;
+    std::size_t f_count = 0;
+
+    while (std::getline(in, line)) {
+        std::istringstream ss(line);
+        std::string tok;
+        ss >> tok;
+        if (tok == "format") {
+            std::string fmt;
+            ss >> fmt;
+            if (fmt != "ascii") {
+                throw std::runtime_error("read_ply: only ascii format supported");
+            }
+            ascii = true;
+        } else if (tok == "element") {
+            std::string elem;
+            std::size_t cnt = 0;
+            ss >> elem >> cnt;
+            if (elem == "vertex") v_count = cnt;
+            else if (elem == "face") f_count = cnt;
+        } else if (tok == "end_header") {
+            break;
+        }
+    }
+    if (!ascii) throw std::runtime_error("read_ply: missing format directive");
+
+    out_vertices.reserve(v_count);
+    for (std::size_t i = 0; i < v_count; ++i) {
+        if (!std::getline(in, line)) {
+            throw std::runtime_error("read_ply: unexpected EOF reading vertex " + std::to_string(i));
+        }
+        std::istringstream vs(line);
+        double x, y, z;
+        if (!(vs >> x >> y >> z)) {
+            throw std::runtime_error("read_ply: bad vertex line " + std::to_string(i));
+        }
+        out_vertices.push_back({x, y, z});
+    }
+
+    out_faces.reserve(f_count);
+    for (std::size_t i = 0; i < f_count; ++i) {
+        if (!std::getline(in, line)) {
+            throw std::runtime_error("read_ply: unexpected EOF reading face " + std::to_string(i));
+        }
+        std::istringstream fs(line);
+        int n_verts = 0;
+        if (!(fs >> n_verts) || n_verts != 3) {
+            throw std::runtime_error("read_ply: only triangle faces supported (face " + std::to_string(i) + ")");
+        }
+        Face f{0, 0, 0};
+        if (!(fs >> f[0] >> f[1] >> f[2])) {
+            throw std::runtime_error("read_ply: bad face indices on face " + std::to_string(i));
+        }
+        out_faces.push_back(f);
+    }
+}
+
 }  // namespace mvrmesh

@@ -15,5 +15,11 @@ void write_ply(
     const std::vector<Face>& faces
 );
 
+void read_ply(
+    const std::filesystem::path& path,
+    std::vector<Vec3>& out_vertices,
+    std::vector<Face>& out_faces
+);
+
 }  // namespace mvrmesh
 
