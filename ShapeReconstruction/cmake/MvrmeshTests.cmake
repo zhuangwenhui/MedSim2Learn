@@ -110,4 +110,30 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
             --cgal-mesh
             -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust"
     )
+
+    set(MVRMESH_PLATE_BASELINE "${CMAKE_CURRENT_SOURCE_DIR}/../DeformSim/plate.ply")
+    if(NOT EXISTS "${MVRMESH_PLATE_BASELINE}")
+        set(MVRMESH_PLATE_BASELINE "")
+    endif()
+
+    # End-to-end FEM pressure matrix on kidney.mvr.
+    # Drives scripts/run_pressure_matrix.ps1 which runs mvr_to_mesh_cli for
+    # 6 candidate configurations, then check_fem_pressure --matrix to
+    # aggregate a Markdown comparison report. Conditional on kidney.mvr
+    # existing (matches the surrounding block); plate.ply baseline row
+    # is added only if DeformSim/plate.ply is present.
+    add_test(
+        NAME mvrmesh_pressure_matrix_kidney
+        COMMAND powershell.exe -ExecutionPolicy Bypass
+            -File ${CMAKE_CURRENT_SOURCE_DIR}/scripts/run_pressure_matrix.ps1
+            -InputMvr     ${MVRMESH_SAMPLE_INPUT}
+            -OutDir       ${CMAKE_CURRENT_BINARY_DIR}/pressure_matrix_kidney
+            -CliExe       $<TARGET_FILE:mvr_to_mesh_cli>
+            -PressureExe  $<TARGET_FILE:check_fem_pressure>
+            -BaselinePly  ${MVRMESH_PLATE_BASELINE}
+    )
+    set_tests_properties(mvrmesh_pressure_matrix_kidney PROPERTIES
+        TIMEOUT 600
+        LABELS "matrix"
+    )
 endif()
