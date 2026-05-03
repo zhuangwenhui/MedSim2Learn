@@ -13,9 +13,14 @@ add_test(NAME mvrmesh_smoke COMMAND mvrmesh_smoke_tests)
 if(MVRMESH_ENABLE_TETGEN)
     add_executable(mvrmesh_pressure_evaluator_tests
         verification/pressure/pressure_evaluator_tests.cpp
+        ${MVRMESH_PRESSURE_SOURCES}
     )
 
-    target_link_libraries(mvrmesh_pressure_evaluator_tests PRIVATE mvrmesh)
+    target_link_libraries(mvrmesh_pressure_evaluator_tests
+        PRIVATE
+            mvrmesh
+            ${MVRMESH_TETGEN_LIBRARIES}
+    )
 
     add_test(NAME mvrmesh_pressure_evaluator COMMAND mvrmesh_pressure_evaluator_tests)
 
@@ -48,16 +53,6 @@ if(MVRMESH_ENABLE_CGAL)
                 --sharp-edge-degrees 130
                 -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust"
         )
-        add_test(
-            NAME mvrmesh_cli_robust_pipeline_with_pressure
-            COMMAND mvr_to_mesh_cli
-                "${MVRMESH_TEST_FIXTURE}"
-                --cgal-mesh
-                --sharp-edge-degrees 130
-                -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure"
-                --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure.json"
-        )
-
         # Negative: --cgal-mesh conflicts (use WILL_FAIL TRUE so CTest passes
         # when the CLI exits non-zero). Each rule has its own test entry -- do not
         # combine multiple rule violations into one test, since parse_args returns
@@ -97,18 +92,6 @@ if(MVRMESH_ENABLE_CGAL)
     endif()
 endif()
 
-if(MVRMESH_ENABLE_TETGEN)
-    add_test(
-        NAME mvrmesh_cli_deformsim_pressure
-        COMMAND ${CMAKE_COMMAND}
-            -DCLI_EXE=$<TARGET_FILE:mvr_to_mesh_cli>
-            -DINPUT_MVR=${MVRMESH_TEST_FIXTURE}
-            -DOUTPUT_BASE=${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_deformsim_pressure
-            -DPRESSURE_JSON=${CMAKE_CURRENT_BINARY_DIR}/tiny_cli_deformsim_pressure.json
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/verification/cmake/run_cli_deformsim_pressure.cmake
-    )
-endif()
-
 set(MVRMESH_SAMPLE_INPUT "")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
     set(MVRMESH_SAMPLE_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
@@ -133,7 +116,6 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
                 "${MVRMESH_SAMPLE_INPUT}"
                 --cgal-mesh
                 -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust"
-                --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust_pressure.json"
         )
     endif()
 endif()

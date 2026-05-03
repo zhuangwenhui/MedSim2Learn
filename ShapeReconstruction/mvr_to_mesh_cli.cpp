@@ -8,7 +8,6 @@
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/pipeline.h"
-#include "mvrmesh/pressure/pressure_evaluator.h"
 #include "mvrmesh/core/types.h"
 
 namespace {
@@ -16,9 +15,7 @@ namespace {
 struct CliOptions {
     std::filesystem::path input;
     std::filesystem::path output;
-    std::filesystem::path deformsim_pressure_output;
     bool has_output = false;
-    bool has_deformsim_pressure_output = false;
     mvrmesh::BuildOptions build;
 
     // robust pipeline (Task 7)
@@ -35,7 +32,7 @@ struct CliOptions {
     throw std::runtime_error(
         message +
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
-        "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
+        "[--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
         "[--cgal-mesh [--sharp-edge-degrees D] "
         "[--target-edge-length L] [--remesh-iterations N]]\n"
@@ -81,12 +78,6 @@ CliOptions parse_args(int argc, char** argv) {
             }
             options.output = std::filesystem::path(argv[++i]);
             options.has_output = true;
-        } else if (arg == "--deformsim-pressure-output") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --deformsim-pressure-output.");
-            }
-            options.deformsim_pressure_output = std::filesystem::path(argv[++i]);
-            options.has_deformsim_pressure_output = true;
         } else if (arg == "--cgal-mesh") {
             options.cgal_mesh = true;
         } else if (arg == "--sharp-edge-degrees") {
@@ -301,16 +292,6 @@ void ensure_parent_directory(const std::filesystem::path& path) {
     }
 }
 
-std::filesystem::path first_ply_output(const std::vector<std::filesystem::path>& paths) {
-    for (const auto& path : paths) {
-        const std::string ext = path.extension().string();
-        if (ext == ".ply" || ext == ".PLY") {
-            return path;
-        }
-    }
-    return {};
-}
-
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -372,31 +353,6 @@ int main(int argc, char** argv) {
             }
             mvrmesh::write_ply(out_path, result.vertices, result.faces);
             std::cout << "[ok] wrote " << out_path.string() << "\n";
-        }
-
-        if (args.has_deformsim_pressure_output) {
-#if MVRMESH_TETGEN_ENABLED
-            const std::filesystem::path pressure_path =
-                std::filesystem::absolute(args.deformsim_pressure_output);
-            ensure_parent_directory(pressure_path);
-
-            mvrmesh::DeformSimPressureOptions pressure_options;
-            pressure_options.input_ply = first_ply_output(out_paths).string();
-            const mvrmesh::DeformSimPressureResult pressure_result =
-                mvrmesh::evaluate_deformsim_pressure(result.vertices, result.faces, pressure_options);
-            if (!pressure_result.success) {
-                throw std::runtime_error("DeformSim pressure evaluation failed: " + pressure_result.diagnostic);
-            }
-            std::cout << "[info] deformsim pressure: tetgen vertices="
-                      << pressure_result.tetgen_output_vertex_count
-                      << ", tetrahedra=" << pressure_result.tetgen_output_tetra_count
-                      << ", matrix order=" << pressure_result.estimated_matrix_order
-                      << ", dense K/L bytes=" << pressure_result.estimated_dense_k_l_bytes << "\n";
-            mvrmesh::write_deformsim_pressure_json(pressure_path, pressure_result);
-            std::cout << "[ok] wrote deformsim pressure " << pressure_path.string() << "\n";
-#else
-            throw std::runtime_error("TetGen pressure evaluation backend is disabled in this build.");
-#endif
         }
 
     } catch (const std::exception& ex) {

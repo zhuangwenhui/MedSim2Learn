@@ -13,7 +13,7 @@ option(MVRMESH_BUILD_TESTS "Build mvrmesh CTest suites (smoke, backends, CLI)" O
 if(MVRMESH_ENABLE_CGAL AND NOT MVRMESH_ENABLE_TETGEN)
     message(FATAL_ERROR
         "MVRMESH_ENABLE_CGAL=ON requires MVRMESH_ENABLE_TETGEN=ON because the robust "
-        "pipeline (cgal_mesh.cpp) calls evaluate_deformsim_pressure. "
+        "pipeline guard (MVRMESH_CGAL_PMP_ENABLED && MVRMESH_TETGEN_ENABLED) requires both. "
         "Either disable CGAL or enable TetGen.")
 endif()
 
@@ -35,8 +35,6 @@ endif()
 
 if(MVRMESH_ENABLE_TETGEN)
     include(cmake/MvrmeshPressure.cmake)
-    list(APPEND MVRMESH_BACKEND_SOURCES ${MVRMESH_PRESSURE_SOURCES})
-    list(APPEND MVRMESH_PRIVATE_LIBRARIES ${MVRMESH_TETGEN_LIBRARIES})
     list(APPEND MVRMESH_BACKEND_DEFINITIONS ${MVRMESH_TETGEN_DEFINITIONS})
 else()
     list(APPEND MVRMESH_BACKEND_DEFINITIONS MVRMESH_TETGEN_ENABLED=0)
@@ -71,9 +69,14 @@ target_link_libraries(mvr_to_mesh_cli PRIVATE mvrmesh)
 
 add_executable(check_fem_pressure
     check_fem_pressure_cli.cpp
+    ${MVRMESH_PRESSURE_SOURCES}
 )
 
-target_link_libraries(check_fem_pressure PRIVATE mvrmesh)
+target_link_libraries(check_fem_pressure
+    PRIVATE
+        mvrmesh
+        ${MVRMESH_TETGEN_LIBRARIES}
+)
 
 # enable_testing() must be called unconditionally so CMake regenerates an
 # up-to-date CTestTestfile.cmake on every configure. Otherwise toggling
