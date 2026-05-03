@@ -23,11 +23,9 @@ struct CliOptions {
 
     // robust pipeline (Task 7)
     bool robust_pipeline = false;
-    bool has_max_dense_kl_bytes = false;
     bool has_sharp_edge_degrees = false;
     bool has_robust_target_edge_length = false;
     bool has_remesh_iterations = false;
-    std::size_t max_dense_kl_bytes = 4ull * 1024 * 1024 * 1024;  // 4 GiB default
     double sharp_edge_degrees = 60.0;
     double robust_target_edge_length = 0.0;
     int remesh_iterations = 3;
@@ -39,7 +37,7 @@ struct CliOptions {
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
         "[--deformsim-pressure-output <json_path>] [--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
-        "[--robust-pipeline [--max-dense-kl-bytes B] [--sharp-edge-degrees D] "
+        "[--robust-pipeline [--sharp-edge-degrees D] "
         "[--target-edge-length L] [--remesh-iterations N]]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
         "Default output (without --output): <project_root>/outPut/PLY/<input_stem>.ply"
@@ -62,15 +60,6 @@ double parse_double_value(const std::string& text, const std::string& flag_name)
         throw std::runtime_error("Invalid value for " + flag_name + ": " + text);
     }
     return value;
-}
-
-std::size_t parse_size_t_value(const std::string& text, const std::string& flag_name) {
-    std::size_t consumed = 0;
-    const unsigned long long value = std::stoull(text, &consumed);
-    if (consumed != text.size()) {
-        throw std::runtime_error("Invalid value for " + flag_name + ": " + text);
-    }
-    return static_cast<std::size_t>(value);
 }
 
 CliOptions parse_args(int argc, char** argv) {
@@ -100,13 +89,6 @@ CliOptions parse_args(int argc, char** argv) {
             options.has_deformsim_pressure_output = true;
         } else if (arg == "--robust-pipeline") {
             options.robust_pipeline = true;
-        } else if (arg == "--max-dense-kl-bytes") {
-            if (i + 1 >= argc) {
-                throw_usage_error("Missing value for --max-dense-kl-bytes.");
-            }
-            options.max_dense_kl_bytes = parse_size_t_value(
-                argv[++i], "--max-dense-kl-bytes");
-            options.has_max_dense_kl_bytes = true;
         } else if (arg == "--sharp-edge-degrees") {
             if (i + 1 >= argc) {
                 throw_usage_error("Missing value for --sharp-edge-degrees.");
@@ -167,9 +149,6 @@ CliOptions parse_args(int argc, char** argv) {
         if (options.build.adaptive_remesh) {
             throw std::runtime_error("--robust-pipeline conflicts with --adaptive-remesh");
         }
-        if (options.max_dense_kl_bytes == 0) {
-            throw std::runtime_error("--max-dense-kl-bytes must be > 0");
-        }
         if (!(options.sharp_edge_degrees > 0.0 && options.sharp_edge_degrees < 180.0)) {
             throw std::runtime_error("--sharp-edge-degrees must be in (0, 180)");
         }
@@ -180,9 +159,6 @@ CliOptions parse_args(int argc, char** argv) {
             throw std::runtime_error("--remesh-iterations must be >= 1");
         }
     } else {
-        if (options.has_max_dense_kl_bytes) {
-            throw std::runtime_error("--max-dense-kl-bytes requires --robust-pipeline");
-        }
         if (options.has_sharp_edge_degrees) {
             throw std::runtime_error("--sharp-edge-degrees requires --robust-pipeline");
         }

@@ -73,20 +73,10 @@ if(MVRMESH_ENABLE_CGAL)
             PROPERTIES WILL_FAIL TRUE)
 
         add_test(
-            NAME mvrmesh_cli_robust_pipeline_rejects_zero_budget
-            COMMAND mvr_to_mesh_cli
-                "${MVRMESH_TEST_FIXTURE}"
-                --robust-pipeline --max-dense-kl-bytes 0
-                -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_zb"
-        )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_zero_budget
-            PROPERTIES WILL_FAIL TRUE)
-
-        add_test(
             NAME mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
             COMMAND mvr_to_mesh_cli
                 "${MVRMESH_TEST_FIXTURE}"
-                --max-dense-kl-bytes 4294967296
+                --target-edge-length 0.5
                 -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_no_pipeline"
         )
         set_tests_properties(mvrmesh_cli_robust_pipeline_rejects_unrelated_flag_without_pipeline
