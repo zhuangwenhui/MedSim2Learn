@@ -57,8 +57,6 @@ if(MVRMESH_ENABLE_CGAL)
                 -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure"
                 --deformsim-pressure-output "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust_pressure.json"
         )
-        set_tests_properties(mvrmesh_cli_robust_pipeline_with_pressure PROPERTIES
-            PASS_REGULAR_EXPRESSION "step 3 \\(simplify\\): skipped")
 
         # Negative: --robust-pipeline conflicts (use WILL_FAIL TRUE so CTest passes
         # when the CLI exits non-zero). Each rule has its own test entry -- do not

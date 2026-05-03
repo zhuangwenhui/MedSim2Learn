@@ -1,6 +1,5 @@
 #include <filesystem>
 #include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -368,20 +367,16 @@ int main(int argc, char** argv) {
                   << ", output vertices=" << result.vertices.size()
                   << ", faces=" << result.faces.size() << "\n";
 
-        std::optional<mvrmesh::DeformSimPressureResult> robust_pressure_cache;
         if (args.robust_pipeline) {
 #if MVRMESH_CGAL_PMP_ENABLED && MVRMESH_TETGEN_ENABLED
             mvrmesh::RobustPipelineOptions ropts;
             ropts.sharp_edge_dihedral_degrees = args.sharp_edge_degrees;
             ropts.target_edge_length          = args.robust_target_edge_length;
             ropts.remesh_iterations           = args.remesh_iterations;
-            ropts.max_dense_kl_bytes          = args.max_dense_kl_bytes;
-            // simplify_safety_margin keeps default 0.9
             mvrmesh::RobustPipelineResult robust =
                 mvrmesh::run_cgal_robust_pipeline(result.vertices, result.faces, ropts);
             result.vertices = std::move(robust.vertices);
             result.faces    = std::move(robust.faces);
-            robust_pressure_cache = std::move(robust.final_pressure_result);
 #else
             throw std::runtime_error(
                 "--robust-pipeline requires both CGAL and TetGen backends to be enabled at build time.");
@@ -409,28 +404,20 @@ int main(int argc, char** argv) {
                 std::filesystem::absolute(args.deformsim_pressure_output);
             ensure_parent_directory(pressure_path);
 
-            if (robust_pressure_cache.has_value()) {
-                // Reuse the second pressure evaluation from stage 3 of the robust pipeline,
-                // avoiding a third TetGen invocation.
-                mvrmesh::write_deformsim_pressure_json(pressure_path, *robust_pressure_cache);
-                std::cout << "[ok] wrote deformsim pressure (reused from robust pipeline) "
-                          << pressure_path.string() << "\n";
-            } else {
-                mvrmesh::DeformSimPressureOptions pressure_options;
-                pressure_options.input_ply = first_ply_output(out_paths).string();
-                const mvrmesh::DeformSimPressureResult pressure_result =
-                    mvrmesh::evaluate_deformsim_pressure(result.vertices, result.faces, pressure_options);
-                if (!pressure_result.success) {
-                    throw std::runtime_error("DeformSim pressure evaluation failed: " + pressure_result.diagnostic);
-                }
-                std::cout << "[info] deformsim pressure: tetgen vertices="
-                          << pressure_result.tetgen_output_vertex_count
-                          << ", tetrahedra=" << pressure_result.tetgen_output_tetra_count
-                          << ", matrix order=" << pressure_result.estimated_matrix_order
-                          << ", dense K/L bytes=" << pressure_result.estimated_dense_k_l_bytes << "\n";
-                mvrmesh::write_deformsim_pressure_json(pressure_path, pressure_result);
-                std::cout << "[ok] wrote deformsim pressure " << pressure_path.string() << "\n";
+            mvrmesh::DeformSimPressureOptions pressure_options;
+            pressure_options.input_ply = first_ply_output(out_paths).string();
+            const mvrmesh::DeformSimPressureResult pressure_result =
+                mvrmesh::evaluate_deformsim_pressure(result.vertices, result.faces, pressure_options);
+            if (!pressure_result.success) {
+                throw std::runtime_error("DeformSim pressure evaluation failed: " + pressure_result.diagnostic);
             }
+            std::cout << "[info] deformsim pressure: tetgen vertices="
+                      << pressure_result.tetgen_output_vertex_count
+                      << ", tetrahedra=" << pressure_result.tetgen_output_tetra_count
+                      << ", matrix order=" << pressure_result.estimated_matrix_order
+                      << ", dense K/L bytes=" << pressure_result.estimated_dense_k_l_bytes << "\n";
+            mvrmesh::write_deformsim_pressure_json(pressure_path, pressure_result);
+            std::cout << "[ok] wrote deformsim pressure " << pressure_path.string() << "\n";
 #else
             throw std::runtime_error("TetGen pressure evaluation backend is disabled in this build.");
 #endif
