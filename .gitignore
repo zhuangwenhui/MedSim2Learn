@@ -49,6 +49,14 @@ Testing/
 /ShapeReconstruction/evaluations/
 /ShapeReconstruction/tests/
 
+# ShapeReconstruction - graphify knowledge graph tooling
+/ShapeReconstruction/.graphify_python
+/ShapeReconstruction/graphify-out/manifest.json
+/ShapeReconstruction/graphify-out/cost.json
+/ShapeReconstruction/graphify-out/graph.html
+/ShapeReconstruction/graphify-out/cache/
+/ShapeReconstruction/graphify-out/.graphify_chunk_*.json
+
 
 # DeformSim local build/runtime artifacts
 /DeformSim/**/[Dd]ebug/
