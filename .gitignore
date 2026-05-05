@@ -103,6 +103,14 @@ Testing/
 /DeformSim/docs/optimization/
 /DeformSim/test/
 
+# DeformSim - graphify knowledge graph tooling
+/DeformSim/.graphify_python
+/DeformSim/graphify-out/manifest.json
+/DeformSim/graphify-out/cost.json
+/DeformSim/graphify-out/graph.html
+/DeformSim/graphify-out/cache/
+/DeformSim/graphify-out/.graphify_chunk_*.json
+
 
 # Deform_post generated/rendered/preprocessed data
 /Deform_post/cameraSetupTest/

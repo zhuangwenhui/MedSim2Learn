@@ -17,6 +17,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 When working inside a sub-project, always read that sub-project's `CLAUDE.md` (if present) for build commands, architecture, and module-specific conventions. The rules in this top-level file apply across **all** sub-projects.
 
+## Knowledge graphs
+
+Some sub-projects have graphify-generated knowledge graphs. **Read the matching `GRAPH_REPORT.md` before grep'ing or scanning source files in that sub-project** — the report lists god nodes, community structure, and cross-cutting bridges that orient a session in unfamiliar code far faster than raw search. This index is workspace-wide, so it works regardless of which sub-project the current session's `cwd` happens to be in.
+
+| Sub-project | Report | Raw graph |
+|---|---|---|
+| ShapeReconstruction | `ShapeReconstruction/graphify-out/GRAPH_REPORT.md` | `ShapeReconstruction/graphify-out/graph.json` |
+| DeformSim | `DeformSim/graphify-out/GRAPH_REPORT.md` | `DeformSim/graphify-out/graph.json` |
+
+Maintain with `python -m graphify update <sub-project-path>` after non-trivial code changes; add a row above when a new sub-project's graph is built, and remove the row if a graph is retired.
+
 ## Global rules (apply to every sub-project)
 
 These are the binding constraints distilled from `AGENTS.md`. Where this file and a sub-project's `CLAUDE.md` agree, follow both; where they conflict, the user's explicit instructions in the current conversation win.
