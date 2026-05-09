@@ -3,6 +3,11 @@ set(MVRMESH_CORE_SOURCES
     src/core/geometry.cpp
     src/core/io.cpp
     src/core/metrics.cpp
+    src/core/reconstruction.cpp
+    src/core/reconstruction_pipeline.cpp
+    src/core/quality_metrics.cpp
+    src/core/surface_acceptance.cpp
+    src/core/smoothing.cpp
     src/core/pipeline.cpp
     src/core/topology.cpp
 )

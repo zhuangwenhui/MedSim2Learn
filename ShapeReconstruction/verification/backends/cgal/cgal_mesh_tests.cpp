@@ -48,6 +48,38 @@ void test_repair_clean_tetrahedron_no_change() {
     require(io.faces.size() == 4, "face count preserved");
 }
 
+void test_repair_only_preserves_simple_triangle() {
+    using mvrmesh::Face;
+    using mvrmesh::Vec3;
+
+    const std::vector<Vec3> vertices{
+        Vec3{0.0, 0.0, 0.0},
+        Vec3{1.0, 0.0, 0.0},
+        Vec3{0.0, 1.0, 0.0},
+    };
+    const std::vector<Face> faces{
+        Face{0, 1, 2},
+    };
+
+    const auto result = mvrmesh::run_cgal_repair_only(vertices, faces);
+    require(result.vertices.size() == 3, "repair-only should preserve simple triangle vertices");
+    require(result.faces.size() == result.repair_report.output_face_count,
+            "repair report face count should match output");
+    require(result.repair_report.input_face_count == 1,
+            "repair report should record input faces");
+    require(!result.faces.empty(), "repair-only should produce at least one face");
+    require(result.remesh_report.input_vertex_count == 0,
+            "repair-only should not run remesh");
+    require(result.remesh_report.input_face_count == 0,
+            "repair-only should not run remesh");
+    require(result.remesh_report.output_vertex_count == 0,
+            "repair-only should not run remesh");
+    require(result.remesh_report.output_face_count == 0,
+            "repair-only should not run remesh");
+    require(result.remesh_report.sharp_edges_detected == 0,
+            "repair-only should not run remesh");
+}
+
 void test_repair_removes_duplicate_vertices() {
     using mvrmesh::Face;
     using mvrmesh::Vec3;
@@ -368,6 +400,7 @@ void test_pipeline_propagates_step1_failure() {
 int main() {
     try {
         test_repair_clean_tetrahedron_no_change();
+        test_repair_only_preserves_simple_triangle();
         test_repair_removes_duplicate_vertices();
         test_repair_removes_degenerate_face();
         test_repair_fills_simple_quadrilateral_hole();

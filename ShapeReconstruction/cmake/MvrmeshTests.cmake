@@ -36,6 +36,14 @@ add_executable(mvrmesh_cgal_mesh_tests
 target_link_libraries(mvrmesh_cgal_mesh_tests PRIVATE mvrmesh)
 add_test(NAME mvrmesh_cgal_mesh COMMAND mvrmesh_cgal_mesh_tests)
 
+add_executable(mvrmesh_quality_smoothing_tests
+    verification/core/quality_smoothing_tests.cpp
+)
+
+target_link_libraries(mvrmesh_quality_smoothing_tests PRIVATE mvrmesh)
+
+add_test(NAME mvrmesh_quality_smoothing COMMAND mvrmesh_quality_smoothing_tests)
+
 # Note: tiny_surface.mvr is the corner tetrahedron whose adjacent-face-normal
 # angles all exceed 60 deg, which would trip stage 2's all-edges-sharp guard
 # under the default --sharp-edge-degrees=60. The override to 130 mirrors what
@@ -49,6 +57,38 @@ add_test(
         --sharp-edge-degrees 130
         -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_robust"
 )
+
+add_test(
+    NAME mvrmesh_cli_uniform_subdivide
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --uniform-subdivide
+        --uniform-iterations 1
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_uniform"
+)
+
+add_test(
+    NAME mvrmesh_cli_uniform_taubin
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --uniform-subdivide
+        --uniform-iterations 1
+        --taubin-smooth
+        --taubin-iterations 2
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_taubin"
+)
+
+add_test(
+    NAME mvrmesh_cli_sdf_reconstruct
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --sdf-reconstruct
+        --sdf-resolution 8
+        --sdf-target-edge-length 0.3
+        --sdf-remesh-iterations 1
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_sdf_reconstruct"
+)
+
 # Negative: --cgal-mesh conflicts (use WILL_FAIL TRUE so CTest passes
 # when the CLI exits non-zero). Each rule has its own test entry -- do not
 # combine multiple rule violations into one test, since parse_args returns
@@ -71,6 +111,56 @@ add_test(
         -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_no_pipeline"
 )
 set_tests_properties(mvrmesh_cli_cgal_mesh_rejects_unrelated_flag_without_pipeline
+    PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME mvrmesh_cli_uniform_subdivide_rejects_adaptive_remesh
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --uniform-subdivide --adaptive-remesh
+        -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_uniform_adaptive"
+)
+set_tests_properties(mvrmesh_cli_uniform_subdivide_rejects_adaptive_remesh
+    PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME mvrmesh_cli_uniform_subdivide_rejects_cgal_mesh
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --uniform-subdivide --cgal-mesh
+        -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_uniform_cgal"
+)
+set_tests_properties(mvrmesh_cli_uniform_subdivide_rejects_cgal_mesh
+    PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME mvrmesh_cli_uniform_iterations_requires_uniform_subdivide
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --uniform-iterations 1
+        -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_uniform_iterations"
+)
+set_tests_properties(mvrmesh_cli_uniform_iterations_requires_uniform_subdivide
+    PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME mvrmesh_cli_taubin_requires_uniform_subdivide
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --taubin-smooth
+        -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_taubin_no_uniform"
+)
+set_tests_properties(mvrmesh_cli_taubin_requires_uniform_subdivide
+    PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME mvrmesh_cli_sdf_resolution_requires_sdf_reconstruct
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --sdf-resolution 8
+        -o "${CMAKE_CURRENT_BINARY_DIR}/should_not_exist_sdf_resolution"
+)
+set_tests_properties(mvrmesh_cli_sdf_resolution_requires_sdf_reconstruct
     PROPERTIES WILL_FAIL TRUE)
 
 # Single-file pressure evaluation: mvr_to_mesh_cli produces a tiny .ply

@@ -47,6 +47,10 @@ CgalMeshResult run_cgal_mesh(
     const std::vector<Face>& faces,
     const CgalMeshOptions& options);
 
+CgalMeshResult run_cgal_repair_only(
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces);
+
 namespace detail {
 
 struct RepairStepIO {

@@ -6,6 +6,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -36,6 +37,40 @@ int midpoint_index(std::vector<Vec3>& vertices, std::map<Edge, int>& cache, int 
     vertices.push_back(mid);
     cache.emplace(key, idx);
     return idx;
+}
+
+std::pair<std::vector<Vec3>, std::vector<Face>> uniform_subdivide_once(
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces
+) {
+    std::vector<Vec3> out_vertices = vertices;
+    std::map<Edge, int> edge_mid_cache;
+    std::vector<Face> out_faces;
+    out_faces.reserve(faces.size() * 4);
+
+    for (const Face& face : faces) {
+        const int i = face[0];
+        const int j = face[1];
+        const int k = face[2];
+
+        const int m0 = midpoint_index(out_vertices, edge_mid_cache, i, j);
+        const int m1 = midpoint_index(out_vertices, edge_mid_cache, j, k);
+        const int m2 = midpoint_index(out_vertices, edge_mid_cache, k, i);
+
+        const Face base{i, j, k};
+        const std::vector<Face> created{
+            Face{i, m0, m2},
+            Face{m0, j, m1},
+            Face{m2, m1, k},
+            Face{m0, m1, m2},
+        };
+
+        for (const Face& tri : created) {
+            out_faces.push_back(orient_like_face(out_vertices, base, tri));
+        }
+    }
+
+    return std::make_pair(std::move(out_vertices), std::move(out_faces));
 }
 
 }  // namespace
@@ -212,6 +247,25 @@ std::pair<std::vector<Vec3>, std::vector<Face>> split_faces_with_edge_set(
     return std::make_pair(std::move(out_vertices), std::move(out_faces));
 }
 
+std::pair<std::vector<Vec3>, std::vector<Face>> uniform_subdivide(
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces,
+    int iterations
+) {
+    if (iterations < 1) {
+        throw std::runtime_error("uniform_subdivide iterations must be >= 1");
+    }
+
+    std::vector<Vec3> out_vertices = vertices;
+    std::vector<Face> out_faces = faces;
+    for (int iteration = 0; iteration < iterations; ++iteration) {
+        auto subdivided = uniform_subdivide_once(out_vertices, out_faces);
+        out_vertices = std::move(subdivided.first);
+        out_faces = std::move(subdivided.second);
+    }
+    return std::make_pair(std::move(out_vertices), std::move(out_faces));
+}
+
 std::pair<std::vector<Vec3>, std::vector<Face>> adaptive_remesh(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
@@ -228,6 +282,47 @@ std::pair<std::vector<Vec3>, std::vector<Face>> adaptive_remesh(
         out_faces = std::move(split_result.second);
     }
     return std::make_pair(std::move(out_vertices), std::move(out_faces));
+}
+
+std::pair<std::vector<Vec3>, std::vector<Face>> compact_mesh_to_referenced_vertices(
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces
+) {
+    if (faces.empty()) {
+        return std::make_pair(std::vector<Vec3>{}, std::vector<Face>{});
+    }
+
+    std::vector<int> old_to_new(vertices.size(), -1);
+    std::vector<Vec3> compact_vertices;
+    compact_vertices.reserve(vertices.size());
+    std::vector<Face> compact_faces;
+    compact_faces.reserve(faces.size());
+
+    auto map_index = [&](int idx) -> int {
+        if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
+            std::ostringstream oss;
+            oss << "compact_mesh_to_referenced_vertices index out of range: " << idx
+                << ", n_vertices=" << vertices.size();
+            throw std::runtime_error(oss.str());
+        }
+        int& mapped = old_to_new[static_cast<std::size_t>(idx)];
+        if (mapped >= 0) {
+            return mapped;
+        }
+        mapped = static_cast<int>(compact_vertices.size());
+        compact_vertices.push_back(vertices[static_cast<std::size_t>(idx)]);
+        return mapped;
+    };
+
+    for (const Face& face : faces) {
+        compact_faces.push_back(Face{
+            map_index(face[0]),
+            map_index(face[1]),
+            map_index(face[2]),
+        });
+    }
+
+    return std::make_pair(std::move(compact_vertices), std::move(compact_faces));
 }
 
 }  // namespace mvrmesh

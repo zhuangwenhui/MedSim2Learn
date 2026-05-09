@@ -369,4 +369,18 @@ CgalMeshResult run_cgal_mesh(
     return result;
 }
 
+CgalMeshResult run_cgal_repair_only(
+    const std::vector<Vec3>& vertices,
+    const std::vector<Face>& faces) {
+    auto repair = detail::repair_polygon_soup_step(vertices, faces);
+    log_repair(repair.report);
+
+    CgalMeshResult result;
+    result.vertices      = std::move(repair.vertices);
+    result.faces         = std::move(repair.faces);
+    result.repair_report = repair.report;
+    result.remesh_report = {};
+    return result;
+}
+
 }  // namespace mvrmesh

@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -8,6 +9,7 @@
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/pipeline.h"
+#include "mvrmesh/core/reconstruction.h"
 #include "mvrmesh/core/types.h"
 
 namespace {
@@ -23,6 +25,15 @@ struct CliOptions {
     bool has_sharp_edge_degrees = false;
     bool has_robust_target_edge_length = false;
     bool has_remesh_iterations = false;
+    bool has_uniform_iterations = false;
+    bool has_taubin_iterations = false;
+    bool has_taubin_lambda = false;
+    bool has_taubin_mu = false;
+    bool has_sdf_resolution = false;
+    bool has_sdf_padding_ratio = false;
+    bool has_sdf_target_edge_length = false;
+    bool has_sdf_remesh_iterations = false;
+    bool has_sdf_sharp_edge_degrees = false;
     double sharp_edge_degrees = 60.0;
     double robust_target_edge_length = 0.0;
     int remesh_iterations = 3;
@@ -34,6 +45,11 @@ struct CliOptions {
         "\nUsage: mvr_to_mesh_cli <input.mvr> [-o|--output <base_path>] "
         "[--adaptive-remesh] "
         "[--adaptive-iterations N] [--adaptive-split-ratio R] "
+        "[--uniform-subdivide] [--uniform-iterations N] "
+        "[--taubin-smooth [--taubin-iterations N] [--taubin-lambda X] [--taubin-mu X]] "
+        "[--sdf-reconstruct [--sdf-resolution N] [--sdf-padding-ratio R] "
+        "[--sdf-target-edge-length L] [--sdf-remesh-iterations N] "
+        "[--sdf-sharp-edge-degrees D]] "
         "[--cgal-mesh [--sharp-edge-degrees D] "
         "[--target-edge-length L] [--remesh-iterations N]]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
@@ -113,6 +129,66 @@ CliOptions parse_args(int argc, char** argv) {
                 throw_usage_error("Missing value for --adaptive-split-ratio.");
             }
             options.build.adaptive_split_ratio = parse_double_value(argv[++i], "--adaptive-split-ratio");
+        } else if (arg == "--uniform-subdivide") {
+            options.build.uniform_subdivide = true;
+        } else if (arg == "--uniform-iterations") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --uniform-iterations.");
+            }
+            options.build.uniform_iterations = parse_int_value(argv[++i], "--uniform-iterations");
+            options.has_uniform_iterations = true;
+        } else if (arg == "--taubin-smooth") {
+            options.build.taubin_smooth = true;
+        } else if (arg == "--taubin-iterations") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --taubin-iterations.");
+            }
+            options.build.taubin_iterations = parse_int_value(argv[++i], "--taubin-iterations");
+            options.has_taubin_iterations = true;
+        } else if (arg == "--taubin-lambda") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --taubin-lambda.");
+            }
+            options.build.taubin_lambda = parse_double_value(argv[++i], "--taubin-lambda");
+            options.has_taubin_lambda = true;
+        } else if (arg == "--taubin-mu") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --taubin-mu.");
+            }
+            options.build.taubin_mu = parse_double_value(argv[++i], "--taubin-mu");
+            options.has_taubin_mu = true;
+        } else if (arg == "--sdf-reconstruct") {
+            options.build.sdf_reconstruct = true;
+        } else if (arg == "--sdf-resolution") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --sdf-resolution.");
+            }
+            options.build.sdf_resolution = parse_int_value(argv[++i], "--sdf-resolution");
+            options.has_sdf_resolution = true;
+        } else if (arg == "--sdf-padding-ratio") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --sdf-padding-ratio.");
+            }
+            options.build.sdf_padding_ratio = parse_double_value(argv[++i], "--sdf-padding-ratio");
+            options.has_sdf_padding_ratio = true;
+        } else if (arg == "--sdf-target-edge-length") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --sdf-target-edge-length.");
+            }
+            options.build.sdf_target_edge_length = parse_double_value(argv[++i], "--sdf-target-edge-length");
+            options.has_sdf_target_edge_length = true;
+        } else if (arg == "--sdf-remesh-iterations") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --sdf-remesh-iterations.");
+            }
+            options.build.sdf_remesh_iterations = parse_int_value(argv[++i], "--sdf-remesh-iterations");
+            options.has_sdf_remesh_iterations = true;
+        } else if (arg == "--sdf-sharp-edge-degrees") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --sdf-sharp-edge-degrees.");
+            }
+            options.build.sdf_sharp_edge_degrees = parse_double_value(argv[++i], "--sdf-sharp-edge-degrees");
+            options.has_sdf_sharp_edge_degrees = true;
         } else if (!arg.empty() && arg[0] == '-') {
             throw_usage_error("Unknown option: " + arg);
         } else {
@@ -133,6 +209,77 @@ CliOptions parse_args(int argc, char** argv) {
     }
     if (!(options.build.adaptive_split_ratio > 0.0 && options.build.adaptive_split_ratio <= 1.0)) {
         throw std::runtime_error("--adaptive-split-ratio must be in (0, 1]");
+    }
+    if (options.build.uniform_iterations < 1) {
+        throw std::runtime_error("--uniform-iterations must be >= 1");
+    }
+    if (options.build.sdf_reconstruct && options.build.taubin_smooth) {
+        throw std::runtime_error("--sdf-reconstruct conflicts with --taubin-smooth");
+    }
+    if (options.build.taubin_smooth && !options.build.uniform_subdivide) {
+        throw std::runtime_error("--taubin-smooth requires --uniform-subdivide");
+    }
+    if (options.build.taubin_iterations < 0) {
+        throw std::runtime_error("--taubin-iterations must be >= 0");
+    }
+    if (!std::isfinite(options.build.taubin_lambda)) {
+        throw std::runtime_error("--taubin-lambda must be finite");
+    }
+    if (!std::isfinite(options.build.taubin_mu)) {
+        throw std::runtime_error("--taubin-mu must be finite");
+    }
+    if (!options.build.taubin_smooth &&
+        (options.has_taubin_iterations || options.has_taubin_lambda || options.has_taubin_mu)) {
+        throw std::runtime_error("--taubin-iterations, --taubin-lambda, and --taubin-mu require --taubin-smooth");
+    }
+    if (options.build.uniform_subdivide && options.build.adaptive_remesh) {
+        throw std::runtime_error("--uniform-subdivide conflicts with --adaptive-remesh");
+    }
+    if (options.build.uniform_subdivide && options.cgal_mesh) {
+        throw std::runtime_error("--uniform-subdivide conflicts with --cgal-mesh");
+    }
+    if (!options.build.uniform_subdivide && options.has_uniform_iterations) {
+        throw std::runtime_error("--uniform-iterations requires --uniform-subdivide");
+    }
+    if (!options.build.sdf_reconstruct &&
+        (options.has_sdf_resolution || options.has_sdf_padding_ratio ||
+         options.has_sdf_target_edge_length || options.has_sdf_remesh_iterations ||
+         options.has_sdf_sharp_edge_degrees)) {
+        throw std::runtime_error(
+            "--sdf-resolution, --sdf-padding-ratio, --sdf-target-edge-length, "
+            "--sdf-remesh-iterations, and --sdf-sharp-edge-degrees require --sdf-reconstruct"
+        );
+    }
+    if (options.build.sdf_reconstruct && options.build.adaptive_remesh) {
+        throw std::runtime_error("--sdf-reconstruct conflicts with --adaptive-remesh");
+    }
+    if (options.build.sdf_reconstruct && options.build.uniform_subdivide) {
+        throw std::runtime_error("--sdf-reconstruct conflicts with --uniform-subdivide");
+    }
+    if (options.build.sdf_reconstruct && options.cgal_mesh) {
+        throw std::runtime_error("--sdf-reconstruct conflicts with --cgal-mesh");
+    }
+    if (options.build.sdf_resolution < 2 ||
+        options.build.sdf_resolution > mvrmesh::kMaxSdfGridResolution) {
+        throw std::runtime_error(
+            "--sdf-resolution must be in [2, "
+            + std::to_string(mvrmesh::kMaxSdfGridResolution) + "]"
+        );
+    }
+    if (!std::isfinite(options.build.sdf_padding_ratio) ||
+        options.build.sdf_padding_ratio < 0.0) {
+        throw std::runtime_error("--sdf-padding-ratio must be finite and >= 0");
+    }
+    if (!std::isfinite(options.build.sdf_target_edge_length) ||
+        options.build.sdf_target_edge_length < 0.0) {
+        throw std::runtime_error("--sdf-target-edge-length must be finite and >= 0");
+    }
+    if (options.build.sdf_remesh_iterations < 1) {
+        throw std::runtime_error("--sdf-remesh-iterations must be >= 1");
+    }
+    if (!(options.build.sdf_sharp_edge_degrees > 0.0 &&
+          options.build.sdf_sharp_edge_degrees < 180.0)) {
+        throw std::runtime_error("--sdf-sharp-edge-degrees must be in (0, 180)");
     }
 
     // Robust pipeline validation (Task 7)
