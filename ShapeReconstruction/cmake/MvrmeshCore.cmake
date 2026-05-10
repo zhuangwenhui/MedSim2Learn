@@ -1,5 +1,7 @@
 set(MVRMESH_CORE_SOURCES
-    src/core/algorithms.cpp
+    src/core/curvature.cpp
+    src/core/subdivision.cpp
+    src/core/compaction.cpp
     src/core/geometry.cpp
     src/core/io.cpp
     src/core/metrics.cpp

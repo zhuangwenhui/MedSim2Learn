@@ -1,0 +1,2 @@
+# Direct boundary-face extraction from tetrahedra (fastest, no smoothing).
+mode: direct_surface

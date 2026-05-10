@@ -1,0 +1,9 @@
+# SDF reconstruction: marching tetrahedra on a signed-distance-function grid,
+# followed by CGAL isotropic remeshing for uniform triangle quality.
+mode: sdf_reconstruct
+
+sdf_reconstruct:
+  resolution: 72
+  padding_ratio: 0.05
+  target_edge_length: 0.025
+  remesh_iterations: 3

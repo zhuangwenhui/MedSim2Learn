@@ -1,12 +1,10 @@
 #include "mvrmesh/core/smoothing.h"
 
 #include <algorithm>
-#include <cmath>
-#include <map>
 #include <limits>
-#include <stdexcept>
+#include <map>
 #include <sstream>
-#include <utility>
+#include <stdexcept>
 #include <vector>
 
 #include "mvrmesh/core/geometry.h"
@@ -15,20 +13,12 @@ namespace mvrmesh {
 
 namespace {
 
-constexpr double kDegenerateEdgeEpsilon = 1e-12;
 constexpr double kDegenerateTriangleEpsilon = 1e-12;
 
 void add_unique_neighbor(std::vector<int>& neighbors, int v) {
     if (std::find(neighbors.begin(), neighbors.end(), v) == neighbors.end()) {
         neighbors.push_back(v);
     }
-}
-
-std::pair<int, int> make_edge_key(int i, int j) {
-    if (i < j) {
-        return {i, j};
-    }
-    return {j, i};
 }
 
 void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
@@ -147,95 +137,6 @@ void restore_boundary_vertices(
     }
 }
 
-double clamp01(double value) {
-    if (value < 0.0) {
-        return 0.0;
-    }
-    if (value > 1.0) {
-        return 1.0;
-    }
-    return value;
-}
-
-double segment_parameter_clamped(double numerator, double denominator) {
-    if (std::abs(denominator) <= kDegenerateEdgeEpsilon) {
-        return 0.0;
-    }
-    return clamp01(numerator / denominator);
-}
-
-Vec3 closest_point_to_segment(const Vec3& p, const Vec3& a, const Vec3& b) {
-    const Vec3 ab = vsub(b, a);
-    const Vec3 ap = vsub(p, a);
-    const double t = segment_parameter_clamped(dot(ap, ab), dot(ab, ab));
-    return vadd(a, vmul(ab, t));
-}
-
-Vec3 closest_point_on_triangle(const Vec3& p, const Vec3& a, const Vec3& b, const Vec3& c) {
-    const Vec3 ab = vsub(b, a);
-    const Vec3 ac = vsub(c, a);
-    const Vec3 ap = vsub(p, a);
-    const Vec3 bp = vsub(p, b);
-    const Vec3 cp = vsub(p, c);
-
-    const double area_cross_sq = dot(cross(ab, ac), cross(ab, ac));
-    if (area_cross_sq <= kDegenerateEdgeEpsilon * kDegenerateEdgeEpsilon) {
-        const double d_ab = dot(vsub(closest_point_to_segment(p, a, b), p), vsub(closest_point_to_segment(p, a, b), p));
-        const double d_ac = dot(vsub(closest_point_to_segment(p, a, c), p), vsub(closest_point_to_segment(p, a, c), p));
-        const double d_bc = dot(vsub(closest_point_to_segment(p, b, c), p), vsub(closest_point_to_segment(p, b, c), p));
-        const double best = std::min(d_ab, std::min(d_ac, d_bc));
-        if (best == d_ab) {
-            return closest_point_to_segment(p, a, b);
-        }
-        if (best == d_ac) {
-            return closest_point_to_segment(p, a, c);
-        }
-        return closest_point_to_segment(p, b, c);
-    }
-
-    const double d1 = dot(ab, ap);
-    const double d2 = dot(ac, ap);
-    if (d1 <= 0.0 && d2 <= 0.0) {
-        return a;
-    }
-
-    const double d3 = dot(ab, bp);
-    const double d4 = dot(ac, bp);
-    if (d3 >= 0.0 && d4 <= d3) {
-        return b;
-    }
-
-    const double d5 = dot(ab, cp);
-    const double d6 = dot(ac, cp);
-    if (d6 >= 0.0 && d5 <= d6) {
-        return c;
-    }
-
-    const double vc = d1 * d4 - d3 * d2;
-    if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
-        const double t = segment_parameter_clamped(d1, d1 - d3);
-        return vadd(a, vmul(ab, t));
-    }
-
-    const double vb = d5 * d2 - d1 * d6;
-    if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
-        const double t = segment_parameter_clamped(d2, d2 - d6);
-        return vadd(a, vmul(ac, t));
-    }
-
-    const double va = d3 * d6 - d5 * d4;
-    if (va <= 0.0 && (d4 - d2) >= 0.0 && (d5 - d3) >= 0.0) {
-        const double denom = (d4 - d2) + (d5 - d3);
-        const double t = segment_parameter_clamped(d4 - d2, denom);
-        return vadd(b, vmul(vsub(c, b), t));
-    }
-
-    const double inv_denom = 1.0 / (va + vb + vc);
-    const double v = vb * inv_denom;
-    const double w = vc * inv_denom;
-    return vadd(a, vadd(vmul(ab, v), vmul(ac, w)));
-}
-
 Vec3 project_vertex_to_reference(
     const Vec3& vertex,
     const std::vector<Vec3>& reference_vertices,
@@ -282,6 +183,7 @@ std::vector<Vec3> taubin_smooth(
     build_vertex_adjacency(vertices, faces, adjacency, is_boundary);
 
     std::vector<Vec3> current = vertices;
+    // Taubin smoothing: alternating shrink (lambda) and inflate (mu) passes suppress high-frequency noise while preserving overall shape.
     for (int iteration = 0; iteration < iterations; ++iteration) {
         std::vector<Vec3> laplacian_pass;
         apply_laplacian_pass(current, adjacency, lambda, laplacian_pass);

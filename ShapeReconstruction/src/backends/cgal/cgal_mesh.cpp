@@ -95,6 +95,29 @@ std::size_t triangulate_all_holes(CgalSurfaceMesh& mesh) {
     return holes_filled;
 }
 
+void extract_faces_from_cgal_mesh(
+    CgalSurfaceMesh& mesh,
+    const CgalSurfaceMesh::Property_map<CgalVertexIndex, int>& vid_map,
+    std::vector<Face>& faces_out,
+    const char* error_context) {
+    for (CgalFaceIndex fd : mesh.faces()) {
+        Face f{0, 0, 0};
+        int slot = 0;
+        for (CgalVertexIndex vd : CGAL::vertices_around_face(mesh.halfedge(fd), mesh)) {
+            if (slot >= 3) {
+                throw std::runtime_error(
+                    std::string(error_context) + ": non-triangular face encountered");
+            }
+            f[slot++] = vid_map[vd];
+        }
+        if (slot != 3) {
+            throw std::runtime_error(
+                std::string(error_context) + ": degenerate face encountered");
+        }
+        faces_out.push_back(f);
+    }
+}
+
 void mvrmesh_to_surface_mesh(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
@@ -132,18 +155,7 @@ void surface_mesh_to_mvrmesh(
         vertices_out.push_back(Vec3{p.x(), p.y(), p.z()});
         vid_map[vd] = next++;
     }
-    for (CgalFaceIndex fd : mesh.faces()) {
-        Face f{0, 0, 0};
-        int slot = 0;
-        for (CgalVertexIndex vd : CGAL::vertices_around_face(mesh.halfedge(fd), mesh)) {
-            if (slot >= 3) {
-                throw std::runtime_error(
-                    "surface_mesh_to_mvrmesh: non-triangular face encountered");
-            }
-            f[slot++] = vid_map[vd];
-        }
-        faces_out.push_back(f);
-    }
+    extract_faces_from_cgal_mesh(mesh, vid_map, faces_out, "surface_mesh_to_mvrmesh");
     mesh.remove_property_map(vid_map);
 }
 
@@ -245,22 +257,7 @@ RepairStepIO repair_polygon_soup_step(
         v_index_map[vd] = next_vid++;
     }
     io.faces.reserve(mesh.number_of_faces());
-    for (CgalFaceIndex fd : mesh.faces()) {
-        Face f{0, 0, 0};
-        int slot = 0;
-        for (CgalVertexIndex vd : CGAL::vertices_around_face(mesh.halfedge(fd), mesh)) {
-            if (slot >= 3) {
-                throw std::runtime_error(
-                    "step 1 (repair): non-triangular face emitted by polygon_soup_to_polygon_mesh");
-            }
-            f[slot++] = v_index_map[vd];
-        }
-        if (slot != 3) {
-            throw std::runtime_error(
-                "step 1 (repair): degenerate face emitted by polygon_soup_to_polygon_mesh");
-        }
-        io.faces.push_back(f);
-    }
+    extract_faces_from_cgal_mesh(mesh, v_index_map, io.faces, "step 1 (repair)");
 
     io.report.output_vertex_count = io.vertices.size();
     io.report.output_face_count   = io.faces.size();
@@ -350,7 +347,7 @@ ProtectedRemeshStepIO protected_remesh_step(
 CgalMeshResult run_cgal_mesh(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
-    const CgalMeshOptions& options) {
+    const CgalMeshConfig& options) {
     auto repair = detail::repair_polygon_soup_step(vertices, faces);
     log_repair(repair.report);
 

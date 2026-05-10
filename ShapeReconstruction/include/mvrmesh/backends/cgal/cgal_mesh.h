@@ -3,16 +3,10 @@
 #include <cstddef>
 #include <vector>
 
+#include "mvrmesh/config/pipeline_config.h"
 #include "mvrmesh/core/types.h"
 
 namespace mvrmesh {
-
-struct CgalMeshOptions {
-    // Stage 2 tunables
-    double sharp_edge_dihedral_degrees = 60.0;
-    double target_edge_length          = 0.0;   // 0 -> auto = mean edge length of stage 1 output
-    int    remesh_iterations           = 3;
-};
 
 struct RepairStepReport {
     std::size_t input_vertex_count         = 0;
@@ -45,7 +39,7 @@ struct CgalMeshResult {
 CgalMeshResult run_cgal_mesh(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
-    const CgalMeshOptions& options);
+    const CgalMeshConfig& options);
 
 CgalMeshResult run_cgal_repair_only(
     const std::vector<Vec3>& vertices,

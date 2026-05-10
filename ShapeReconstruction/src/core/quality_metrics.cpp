@@ -39,16 +39,6 @@ double to_degrees(double radians) {
     return radians * 180.0 / kPi;
 }
 
-double clamp01(double value) {
-    if (value < 0.0) {
-        return 0.0;
-    }
-    if (value > 1.0) {
-        return 1.0;
-    }
-    return value;
-}
-
 double clamp_minus_one_to_one(double value) {
     if (value < -1.0) {
         return -1.0;
@@ -76,21 +66,6 @@ void validate_faces(const std::vector<Vec3>& vertices, const std::vector<Face>& 
     }
 }
 
-Edge make_edge_key(int i, int j) {
-    if (i < j) {
-        return Edge{i, j};
-    }
-    return Edge{j, i};
-}
-
-double triangle_area(
-    const Vec3& a,
-    const Vec3& b,
-    const Vec3& c
-) {
-    return 0.5 * norm(cross(vsub(b, a), vsub(c, a)));
-}
-
 double edge_length(const Vec3& a, const Vec3& b) {
     return norm(vsub(a, b));
 }
@@ -108,6 +83,7 @@ double triangle_min_angle_degrees(
     const double bc2 = l_bc * l_bc;
     const double ca2 = l_ca * l_ca;
 
+    // Clamp for acos stability -- floating-point rounding can push dot products slightly outside [-1, 1].
     const double cos_alpha = clamp_minus_one_to_one((ab2 + ca2 - bc2) / (2.0 * l_ab * l_ca));
     const double cos_beta = clamp_minus_one_to_one((ab2 + bc2 - ca2) / (2.0 * l_ab * l_bc));
     const double cos_gamma = clamp_minus_one_to_one((bc2 + ca2 - ab2) / (2.0 * l_bc * l_ca));
@@ -134,93 +110,6 @@ double triangle_aspect_ratio(
         return std::numeric_limits<double>::infinity();
     }
     return longest_edge / shortest_altitude;
-}
-
-double distance2(const Vec3& a, const Vec3& b) {
-    return dot(vsub(a, b), vsub(a, b));
-}
-
-double segment_parameter_clamped(double numerator, double denominator) {
-    if (std::abs(denominator) <= kDegenerateEdgeEpsilon) {
-        return 0.0;
-    }
-    return clamp01(numerator / denominator);
-}
-
-Vec3 closest_point_to_segment(const Vec3& p, const Vec3& a, const Vec3& b) {
-    const Vec3 ab = vsub(b, a);
-    const Vec3 ap = vsub(p, a);
-    const double t = segment_parameter_clamped(dot(ap, ab), dot(ab, ab));
-    return vadd(a, vmul(ab, t));
-}
-
-double closest_point_on_triangle_distance(
-    const Vec3& p,
-    const Vec3& a,
-    const Vec3& b,
-    const Vec3& c
-) {
-    const Vec3 ab = vsub(b, a);
-    const Vec3 ac = vsub(c, a);
-    const Vec3 ap = vsub(p, a);
-    const Vec3 bp = vsub(p, b);
-    const Vec3 cp = vsub(p, c);
-
-    const double ab2 = dot(ab, ab);
-    const double ac2 = dot(ac, ac);
-    const double area_cross_sq = dot(cross(ab, ac), cross(ab, ac));
-    if (area_cross_sq <= kDegenerateEdgeEpsilon * kDegenerateEdgeEpsilon) {
-        const double d_ab = distance2(p, closest_point_to_segment(p, a, b));
-        const double d_ac = distance2(p, closest_point_to_segment(p, a, c));
-        const double d_bc = distance2(p, closest_point_to_segment(p, b, c));
-        return std::sqrt(std::min(d_ab, std::min(d_ac, d_bc)));
-    }
-
-    const double d1 = dot(ab, ap);
-    const double d2 = dot(ac, ap);
-    if (d1 <= 0.0 && d2 <= 0.0) {
-        return std::sqrt(distance2(p, a));
-    }
-
-    const double d3 = dot(ab, bp);
-    const double d4 = dot(ac, bp);
-    if (d3 >= 0.0 && d4 <= d3) {
-        return std::sqrt(distance2(p, b));
-    }
-
-    const double d5 = dot(ab, cp);
-    const double d6 = dot(ac, cp);
-    if (d6 >= 0.0 && d5 <= d6) {
-        return std::sqrt(distance2(p, c));
-    }
-
-    const double vc = d1 * d4 - d3 * d2;
-    if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
-        const double t = segment_parameter_clamped(d1, d1 - d3);
-        const Vec3 proj = vadd(a, vmul(ab, t));
-        return std::sqrt(distance2(p, proj));
-    }
-
-    const double vb = d5 * d2 - d1 * d6;
-    if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
-        const double t = segment_parameter_clamped(d2, d2 - d6);
-        const Vec3 proj = vadd(a, vmul(ac, t));
-        return std::sqrt(distance2(p, proj));
-    }
-
-    const double va = d3 * d6 - d5 * d4;
-    if (va <= 0.0 && (d4 - d2) >= 0.0 && (d5 - d3) >= 0.0) {
-        const double denom = (d4 - d2) + (d5 - d3);
-        const double t = segment_parameter_clamped(d4 - d2, denom);
-        const Vec3 proj = vadd(b, vmul(vsub(c, b), t));
-        return std::sqrt(distance2(p, proj));
-    }
-
-    const double inv_denom = 1.0 / (va + vb + vc);
-    const double v = vb * inv_denom;
-    const double w = vc * inv_denom;
-    const Vec3 proj = vadd(a, vadd(vmul(ab, v), vmul(ac, w)));
-    return std::sqrt(distance2(p, proj));
 }
 
 double bbox_diagonal(const std::vector<Vec3>& vertices) {
@@ -337,7 +226,7 @@ std::vector<double> nearest_vertex_distances(
             const Vec3& a = target_vertices[static_cast<std::size_t>(face[0])];
             const Vec3& b = target_vertices[static_cast<std::size_t>(face[1])];
             const Vec3& c = target_vertices[static_cast<std::size_t>(face[2])];
-            const double d = closest_point_on_triangle_distance(vertex, a, b, c);
+            const double d = norm(vsub(closest_point_on_triangle(vertex, a, b, c), vertex));
             if (d < best) {
                 best = d;
             }

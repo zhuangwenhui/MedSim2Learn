@@ -4,16 +4,14 @@
 #include <string>
 #include <vector>
 
+#include "test_helpers.h"
+
 #include "mvrmesh/pressure/pressure_evaluator.h"
 #include "mvrmesh/core/types.h"
 
 namespace {
 
-void require(bool cond, const std::string& message) {
-    if (!cond) {
-        throw std::runtime_error(message);
-    }
-}
+using mvrmesh::test::require;
 
 void test_deformsim_pressure_tetrahedralizes_closed_surface() {
     const std::vector<mvrmesh::Vec3> vertices{

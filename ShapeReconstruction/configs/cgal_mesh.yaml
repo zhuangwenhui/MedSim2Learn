@@ -1,0 +1,8 @@
+# CGAL mesh post-processing: repair + isotropic remeshing on any base surface.
+# Uses direct_surface as the base mode, then applies the two-stage CGAL pipeline.
+mode: direct_surface
+cgal_mesh_post: true
+
+cgal_mesh:
+  sharp_edge_dihedral_degrees: 60
+  remesh_iterations: 3

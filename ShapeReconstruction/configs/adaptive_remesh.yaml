@@ -1,0 +1,6 @@
+# Curvature-adaptive remeshing: splits edges in high-curvature regions.
+mode: adaptive_remesh
+
+adaptive_remesh:
+  iterations: 1
+  split_ratio: 0.5

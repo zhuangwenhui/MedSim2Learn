@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-#include "mvrmesh/core/algorithms.h"
+#include "mvrmesh/core/compaction.h"
 #include "mvrmesh/core/geometry.h"
 
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
@@ -216,6 +216,7 @@ void fill_signed_distance(
     const CgalSideOfMesh& side_of_mesh,
     SampledGrid& grid
 ) {
+    // Compute signed distance at every grid node using CGAL containment query. Negative = inside mesh.
     const int span = grid.span;
     for (int i = 0; i < span; ++i) {
         for (int j = 0; j < span; ++j) {
@@ -432,6 +433,7 @@ void process_tetrahedron(
         return;
     }
 
+    // Handle 3 marching-tetrahedra cut cases: 1-inside/3-outside, 2/2, and 3/1.
     if (inside_count == 1 && outside_count == 3) {
         const int in = inside_nodes[0];
         const int in_local = local_index(in, tet_nodes);
@@ -597,6 +599,7 @@ ReconstructedMesh reconstruct_surface_sdf(
     const std::size_t max_node_vertices = checked_size_t_mul3(s, s, s, "node vertex cache candidate count");
     node_vertex_cache.reserve(std::min(max_node_vertices, k_default_node_vertex_reserve_cap));
 
+    // Decompose each cube into 6 tetrahedra sharing the main diagonal (nodes 0 and 6).
     const std::array<std::array<int, 4>, 6> tetrahedra = {{
         {0, 1, 2, 6},
         {0, 2, 3, 6},

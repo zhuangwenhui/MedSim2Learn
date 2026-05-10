@@ -157,6 +157,8 @@ Historical tracks and cleanup records are preserved in `maintainLogs/2026-05-05-
 |---|---|---|---|
 | `<input.mvr>` | required | path | Positional. Searched cwd -> `<project_root>/` -> `<project_root>/originalData/`. |
 | `-o <base>`, `--output <base>` | `<root>/outPut/PLY/<stem>.ply` | path | Output base path; extension must be `.ply` or `.PLY`. |
+| `--config <yaml>`, `-c <yaml>` | none | path | YAML config file. Three-layer merge: hardcoded defaults -> YAML -> CLI overrides. |
+| `--mode <name>` | `direct_surface` | string | Surface mode name. One of: `direct_surface`, `adaptive_remesh`, `uniform_subdivide`, `uniform_taubin`, `sdf_reconstruct`. |
 | `--adaptive-remesh` | off | flag | Enable curvature-driven midpoint subdivision. |
 | `--adaptive-iterations N` | 1 | integer >= 1 | Number of adaptive subdivision passes. |
 | `--adaptive-split-ratio R` | 0.5 | float (0, 1] | Triangles whose curvature exceeds this ratio of mean are split. |
@@ -178,6 +180,22 @@ Historical tracks and cleanup records are preserved in `maintainLogs/2026-05-05-
 | `--remesh-iterations N` | 3 | integer >= 1 | Number of isotropic remesh sweeps. Requires `--cgal-mesh`. |
 
 `--cgal-mesh`, `--adaptive-remesh`, `--uniform-subdivide`, and `--sdf-reconstruct` are mutually exclusive. `--taubin-smooth` is a post-step of `--uniform-subdivide`, so it is not a standalone meshing mode. All `--sharp-edge-degrees`, `--target-edge-length`, `--remesh-iterations` require `--cgal-mesh`; `--uniform-iterations` requires `--uniform-subdivide`; all `--taubin-*` tuning flags require `--taubin-smooth`; all `--sdf-*` tuning flags require `--sdf-reconstruct`.
+
+The legacy boolean flags (`--adaptive-remesh`, `--uniform-subdivide`, `--taubin-smooth`, `--sdf-reconstruct`, `--cgal-mesh`) are syntax sugar that resolve to `--mode`. When `--mode` or `--config` is used, the legacy conflict detection is skipped and the mode is taken directly from the explicit value.
+
+**YAML config example** (`config.yaml`):
+```yaml
+mode: uniform_taubin
+uniform_subdivide:
+  iterations: 2
+taubin:
+  iterations: 8
+  lambda: 0.5
+  mu: -0.53
+```
+```powershell
+& mvr_to_mesh_cli.exe kidney.mvr --config config.yaml -o kidney_taubin.ply
+```
 
 **Migration from older `--robust-pipeline`**: that flag was renamed to `--cgal-mesh` in P3 of the realignment. Any script using the old name needs the rename.
 
@@ -443,22 +461,24 @@ Fix: use base names without dots. The matrix orchestration script (`run_pressure
 
 Typical locations to touch:
 
-1. `include/mvrmesh/core/algorithms.h` - add the function declaration in the `mvrmesh::algorithms` namespace
-2. `src/core/algorithms.cpp` - add the implementation
-3. `include/mvrmesh/core/types.h` - add any option or `SurfaceMode` values needed by the pipeline
-4. `src/core/pipeline.cpp` - route the new mode through `build_surface`
-5. `mvr_to_mesh_cli.cpp` - add the new flag (in the `parse_args` switch + `CliOptions` struct + dispatch in `main`)
-6. `verification/core/smoke_tests.cpp` - add a unit test in the anonymous namespace + call it from `main()`
-7. `cmake/MvrmeshTests.cmake` - add CLI smoke coverage when the algorithm has user-facing flags
-8. `README.md` - update Section 4 Algorithm Reference with the new algorithm's semantics + kidney V_surf result
-9. `scripts/run_pressure_matrix.ps1` - optionally add a row to the `$candidates` array (use a basename with no dots; see Section 7.6)
+1. `include/mvrmesh/core/subdivision.h` (or `curvature.h`, `compaction.h`) - add the function declaration
+2. `src/core/subdivision.cpp` (or matching `.cpp`) - add the implementation
+3. `include/mvrmesh/core/types.h` - add a `SurfaceMode` enum value if the algorithm is a new pipeline mode
+4. `include/mvrmesh/config/pipeline_config.h` - add a per-mode config sub-struct and field in `PipelineConfig`
+5. `src/config/pipeline_config.cpp` - add validation rules in `validate()`, mode name in `parse_surface_mode`/`surface_mode_name`
+6. `src/config/config_loader.cpp` - add YAML section loader and CLI flags for the new mode
+7. `src/core/pipeline.cpp` - route the new mode through `build_surface`
+8. `verification/core/smoke_tests.cpp` - add a unit test
+9. `cmake/MvrmeshTests.cmake` - add CLI smoke coverage
+10. `README.md` - update Section 4 Algorithm Reference
+11. `scripts/run_pressure_matrix.ps1` - optionally add a row to the `$candidates` array (use a basename with no dots; see Section 7.6)
 
 ### 8.2 Adding a new FEM pressure dimension
 
 Four locations to touch:
 
-1. `check_fem_pressure_cli.cpp` - extend `PressureMetrics` struct with the new field, populate it in `compute_metrics`
-2. Same file - add the field to the JSON output in `write_single_json` and the Markdown table in `write_matrix_md`
+1. `include/mvrmesh/pressure/pressure_metrics.h` - extend `PressureMetrics` struct with the new field
+2. `src/pressure/pressure_metrics.cpp` - populate the field in `compute_metrics`, add to `write_single_json` and `write_matrix_md`
 3. `verification/cmake/run_check_fem_pressure_single.cmake` - add the new key to the `foreach(key ...)` substring check
 4. `README.md` - update Section 6 FEM Pressure Model with the formula + worked example
 
@@ -469,7 +489,7 @@ Four locations to touch:
 
 ### 8.4 Build / test invariants
 
-Whenever modifying `mvr_to_mesh_cli.cpp` or `check_fem_pressure_cli.cpp`, verify:
+Whenever modifying CLI executables or their backing modules (`config_loader.cpp`, `cli_common.cpp`, `pressure_metrics.cpp`, `pressure_config.cpp`), verify:
 - `ctest --preset vs2022-x64-debug` reports `100% tests passed, 0 tests failed` (all registered tests pass)
 - `dumpbin /archivemembers <build>/Debug/mvrmesh.lib` shows ZERO TetGen-related .obj files (mvrmesh library must remain CGAL-only)
 - `mvr_to_mesh_cli --help` (or no args) lists only currently supported flags

@@ -1,0 +1,5 @@
+# Uniform subdivision: splits every face, increasing resolution uniformly.
+mode: uniform_subdivide
+
+uniform_subdivide:
+  iterations: 1

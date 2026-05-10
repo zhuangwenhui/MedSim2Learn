@@ -5,16 +5,14 @@
 #include <string>
 #include <vector>
 
+#include "test_helpers.h"
+
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 #include "mvrmesh/core/types.h"
 
 namespace {
 
-void require(bool cond, const std::string& message) {
-    if (!cond) {
-        throw std::runtime_error(message);
-    }
-}
+using mvrmesh::test::require;
 
 bool message_contains(const std::string& msg, const std::string& needle) {
     return msg.find(needle) != std::string::npos;
@@ -352,7 +350,7 @@ void test_pipeline_happy_path_tetrahedron() {
         Face{0, 2, 1}, Face{0, 1, 3}, Face{1, 2, 3}, Face{2, 0, 3},
     };
 
-    mvrmesh::CgalMeshOptions opts;
+    mvrmesh::CgalMeshConfig opts;
     // Override the 60-deg default: the corner tetrahedron's adjacent-face-normal
     // angles (90 deg between right-angle faces, ~125 deg involving the slanted
     // face) all exceed 60 deg, which would make stage 2's all-edges-sharp guard
@@ -382,7 +380,7 @@ void test_pipeline_propagates_step1_failure() {
         Face{2, 2, 0},
     };
 
-    mvrmesh::CgalMeshOptions opts;
+    mvrmesh::CgalMeshConfig opts;
     bool threw = false;
     try {
         mvrmesh::run_cgal_mesh(vertices, faces, opts);

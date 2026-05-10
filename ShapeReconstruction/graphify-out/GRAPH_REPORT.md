@@ -1,12 +1,12 @@
 # Graph Report - ShapeReconstruction  (2026-05-10)
 
 ## Corpus Check
-- 34 files · ~35,124 words
+- 51 files · ~33,793 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 445 nodes · 882 edges · 32 communities detected
-- Extraction: 87% EXTRACTED · 13% INFERRED · 0% AMBIGUOUS · INFERRED: 114 edges (avg confidence: 0.81)
+- 545 nodes · 1070 edges · 36 communities detected
+- Extraction: 85% EXTRACTED · 15% INFERRED · 0% AMBIGUOUS · INFERRED: 157 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -30,30 +30,34 @@
 - [[_COMMUNITY_Community 17|Community 17]]
 - [[_COMMUNITY_Community 19|Community 19]]
 - [[_COMMUNITY_Community 20|Community 20]]
-- [[_COMMUNITY_Community 31|Community 31]]
-- [[_COMMUNITY_Community 33|Community 33]]
-- [[_COMMUNITY_Community 34|Community 34]]
-- [[_COMMUNITY_Community 35|Community 35]]
-- [[_COMMUNITY_Community 36|Community 36]]
-- [[_COMMUNITY_Community 37|Community 37]]
-- [[_COMMUNITY_Community 38|Community 38]]
-- [[_COMMUNITY_Community 39|Community 39]]
-- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 41|Community 41]]
-- [[_COMMUNITY_Community 42|Community 42]]
 - [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `main()` - 33 edges
 2. `require()` - 28 edges
-3. `vsub()` - 21 edges
-4. `require()` - 21 edges
-5. `main()` - 21 edges
-6. `compute_mesh_quality_metrics()` - 15 edges
-7. `dot()` - 14 edges
-8. `require()` - 14 edges
-9. `main()` - 14 edges
-10. `cross()` - 13 edges
+3. `vsub()` - 25 edges
+4. `main()` - 21 edges
+5. `require()` - 21 edges
+6. `dot()` - 17 edges
+7. `compute_mesh_quality_metrics()` - 17 edges
+8. `cross()` - 15 edges
+9. `vadd()` - 14 edges
+10. `norm()` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `CMakeLists.txt (build definition)` --references--> `evaluate_deformsim_pressure`  [INFERRED]
@@ -64,8 +68,8 @@
   CMakeLists.txt → src/core/pipeline.cpp
 - `TetGen exit(1) → terminatetetgen(1) patch constraint` --rationale_for--> `evaluate_deformsim_pressure`  [EXTRACTED]
   CLAUDE.md → src/pressure/pressure_evaluator.cpp
-- `adaptive_remesh (curvature-adaptive surface refinement)` --references--> `legacy adaptive_remesh (Python curvature-adaptive remesh)`  [INFERRED]
-  include/mvrmesh/core/algorithms.h → legacy/mvr_to_mesh.py
+- `mvrmesh()` --calls--> `resolve_outputs()`  [INFERRED]
+  include/mvrmesh/cli/cli_common.h → src/cli/cli_common.cpp
 
 ## Hyperedges (group relationships)
 - **End-to-end surface reconstruction pipeline: parse_mvr -> build_surface -> optional run_cgal_mesh -> write_ply** — io_h_parse_mvr, pipeline_h_build_surface, cgal_mesh_h_run_cgal_mesh, io_h_write_ply [EXTRACTED 0.95]
@@ -75,11 +79,11 @@
 - **Surface build dispatch: tet boundary or adaptive remesh** — pipeline_cpp_build_surface, topology_cpp_boundary_faces_from_tets, algorithms_cpp_adaptive_remesh [EXTRACTED 1.00]
 - **TetGen-backed FEM pressure pre-flight** — pressure_evaluator_cpp_fill_input_points, pressure_evaluator_cpp_fill_input_facets, pressure_evaluator_cpp_copy_tetgen_output [EXTRACTED 1.00]
 
-## Communities (44 total, 12 thin omitted)
+## Communities (54 total, 12 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.1
-Nodes (52): cross(), dot(), face_normal(), norm(), normalize(), vadd(), vmul(), vsub() (+44 more)
+Nodes (59): estimate_vertex_curvature(), clamp01(), closest_on_segment(), closest_point_on_triangle(), cross(), dot(), face_normal(), norm() (+51 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.05
@@ -98,62 +102,78 @@ Cohesion: 0.15
 Nodes (30): adaptive_remesh(), boundary_faces_from_tets(), build_surface(), cross(), default_outputs_for_input(), dot(), estimate_vertex_curvature(), face_normal() (+22 more)
 
 ### Community 5 - "Community 5"
+Cohesion: 0.11
+Nodes (19): default_outputs_for_input(), ensure_parent_dir(), find_project_root(), find_project_root_upward(), infer_project_root_from_input(), log_build_result(), looks_like_project_root(), mvrmesh() (+11 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.16
+Nodes (21): compact_mesh_to_referenced_vertices(), mvrmesh(), append_triangle(), checked_size_t_add(), checked_size_t_mul(), checked_size_t_mul3(), compute_bbox(), decode_node() (+13 more)
+
+### Community 7 - "Community 7"
 Cohesion: 0.17
 Nodes (23): copy_tetgen_output(), count_unique_lines_from_tets(), deformsim_pressure_to_json(), empty_index_stats(), evaluate_deformsim_pressure(), face_index_stats(), fill_bounding_box(), fill_input_facets() (+15 more)
 
-### Community 6 - "Community 6"
+### Community 8 - "Community 8"
 Cohesion: 0.24
 Nodes (23): count_vertex_near(), main(), require(), test_adaptive_single_triangle_split(), test_boundary_faces_single_tet(), test_build_surface_sdf_reconstruct(), test_build_surface_sdf_reconstruct_conflicts_with_uniform(), test_build_surface_taubin_requires_uniform_subdivide() (+15 more)
 
-### Community 7 - "Community 7"
-Cohesion: 0.18
-Nodes (15): adaptive_remesh(), compact_mesh_to_referenced_vertices(), estimate_vertex_curvature(), make_edge_key(), midpoint_index(), mvrmesh(), select_split_edges_by_curvature(), split_faces_with_edge_set() (+7 more)
-
-### Community 8 - "Community 8"
-Cohesion: 0.18
-Nodes (15): is_section_marker(), parse_mvr(), parse_required_int(), parse_tetra(), parse_triangles(), parse_vertices(), split_ws(), trim_copy() (+7 more)
-
 ### Community 9 - "Community 9"
-Cohesion: 0.23
-Nodes (18): append_triangle(), checked_size_t_add(), checked_size_t_mul(), checked_size_t_mul3(), compute_bbox(), decode_node(), face_is_degenerate(), fill_signed_distance() (+10 more)
+Cohesion: 0.18
+Nodes (19): adaptive_remesh(), compact_mesh_to_referenced_vertices(), estimate_vertex_curvature(), make_edge_key(), midpoint_index(), mvrmesh(), select_split_edges_by_curvature(), split_faces_with_edge_set() (+11 more)
 
 ### Community 10 - "Community 10"
+Cohesion: 0.15
+Nodes (15): mvrmesh(), select_split_edges_by_curvature(), make_edge_key(), add_half_edge_direction(), compute_surface_metrics(), DisjointSet, make_edge_key(), make_face_key() (+7 more)
+
+### Community 11 - "Community 11"
+Cohesion: 0.22
+Nodes (16): is_section_marker(), parse_mvr(), parse_required_int(), parse_tetra(), parse_triangles(), parse_vertices(), read_ply(), split_ws() (+8 more)
+
+### Community 12 - "Community 12"
 Cohesion: 0.34
 Nodes (16): main(), message_contains(), require(), test_pipeline_happy_path_tetrahedron(), test_pipeline_propagates_step1_failure(), test_remesh_clean_octahedron_runs(), test_remesh_detects_sharp_edge_in_flat_bipyramid(), test_remesh_target_edge_length_auto_resolves_to_mean() (+8 more)
 
-### Community 11 - "Community 11"
+### Community 13 - "Community 13"
+Cohesion: 0.3
+Nodes (13): extract_faces_from_cgal_mesh(), log_remesh(), log_repair(), mean_edge_length(), mvrmesh_to_polygon_soup(), mvrmesh_to_surface_mesh(), preflight_repair_input(), protected_remesh_step() (+5 more)
+
+### Community 14 - "Community 14"
 Cohesion: 0.27
 Nodes (13): default_outputs_for_input(), ensure_parent_directory(), find_project_root(), find_project_root_upward(), infer_project_root_from_input(), looks_like_project_root(), main(), parse_args() (+5 more)
 
-### Community 12 - "Community 12"
-Cohesion: 0.31
-Nodes (12): log_remesh(), log_repair(), mean_edge_length(), mvrmesh_to_polygon_soup(), mvrmesh_to_surface_mesh(), preflight_repair_input(), protected_remesh_step(), repair_polygon_soup_step() (+4 more)
+### Community 15 - "Community 15"
+Cohesion: 0.36
+Nodes (12): load_adaptive_remesh_section(), load_cgal_mesh_section(), load_config(), load_config_from_yaml(), load_sdf_reconstruct_section(), load_taubin_section(), load_uniform_subdivide_section(), parse_double_value() (+4 more)
 
-### Community 13 - "Community 13"
+### Community 16 - "Community 16"
+Cohesion: 0.26
+Nodes (9): require_throws(), test_parse_surface_mode_rejects_unknown(), test_validate_adaptive_split_ratio_above_1(), test_validate_adaptive_split_ratio_zero(), test_validate_cgal_post_bad_angle(), test_validate_rejects_empty_input(), test_validate_rejects_sdf_with_cgal_post(), test_validate_rejects_zero_uniform_iterations() (+1 more)
+
+### Community 17 - "Community 17"
 Cohesion: 0.4
 Nodes (9): compute_metrics(), format_bytes_human(), format_flops_sci(), main(), run_matrix(), run_single(), usage(), write_matrix_md() (+1 more)
 
-### Community 14 - "Community 14"
-Cohesion: 0.33
-Nodes (7): add_half_edge_direction(), compute_surface_metrics(), DisjointSet, make_edge_key(), make_face_key(), triangle_area(), validate_face_index()
-
-### Community 15 - "Community 15"
+### Community 19 - "Community 19"
 Cohesion: 0.73
 Nodes (5): main(), require(), test_deformsim_pressure_json_matches_diagnostic_shape(), test_deformsim_pressure_json_rejects_out_of_range_boundary_face_index(), test_deformsim_pressure_tetrahedralizes_closed_surface()
 
-### Community 16 - "Community 16"
+### Community 20 - "Community 20"
 Cohesion: 0.4
 Nodes (5): legacy normalize_faces_indices (Python 1-based index normalization), legacy normalize_tet_indices (Python tet index normalization), Index Parity Design: auto-detect and convert 1-based vs 0-based indices to match legacy Python behavior, normalize_faces_indices (1-based to 0-based index normalization), normalize_tet_indices (tet index normalization)
 
-### Community 17 - "Community 17"
+### Community 21 - "Community 21"
 Cohesion: 0.5
 Nodes (5): pressure_matrix.md (FEM cost comparison report), adaptive_iter3 FEM cost ceiling (8.2x baseline, infeasible), CGAL protect_constraints: sharp edge length must be < 4/3 * target_edge_length, DGETRI vs DGEMV crossover at V_surf ~= 2500, README.md (ShapeReconstruction user documentation)
 
-### Community 19 - "Community 19"
+### Community 22 - "Community 22"
+Cohesion: 0.83
+Nodes (3): load_pressure_config(), usage(), validate()
+
+### Community 25 - "Community 25"
 Cohesion: 0.67
 Nodes (3): CgalMeshResult (CGAL pipeline output), ProtectedRemeshStepReport (stage 2 remesh diagnostics), RepairStepReport (stage 1 repair diagnostics)
 
-### Community 20 - "Community 20"
+### Community 26 - "Community 26"
 Cohesion: 1.0
 Nodes (3): test suite: protected_remesh_step (Stage 2 CGAL), test suite: repair_polygon_soup_step (Stage 1 CGAL), test suite: run_cgal_mesh orchestrator
 
@@ -165,17 +185,17 @@ Nodes (3): test suite: protected_remesh_step (Stage 2 CGAL), test suite: repair_
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vsub()` connect `Community 0` to `Community 8`, `Community 9`, `Community 14`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
-- **Why does `count_degenerate_surface_triangles()` connect `Community 0` to `Community 5`?**
+- **Why does `build_surface()` connect `Community 9` to `Community 0`, `Community 10`, `Community 5`, `Community 6`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
+- **Why does `vsub()` connect `Community 0` to `Community 9`?**
   _High betweenness centrality (0.034) - this node is a cross-community bridge._
-- **Why does `reconstruct_and_remesh_surface()` connect `Community 7` to `Community 9`, `Community 12`?**
-  _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Are the 19 inferred relationships involving `vsub()` (e.g. with `triangle_area()` and `triangle_area()`) actually correct?**
-  _`vsub()` has 19 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 20 inferred relationships involving `vsub()` (e.g. with `edge_length()` and `bbox_diagonal()`) actually correct?**
+  _`vsub()` has 20 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `Edge (pair of ints)`, `SurfaceMode (DirectSurface|AdaptiveRemesh enum)`, `BuildOptions (surface build configuration)` to the rest of the system?**
   _46 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.09 - nodes in this community are weakly interconnected._

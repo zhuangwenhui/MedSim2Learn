@@ -57,6 +57,11 @@ Each suite is registered via `cmake/MvrmeshTests.cmake`:
 | `mvrmesh_cli_taubin_requires_uniform_subdivide` | CLI (WILL_FAIL) | `--taubin-smooth` without `--uniform-subdivide` is rejected. |
 | `mvrmesh_cli_sdf_resolution_requires_sdf_reconstruct` | CLI (WILL_FAIL) | `--sdf-resolution` without `--sdf-reconstruct` is rejected. |
 | `check_fem_pressure_single` | cmake driver script | End-to-end: `mvr_to_mesh_cli` produces PLY, then `check_fem_pressure` runs TetGen on it. |
+| `mvrmesh_config` | `verification/config/config_tests.cpp` | Unit tests for `PipelineConfig::validate()` and `parse_surface_mode` roundtrip. |
+| `mvrmesh_config_loader` | `verification/config/config_loader_tests.cpp` | Unit tests for YAML parsing, CLI args, legacy flag resolution, YAML+CLI override merge. |
+| `mvrmesh_cli_config_file` | CLI invocation | Smoke test: `--config test_uniform_taubin.yaml` on `tiny_surface.mvr`. |
+| `mvrmesh_cli_config_override` | CLI invocation | Smoke test: `--config` + `--taubin-iterations` CLI override on `tiny_surface.mvr`. |
+| `mvrmesh_cli_mode_flag` | CLI invocation | Smoke test: `--mode uniform_subdivide` on `tiny_surface.mvr`. |
 | `mvrmesh_cli_direct` | CLI invocation | Conditional on `kidney.mvr` -- default mesh path end-to-end on kidney sample. |
 | `mvrmesh_cli_cgal_mesh_kidney` | CLI invocation | Conditional on `kidney.mvr` -- `--cgal-mesh` on kidney sample. |
 | `mvrmesh_pressure_matrix_kidney` | `scripts/run_pressure_matrix.ps1` | Conditional on `kidney.mvr` -- 6-candidate algorithm comparison matrix producing `pressure_matrix.md`. |
@@ -72,8 +77,12 @@ include/mvrmesh/
   core/        # Reconstruction kernel. Depends on CGAL for SDF containment queries.
   backends/
     cgal/      # CGAL Polygon Mesh Processing remesh (repair + protected remesh).
-  pressure/    # TetGen-based DeformSim pressure evaluator (used by check_fem_pressure).
+  config/      # PipelineConfig, PressureConfig, config_loader (YAML + CLI parsing).
+  cli/         # Shared CLI infrastructure (path resolution, output writing).
+  pressure/    # TetGen-based DeformSim pressure evaluator + pressure_metrics.
 ```
+
+`mvrmesh_config` is a separate static library that links yaml-cpp PRIVATE. It depends on `mvrmesh` (PUBLIC) but core `mvrmesh` has zero yaml-cpp dependency. The `check_fem_pressure` executable compiles `pressure_metrics.cpp` (via `MVRMESH_PRESSURE_SOURCES`) alongside `pressure_evaluator.cpp` because pressure metrics depend on TetGen.
 
 Backends depend on core but never on each other. `core/reconstruction.cpp` directly includes CGAL headers for AABB-tree and `Side_of_triangle_mesh` queries; `core/reconstruction_pipeline.cpp` includes `backends/cgal/cgal_mesh.h` to orchestrate SDF reconstruction + CGAL remesh. This cross-layer dependency is intentional and load-bearing.
 
@@ -81,37 +90,49 @@ The headers are deliberately small and free-function-oriented (no big "Mesh" cla
 
 ### Core modules
 
-`core/types.h` defines the foundation: `Vec3`, `Face`, `Tet`, `Edge`, `ParsedMvr`, `SurfaceMode` (5 modes), `BuildOptions` (16 fields), `BuildResult`. Everything else in `core/` builds on these types.
+`core/types.h` defines the foundation: `Vec3`, `Face`, `Tet`, `Edge`, `ParsedMvr`, `SurfaceMode` (5 modes), `BuildResult`. Everything else in `core/` builds on these types.
 
 | Header | Role |
 |--------|------|
 | `geometry.h` | Vec3 arithmetic: `vsub`, `vadd`, `vmul`, `dot`, `cross`, `norm`, `normalize`, `face_normal`. |
 | `topology.h` | Index normalization (1-based to 0-based auto-detect), boundary face extraction from tets, face orientation. |
 | `io.h` | `parse_mvr` (section-based `@N` format), `write_ply`, `read_ply`. |
-| `algorithms.h` | Curvature estimation, edge selection, face splitting, `uniform_subdivide`, `adaptive_remesh`, `compact_mesh_to_referenced_vertices`. |
+| `curvature.h` | `estimate_vertex_curvature`, `select_split_edges_by_curvature`. |
+| `subdivision.h` | `split_faces_with_edge_set`, `uniform_subdivide`, `adaptive_remesh`. |
+| `compaction.h` | `compact_mesh_to_referenced_vertices`. |
 | `metrics.h` | `SurfaceMetrics` (10 fields), `compute_surface_metrics`, `metrics_to_json`. Contains `DisjointSet` in anonymous namespace. |
 | `quality_metrics.h` | `MeshQualityMetrics` (aspect ratio, edge length, angles), `ShapeComparisonMetrics` (Hausdorff, mean distance), JSON serializers. |
 | `smoothing.h` | `taubin_smooth` (two-pass Laplacian with lambda/mu), `project_vertices_to_surface`. |
 | `reconstruction.h` | `reconstruct_surface_sdf` -- marching tetrahedra on SDF grid. Depends on CGAL AABB-tree. |
 | `reconstruction_pipeline.h` | `reconstruct_and_remesh_surface` -- orchestrates SDF reconstruction + CGAL remesh. |
 | `surface_acceptance.h` | `evaluate_surface_acceptance` quality gate, `classify_fem_budget` (FEM cost classification). |
-| `pipeline.h` | `build_surface` dispatch (selects mode based on `BuildOptions`), `outputs_for_mode`, `surface_mode_to_string`. |
+| `pipeline.h` | `build_surface` dispatch (selects mode based on `PipelineConfig`), `outputs_for_mode`. |
+
+### Config modules
+
+| Header | Role |
+|--------|------|
+| `config/pipeline_config.h` | `PipelineConfig` with nested per-mode sub-structs (`AdaptiveRemeshConfig`, `UniformSubdivideConfig`, `TaubinConfig`, `SdfReconstructConfig`, `CgalMeshConfig`). `parse_surface_mode`, `surface_mode_name`. |
+| `config/config_loader.h` | `load_config_from_yaml`, `load_config` (three-layer merge: defaults -> YAML -> CLI). |
+| `config/pressure_config.h` | `PressureConfig`, `load_pressure_config`. |
+| `cli/cli_common.h` | `find_project_root`, `resolve_input`, `resolve_outputs`, `write_outputs`, `log_source_info`, `log_build_result`. |
+| `pressure/pressure_metrics.h` | `PressureMetrics`, `MatrixRow`, `compute_metrics`, `run_pressure_single`, `run_pressure_matrix`. |
 
 ### Pipeline (the surface build path)
 
-`build_surface` in `pipeline.cpp` dispatches to one of five `SurfaceMode` paths based on `BuildOptions` flags:
+`build_surface` in `pipeline.cpp` dispatches to one of five `SurfaceMode` paths based on `PipelineConfig.mode`:
 
-| Mode | Trigger flags | Path |
+| Mode | Config / flags | Path |
 |------|--------------|------|
-| `DirectSurface` | (default, no flags) | `boundary_faces_from_tets` |
-| `AdaptiveRemesh` | `--adaptive-remesh` | `boundary_faces_from_tets` then `adaptive_remesh` |
-| `UniformSubdivide` | `--uniform-subdivide` | `boundary_faces_from_tets` then `uniform_subdivide` (iterated) |
-| `UniformTaubin` | `--uniform-subdivide --taubin-smooth` | `boundary_faces_from_tets` then `uniform_subdivide` then `taubin_smooth` then `project_vertices_to_surface` |
-| `SdfReconstruct` | `--sdf-reconstruct` | `reconstruct_and_remesh_surface` (SDF grid + marching tets + CGAL remesh) |
+| `DirectSurface` | `--mode direct_surface` (default) | `boundary_faces_from_tets` |
+| `AdaptiveRemesh` | `--mode adaptive_remesh` or `--adaptive-remesh` | `boundary_faces_from_tets` then `adaptive_remesh` |
+| `UniformSubdivide` | `--mode uniform_subdivide` or `--uniform-subdivide` | `boundary_faces_from_tets` then `uniform_subdivide` (iterated) |
+| `UniformTaubin` | `--mode uniform_taubin` or `--uniform-subdivide --taubin-smooth` | `boundary_faces_from_tets` then `uniform_subdivide` then `taubin_smooth` |
+| `SdfReconstruct` | `--mode sdf_reconstruct` or `--sdf-reconstruct` | `reconstruct_and_remesh_surface` (SDF grid + marching tets + CGAL remesh) |
 
-End-to-end flow through `mvr_to_mesh_cli.cpp:main`: `parse_args` -> `find_project_root` (locates `originalData/` + `CMakeLists.txt`) -> `parse_mvr` -> `build_surface` (dispatches to one of the five modes above) -> optional `run_cgal_mesh` (Stage 1 repair + Stage 2 remesh, only for non-SDF modes with `--cgal-mesh`) -> `write_ply`.
+End-to-end flow through `mvr_to_mesh_cli.cpp:main`: `load_config` (three-layer merge) -> `resolve_input` -> `parse_mvr` -> `build_surface` (dispatches on `config.mode`) -> optional `run_cgal_mesh` (when `config.cgal_mesh_post`) -> `write_outputs`.
 
-The five modes are mutually exclusive; `parse_args` enforces conflict rules (e.g. `--cgal-mesh` + `--uniform-subdivide` is rejected). When modifying the pipeline, also update README.md algorithm reference.
+Configuration uses a three-layer merge: hardcoded defaults -> YAML file (`--config`) -> CLI overrides. Legacy boolean flags (`--adaptive-remesh`, etc.) resolve to `SurfaceMode` when neither `--mode` nor `--config` is used. When modifying the pipeline, also update README.md algorithm reference.
 
 ### Default I/O conventions
 

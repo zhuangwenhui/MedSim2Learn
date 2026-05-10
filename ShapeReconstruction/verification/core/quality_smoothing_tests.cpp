@@ -7,7 +7,9 @@
 #include <string>
 #include <vector>
 
-#include "mvrmesh/core/algorithms.h"
+#include "test_helpers.h"
+
+#include "mvrmesh/core/compaction.h"
 #include "mvrmesh/core/reconstruction.h"
 #include "mvrmesh/core/reconstruction_pipeline.h"
 #include "mvrmesh/core/metrics.h"
@@ -17,15 +19,15 @@
 
 namespace {
 
-void require(bool condition, const char* message) {
-    if (!condition) {
-        throw std::runtime_error(message);
-    }
-}
+using mvrmesh::test::require;
+using mvrmesh::test::near;
+using mvrmesh::test::require_vec3_near;
 
-bool near(double actual, double expected, double epsilon = 1e-9) {
-    return std::abs(actual - expected) <= epsilon;
-}
+// Shared tetrahedron fixture used by multiple tests.
+const std::vector<mvrmesh::Vec3> kTetraVertices{
+    {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+const std::vector<mvrmesh::Face> kTetraFaces{
+    {0, 2, 1}, {0, 1, 3}, {1, 2, 3}, {2, 0, 3}};
 
 bool all_vertices_are_referenced(const std::vector<mvrmesh::Face>& faces, std::size_t vertex_count) {
     if (vertex_count == 0) {
@@ -367,18 +369,10 @@ void test_taubin_preserves_boundary_when_requested() {
     const std::vector<mvrmesh::Vec3> smoothed =
         mvrmesh::taubin_smooth(vertices, faces, 2, 0.5, -0.53, true);
 
-    require(near(smoothed[0].x, vertices[0].x), "boundary vertex 0 x should stay fixed");
-    require(near(smoothed[0].y, vertices[0].y), "boundary vertex 0 y should stay fixed");
-    require(near(smoothed[0].z, vertices[0].z), "boundary vertex 0 z should stay fixed");
-    require(near(smoothed[1].x, vertices[1].x), "boundary vertex 1 x should stay fixed");
-    require(near(smoothed[1].y, vertices[1].y), "boundary vertex 1 y should stay fixed");
-    require(near(smoothed[1].z, vertices[1].z), "boundary vertex 1 z should stay fixed");
-    require(near(smoothed[2].x, vertices[2].x), "boundary vertex 2 x should stay fixed");
-    require(near(smoothed[2].y, vertices[2].y), "boundary vertex 2 y should stay fixed");
-    require(near(smoothed[2].z, vertices[2].z), "boundary vertex 2 z should stay fixed");
-    require(near(smoothed[3].x, vertices[3].x), "boundary vertex 3 x should stay fixed");
-    require(near(smoothed[3].y, vertices[3].y), "boundary vertex 3 y should stay fixed");
-    require(near(smoothed[3].z, vertices[3].z), "boundary vertex 3 z should stay fixed");
+    require_vec3_near(smoothed[0], vertices[0], "boundary vertex 0 should stay fixed");
+    require_vec3_near(smoothed[1], vertices[1], "boundary vertex 1 should stay fixed");
+    require_vec3_near(smoothed[2], vertices[2], "boundary vertex 2 should stay fixed");
+    require_vec3_near(smoothed[3], vertices[3], "boundary vertex 3 should stay fixed");
     const mvrmesh::Vec3 interior_delta{
         smoothed[4].x - vertices[4].x,
         smoothed[4].y - vertices[4].y,
@@ -437,15 +431,9 @@ void test_taubin_zero_iterations_is_identity() {
         mvrmesh::taubin_smooth(vertices, faces, 0, 0.5, -0.53, false);
 
     require(smoothed.size() == vertices.size(), "zero-iteration smoothing should keep vertex count");
-    require(near(smoothed[0].x, vertices[0].x), "zero-iteration x[0] should be unchanged");
-    require(near(smoothed[0].y, vertices[0].y), "zero-iteration y[0] should be unchanged");
-    require(near(smoothed[0].z, vertices[0].z), "zero-iteration z[0] should be unchanged");
-    require(near(smoothed[1].x, vertices[1].x), "zero-iteration x[1] should be unchanged");
-    require(near(smoothed[1].y, vertices[1].y), "zero-iteration y[1] should be unchanged");
-    require(near(smoothed[1].z, vertices[1].z), "zero-iteration z[1] should be unchanged");
-    require(near(smoothed[2].x, vertices[2].x), "zero-iteration x[2] should be unchanged");
-    require(near(smoothed[2].y, vertices[2].y), "zero-iteration y[2] should be unchanged");
-    require(near(smoothed[2].z, vertices[2].z), "zero-iteration z[2] should be unchanged");
+    require_vec3_near(smoothed[0], vertices[0], "zero-iteration vertex 0 should be unchanged");
+    require_vec3_near(smoothed[1], vertices[1], "zero-iteration vertex 1 should be unchanged");
+    require_vec3_near(smoothed[2], vertices[2], "zero-iteration vertex 2 should be unchanged");
 }
 
 void test_projection_to_degenerate_reference_triangle_works() {
@@ -500,15 +488,9 @@ void test_projection_with_empty_reference_faces_returns_input() {
         mvrmesh::project_vertices_to_surface(vertices, reference_vertices, {});
 
     require(projected.size() == vertices.size(), "empty reference faces should keep vertex count");
-    require(near(projected[0].x, vertices[0].x), "vertex 0 x should be unchanged");
-    require(near(projected[0].y, vertices[0].y), "vertex 0 y should be unchanged");
-    require(near(projected[0].z, vertices[0].z), "vertex 0 z should be unchanged");
-    require(near(projected[1].x, vertices[1].x), "vertex 1 x should be unchanged");
-    require(near(projected[1].y, vertices[1].y), "vertex 1 y should be unchanged");
-    require(near(projected[1].z, vertices[1].z), "vertex 1 z should be unchanged");
-    require(near(projected[2].x, vertices[2].x), "vertex 2 x should be unchanged");
-    require(near(projected[2].y, vertices[2].y), "vertex 2 y should be unchanged");
-    require(near(projected[2].z, vertices[2].z), "vertex 2 z should be unchanged");
+    require_vec3_near(projected[0], vertices[0], "vertex 0 should be unchanged");
+    require_vec3_near(projected[1], vertices[1], "vertex 1 should be unchanged");
+    require_vec3_near(projected[2], vertices[2], "vertex 2 should be unchanged");
 }
 
 void test_projection_invalid_reference_face_throws_runtime_error() {
@@ -533,26 +515,13 @@ void test_projection_invalid_reference_face_throws_runtime_error() {
 }
 
 void test_reconstruct_and_remesh_surface_minimal_success() {
-    const std::vector<mvrmesh::Vec3> boundary_vertices{
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-    };
-    const std::vector<mvrmesh::Face> boundary_faces{
-        {0, 2, 1},
-        {0, 1, 3},
-        {1, 2, 3},
-        {2, 0, 3},
-    };
-
     mvrmesh::SdfRemeshOptions options;
     options.sdf_resolution = 8;
     options.target_edge_length = 0.3;
     options.remesh_iterations = 1;
 
     const mvrmesh::SdfRemeshResult result =
-        mvrmesh::reconstruct_and_remesh_surface(boundary_vertices, boundary_faces, options);
+        mvrmesh::reconstruct_and_remesh_surface(kTetraVertices, kTetraFaces, options);
 
     require(!result.vertices.empty(), "product SDF remesh should emit vertices");
     require(!result.faces.empty(), "product SDF remesh should emit faces");
@@ -573,75 +542,36 @@ void test_reconstruct_and_remesh_surface_rejects_invalid_target() {
 }
 
 void test_reconstruct_surface_sdf_rejects_low_resolution() {
-    const std::vector<mvrmesh::Vec3> vertices{
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-    };
-    const std::vector<mvrmesh::Face> faces{
-        {0, 2, 1},
-        {0, 1, 3},
-        {1, 2, 3},
-        {2, 0, 3},
-    };
-
     mvrmesh::SdfReconstructionOptions options;
     options.grid_resolution = 1;
 
     require_throws_runtime_error(
         [&]() {
-            (void)mvrmesh::reconstruct_surface_sdf(vertices, faces, options);
+            (void)mvrmesh::reconstruct_surface_sdf(kTetraVertices, kTetraFaces, options);
         },
         "SDF reconstruction should reject grid_resolution < 2"
     );
 }
 
 void test_reconstruct_surface_sdf_rejects_grid_resolution_above_maximum() {
-    const std::vector<mvrmesh::Vec3> vertices{
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-    };
-    const std::vector<mvrmesh::Face> faces{
-        {0, 2, 1},
-        {0, 1, 3},
-        {1, 2, 3},
-        {2, 0, 3},
-    };
-
     mvrmesh::SdfReconstructionOptions options;
     options.grid_resolution = mvrmesh::kMaxSdfGridResolution + 1;
 
     require_throws_runtime_error(
         [&]() {
-            (void)mvrmesh::reconstruct_surface_sdf(vertices, faces, options);
+            (void)mvrmesh::reconstruct_surface_sdf(kTetraVertices, kTetraFaces, options);
         },
         "SDF reconstruction should reject grid_resolution above maximum limit"
     );
 }
 
 void test_reconstruct_surface_sdf_tetrahedron_produces_closed_triangle_mesh() {
-    const std::vector<mvrmesh::Vec3> vertices{
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-    };
-    const std::vector<mvrmesh::Face> faces{
-        {0, 2, 1},
-        {0, 1, 3},
-        {1, 2, 3},
-        {2, 0, 3},
-    };
-
     mvrmesh::SdfReconstructionOptions options;
     options.grid_resolution = 12;
     options.padding_ratio = 0.10;
 
     const mvrmesh::ReconstructedMesh mesh =
-        mvrmesh::reconstruct_surface_sdf(vertices, faces, options);
+        mvrmesh::reconstruct_surface_sdf(kTetraVertices, kTetraFaces, options);
 
     require(!mesh.vertices.empty(), "SDF reconstruction should emit vertices");
     require(!mesh.faces.empty(), "SDF reconstruction should emit faces");

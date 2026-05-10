@@ -106,12 +106,14 @@ Face oriented_face_outward(const std::vector<Vec3>& vertices, const Face& face, 
     const Vec3& vo = vertices[opposite];
 
     const Vec3 n = cross(vsub(vj, vi), vsub(vk, vi));
+    // Normal points toward the opposite tet vertex (inside) -- flip to face outward.
     if (dot(n, vsub(vo, vi)) > 0.0) {
         return Face{face[0], face[2], face[1]};
     }
     return face;
 }
 
+// Boundary face = face referenced by exactly one tetrahedron. Track by sorted-index key; count==1 means boundary.
 std::vector<Face> boundary_faces_from_tets(const std::vector<Vec3>& vertices, const std::vector<Tet>& tets) {
     std::map<std::array<int, 3>, std::pair<int, Face>> face_usage;
 

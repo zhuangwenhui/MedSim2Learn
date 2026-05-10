@@ -6,7 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "mvrmesh/core/algorithms.h"
+#include "test_helpers.h"
+
+#include "mvrmesh/config/pipeline_config.h"
+#include "mvrmesh/core/subdivision.h"
 #include "mvrmesh/core/io.h"
 #include "mvrmesh/core/metrics.h"
 #include "mvrmesh/core/pipeline.h"
@@ -15,11 +18,7 @@
 
 namespace {
 
-void require(bool cond, const std::string& message) {
-    if (!cond) {
-        throw std::runtime_error(message);
-    }
-}
+using mvrmesh::test::require;
 
 std::size_t count_vertex_near(
     const std::vector<mvrmesh::Vec3>& vertices,
@@ -81,7 +80,10 @@ void test_build_surface_uses_tet_boundary_without_triangles() {
     };
     const std::vector<mvrmesh::Face> triangles;
     const std::vector<Tet> tets{Tet{0, 1, 2, 3}};
-    const mvrmesh::BuildResult result = mvrmesh::build_surface(vertices, triangles, tets, mvrmesh::BuildOptions{});
+    mvrmesh::PipelineConfig config;
+    config.input = "test";
+    mvrmesh::ParsedMvr parsed{vertices, triangles, tets};
+    const mvrmesh::BuildResult result = mvrmesh::build_surface(parsed, config);
     require(result.mode == mvrmesh::SurfaceMode::DirectSurface, "Tet boundary surface should use direct surface mode");
     require(result.vertices.size() == 4, "Tet boundary surface should keep input vertices");
     require(result.faces.size() == 4, "Single tetrahedron boundary surface should produce 4 faces");
@@ -99,11 +101,13 @@ void test_build_surface_uniform_subdivide() {
     const std::vector<Face> triangles{Face{0, 1, 2}};
     const std::vector<mvrmesh::Tet> tets;
 
-    mvrmesh::BuildOptions options;
-    options.uniform_subdivide = true;
-    options.uniform_iterations = 1;
+    mvrmesh::PipelineConfig config;
+    config.input = "test";
+    config.mode = mvrmesh::SurfaceMode::UniformSubdivide;
+    config.uniform_subdivide.iterations = 1;
+    mvrmesh::ParsedMvr parsed{vertices, triangles, tets};
 
-    const mvrmesh::BuildResult result = mvrmesh::build_surface(vertices, triangles, tets, options);
+    const mvrmesh::BuildResult result = mvrmesh::build_surface(parsed, config);
     require(result.mode == mvrmesh::SurfaceMode::UniformSubdivide, "Uniform subdivision should set mode");
     require(result.vertices.size() == 6, "Uniform subdivision should add midpoint vertices");
     require(result.faces.size() == 4, "Uniform subdivision should split one triangle into four faces");
@@ -126,27 +130,21 @@ void test_build_surface_uniform_taubin_smooth() {
         Face{2, 0, 3},
     };
     const std::vector<mvrmesh::Tet> tets;
+    mvrmesh::ParsedMvr parsed{vertices, triangles, tets};
 
-    mvrmesh::BuildOptions uniform_options;
-    uniform_options.uniform_subdivide = true;
-    uniform_options.uniform_iterations = 1;
+    mvrmesh::PipelineConfig uniform_config;
+    uniform_config.input = "test";
+    uniform_config.mode = mvrmesh::SurfaceMode::UniformSubdivide;
+    uniform_config.uniform_subdivide.iterations = 1;
 
-    mvrmesh::BuildOptions taubin_options = uniform_options;
-    taubin_options.taubin_smooth = true;
-    taubin_options.taubin_iterations = 2;
+    mvrmesh::PipelineConfig taubin_config;
+    taubin_config.input = "test";
+    taubin_config.mode = mvrmesh::SurfaceMode::UniformTaubin;
+    taubin_config.uniform_subdivide.iterations = 1;
+    taubin_config.taubin.iterations = 2;
 
-    const mvrmesh::BuildResult uniform = mvrmesh::build_surface(
-        vertices,
-        triangles,
-        tets,
-        uniform_options
-    );
-    const mvrmesh::BuildResult taubin = mvrmesh::build_surface(
-        vertices,
-        triangles,
-        tets,
-        taubin_options
-    );
+    const mvrmesh::BuildResult uniform = mvrmesh::build_surface(parsed, uniform_config);
+    const mvrmesh::BuildResult taubin = mvrmesh::build_surface(parsed, taubin_config);
 
     require(taubin.mode == mvrmesh::SurfaceMode::UniformTaubin,
             "Uniform Taubin should set mode");
@@ -170,28 +168,6 @@ void test_build_surface_uniform_taubin_smooth() {
     require(moved_vertex, "Uniform Taubin should alter vertex positions after subdivision");
 }
 
-void test_build_surface_taubin_requires_uniform_subdivide() {
-    const std::vector<mvrmesh::Vec3> vertices{
-        {0.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-    };
-    const std::vector<mvrmesh::Face> triangles{{0, 1, 2}};
-    const std::vector<mvrmesh::Tet> tets;
-
-    mvrmesh::BuildOptions options;
-    options.taubin_smooth = true;
-
-    bool threw = false;
-    try {
-        (void)mvrmesh::build_surface(vertices, triangles, tets, options);
-    } catch (const std::runtime_error& ex) {
-        threw = std::string(ex.what()).find("--taubin-smooth requires --uniform-subdivide")
-            != std::string::npos;
-    }
-    require(threw, "Taubin smoothing should require uniform subdivision");
-}
-
 void test_build_surface_sdf_reconstruct() {
     const std::vector<mvrmesh::Vec3> vertices{
         {0.0, 0.0, 0.0},
@@ -206,34 +182,20 @@ void test_build_surface_sdf_reconstruct() {
         {2, 0, 3},
     };
 
-    mvrmesh::BuildOptions options;
-    options.sdf_reconstruct = true;
-    options.sdf_resolution = 8;
-    options.sdf_target_edge_length = 0.3;
-    options.sdf_remesh_iterations = 1;
+    mvrmesh::PipelineConfig config;
+    config.input = "test";
+    config.mode = mvrmesh::SurfaceMode::SdfReconstruct;
+    config.sdf_reconstruct.resolution = 8;
+    config.sdf_reconstruct.target_edge_length = 0.3;
+    config.sdf_reconstruct.remesh_iterations = 1;
+    mvrmesh::ParsedMvr parsed{vertices, triangles, {}};
 
-    const mvrmesh::BuildResult result =
-        mvrmesh::build_surface(vertices, triangles, {}, options);
+    const mvrmesh::BuildResult result = mvrmesh::build_surface(parsed, config);
 
     require(result.mode == mvrmesh::SurfaceMode::SdfReconstruct,
             "SDF reconstruction should set product mode");
     require(!result.vertices.empty(), "SDF reconstruction should emit vertices");
     require(!result.faces.empty(), "SDF reconstruction should emit faces");
-}
-
-void test_build_surface_sdf_reconstruct_conflicts_with_uniform() {
-    mvrmesh::BuildOptions options;
-    options.sdf_reconstruct = true;
-    options.uniform_subdivide = true;
-
-    bool threw = false;
-    try {
-        (void)mvrmesh::build_surface({}, {}, {}, options);
-    } catch (const std::runtime_error& ex) {
-        threw = std::string(ex.what()).find("--sdf-reconstruct conflicts with --uniform-subdivide")
-            != std::string::npos;
-    }
-    require(threw, "SDF reconstruction should conflict with uniform subdivision");
 }
 
 void test_adaptive_single_triangle_split() {
@@ -521,9 +483,7 @@ int main() {
         test_build_surface_uses_tet_boundary_without_triangles();
         test_build_surface_uniform_subdivide();
         test_build_surface_uniform_taubin_smooth();
-        test_build_surface_taubin_requires_uniform_subdivide();
         test_build_surface_sdf_reconstruct();
-        test_build_surface_sdf_reconstruct_conflicts_with_uniform();
         test_adaptive_single_triangle_split();
         test_uniform_subdivide_single_triangle();
         test_uniform_subdivide_reuses_shared_edge_midpoint();

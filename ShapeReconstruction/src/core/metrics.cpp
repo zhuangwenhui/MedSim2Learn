@@ -16,13 +16,6 @@ namespace mvrmesh {
 
 namespace {
 
-Edge make_edge_key(int i, int j) {
-    if (i < j) {
-        return Edge{i, j};
-    }
-    return Edge{j, i};
-}
-
 std::array<int, 3> make_face_key(const Face& face) {
     std::array<int, 3> key{face[0], face[1], face[2]};
     std::sort(key.begin(), key.end());
@@ -76,10 +69,6 @@ private:
     std::vector<std::size_t> parent_;
     std::vector<int> rank_;
 };
-
-double triangle_area(const Vec3& a, const Vec3& b, const Vec3& c) {
-    return 0.5 * norm(cross(vsub(b, a), vsub(c, a)));
-}
 
 void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
     if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {

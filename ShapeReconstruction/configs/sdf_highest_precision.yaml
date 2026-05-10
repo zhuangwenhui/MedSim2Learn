@@ -1,0 +1,8 @@
+# Maximum-precision SDF reconstruction at resolution 96.
+# Produces the highest-quality surface at significant computation cost.
+mode: sdf_reconstruct
+
+sdf_reconstruct:
+  resolution: 96
+  target_edge_length: 0
+  remesh_iterations: 3

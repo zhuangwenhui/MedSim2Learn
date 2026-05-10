@@ -74,17 +74,11 @@ FemBudgetResult classify_fem_budget(
 }
 
 std::string fem_budget_classification_to_string(FemBudgetClassification classification) {
-    if (classification == FemBudgetClassification::PressureFailed) {
-        return "pressure_failed";
-    }
-    if (classification == FemBudgetClassification::Recommended) {
-        return "recommended";
-    }
-    if (classification == FemBudgetClassification::Review) {
-        return "review";
-    }
-    if (classification == FemBudgetClassification::OverBudget) {
-        return "over_budget";
+    switch (classification) {
+        case FemBudgetClassification::PressureFailed: return "pressure_failed";
+        case FemBudgetClassification::Recommended:    return "recommended";
+        case FemBudgetClassification::Review:          return "review";
+        case FemBudgetClassification::OverBudget:      return "over_budget";
     }
     return "pressure_failed";
 }

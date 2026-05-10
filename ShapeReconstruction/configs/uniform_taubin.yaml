@@ -1,0 +1,10 @@
+# Uniform subdivision + Taubin smoothing: smooth surface with volume preservation.
+mode: uniform_taubin
+
+uniform_subdivide:
+  iterations: 2
+
+taubin:
+  iterations: 8
+  lambda: 0.5
+  mu: -0.53

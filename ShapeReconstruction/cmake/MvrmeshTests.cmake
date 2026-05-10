@@ -2,11 +2,14 @@ set(MVRMESH_TEST_FIXTURE
     "${CMAKE_CURRENT_SOURCE_DIR}/verification/fixtures/tiny_surface.mvr"
 )
 
+set(MVRMESH_TEST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/verification")
+
 add_executable(mvrmesh_smoke_tests
     verification/core/smoke_tests.cpp
 )
 
 target_link_libraries(mvrmesh_smoke_tests PRIVATE mvrmesh)
+target_include_directories(mvrmesh_smoke_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
 
 add_test(NAME mvrmesh_smoke COMMAND mvrmesh_smoke_tests)
 
@@ -20,6 +23,7 @@ target_link_libraries(mvrmesh_pressure_evaluator_tests
         mvrmesh
         ${MVRMESH_TETGEN_LIBRARIES}
 )
+target_include_directories(mvrmesh_pressure_evaluator_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
 
 add_test(NAME mvrmesh_pressure_evaluator COMMAND mvrmesh_pressure_evaluator_tests)
 
@@ -34,6 +38,7 @@ add_executable(mvrmesh_cgal_mesh_tests
     verification/backends/cgal/cgal_mesh_tests.cpp
 )
 target_link_libraries(mvrmesh_cgal_mesh_tests PRIVATE mvrmesh)
+target_include_directories(mvrmesh_cgal_mesh_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
 add_test(NAME mvrmesh_cgal_mesh COMMAND mvrmesh_cgal_mesh_tests)
 
 add_executable(mvrmesh_quality_smoothing_tests
@@ -41,6 +46,7 @@ add_executable(mvrmesh_quality_smoothing_tests
 )
 
 target_link_libraries(mvrmesh_quality_smoothing_tests PRIVATE mvrmesh)
+target_include_directories(mvrmesh_quality_smoothing_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
 
 add_test(NAME mvrmesh_quality_smoothing COMMAND mvrmesh_quality_smoothing_tests)
 
@@ -174,6 +180,53 @@ add_test(
         -DTEST_FIXTURE=${MVRMESH_TEST_FIXTURE}
         -DOUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/verification/cmake/run_check_fem_pressure_single.cmake
+)
+
+add_executable(mvrmesh_config_tests
+    verification/config/config_tests.cpp
+)
+target_link_libraries(mvrmesh_config_tests PRIVATE mvrmesh_config)
+target_include_directories(mvrmesh_config_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
+add_test(NAME mvrmesh_config COMMAND mvrmesh_config_tests)
+
+add_executable(mvrmesh_config_loader_tests
+    verification/config/config_loader_tests.cpp
+)
+target_link_libraries(mvrmesh_config_loader_tests PRIVATE mvrmesh_config)
+target_include_directories(mvrmesh_config_loader_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
+target_compile_definitions(mvrmesh_config_loader_tests PRIVATE
+    MVRMESH_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/verification/fixtures"
+    MVRMESH_CONFIGS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/configs"
+)
+add_test(NAME mvrmesh_config_loader COMMAND mvrmesh_config_loader_tests)
+
+# Config file driven test
+add_test(
+    NAME mvrmesh_cli_config_file
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --config "${CMAKE_CURRENT_SOURCE_DIR}/configs/uniform_taubin.yaml"
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_config_taubin"
+)
+
+# Config file with CLI override
+add_test(
+    NAME mvrmesh_cli_config_override
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --config "${CMAKE_CURRENT_SOURCE_DIR}/configs/uniform_taubin.yaml"
+        --taubin-iterations 4
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_config_override"
+)
+
+# --mode flag
+add_test(
+    NAME mvrmesh_cli_mode_flag
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --mode uniform_subdivide
+        --uniform-iterations 1
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_mode_flag"
 )
 
 set(MVRMESH_SAMPLE_INPUT "")

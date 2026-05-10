@@ -37,11 +37,27 @@ target_link_libraries(mvrmesh
         ${MVRMESH_PRIVATE_LIBRARIES}
 )
 
+find_package(yaml-cpp CONFIG REQUIRED)
+
+add_library(mvrmesh_config STATIC
+    src/config/pipeline_config.cpp
+    src/config/config_loader.cpp
+    src/config/pressure_config.cpp
+    src/cli/cli_common.cpp
+)
+target_include_directories(mvrmesh_config PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(mvrmesh_config
+    PUBLIC mvrmesh
+    PRIVATE yaml-cpp::yaml-cpp
+)
+
 add_executable(mvr_to_mesh_cli
     mvr_to_mesh_cli.cpp
 )
 
-target_link_libraries(mvr_to_mesh_cli PRIVATE mvrmesh)
+target_link_libraries(mvr_to_mesh_cli PRIVATE mvrmesh mvrmesh_config)
 
 add_executable(check_fem_pressure
     check_fem_pressure_cli.cpp
@@ -51,6 +67,7 @@ add_executable(check_fem_pressure
 target_link_libraries(check_fem_pressure
     PRIVATE
         mvrmesh
+        mvrmesh_config
         ${MVRMESH_TETGEN_LIBRARIES}
 )
 

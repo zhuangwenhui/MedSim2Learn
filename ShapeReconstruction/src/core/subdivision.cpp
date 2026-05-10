@@ -1,29 +1,21 @@
-#include "mvrmesh/core/algorithms.h"
+#include "mvrmesh/core/subdivision.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <map>
 #include <optional>
 #include <set>
-#include <sstream>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
+#include "mvrmesh/core/curvature.h"
 #include "mvrmesh/core/geometry.h"
 #include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 
 namespace {
-
-Edge make_edge_key(int i, int j) {
-    if (i < j) {
-        return Edge{i, j};
-    }
-    return Edge{j, i};
-}
 
 int midpoint_index(std::vector<Vec3>& vertices, std::map<Edge, int>& cache, int i, int j) {
     const Edge key = make_edge_key(i, j);
@@ -74,98 +66,6 @@ std::pair<std::vector<Vec3>, std::vector<Face>> uniform_subdivide_once(
 }
 
 }  // namespace
-
-std::vector<double> estimate_vertex_curvature(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
-    std::map<int, std::vector<int>> incident;
-    std::vector<Vec3> face_normals;
-    face_normals.reserve(faces.size());
-
-    for (int fidx = 0; fidx < static_cast<int>(faces.size()); ++fidx) {
-        const Face& face = faces[static_cast<std::size_t>(fidx)];
-        const Vec3 n = face_normal(
-            vertices.at(static_cast<std::size_t>(face[0])),
-            vertices.at(static_cast<std::size_t>(face[1])),
-            vertices.at(static_cast<std::size_t>(face[2]))
-        );
-        face_normals.push_back(n);
-        incident[face[0]].push_back(fidx);
-        incident[face[1]].push_back(fidx);
-        incident[face[2]].push_back(fidx);
-    }
-
-    std::vector<double> curvature(vertices.size(), 0.0);
-    for (int vidx = 0; vidx < static_cast<int>(vertices.size()); ++vidx) {
-        const auto found = incident.find(vidx);
-        if (found == incident.end()) {
-            continue;
-        }
-
-        Vec3 avg{0.0, 0.0, 0.0};
-        for (int fidx : found->second) {
-            avg = vadd(avg, face_normals[static_cast<std::size_t>(fidx)]);
-        }
-        const Vec3 v_n = normalize(avg);
-
-        double c_sum = 0.0;
-        for (int fidx : found->second) {
-            const Vec3& n = face_normals[static_cast<std::size_t>(fidx)];
-            const double d = std::max(-1.0, std::min(1.0, std::abs(dot(v_n, n))));
-            c_sum += 1.0 - d;
-        }
-        curvature[static_cast<std::size_t>(vidx)] = c_sum / static_cast<double>(found->second.size());
-    }
-
-    return curvature;
-}
-
-std::set<Edge> select_split_edges_by_curvature(
-    const std::vector<Face>& faces,
-    const std::vector<double>& vertex_curvature,
-    double split_ratio
-) {
-    std::vector<std::pair<double, int>> face_scores;
-    face_scores.reserve(faces.size());
-
-    for (int fidx = 0; fidx < static_cast<int>(faces.size()); ++fidx) {
-        const Face& face = faces[static_cast<std::size_t>(fidx)];
-        const double score = (
-            vertex_curvature.at(static_cast<std::size_t>(face[0])) +
-            vertex_curvature.at(static_cast<std::size_t>(face[1])) +
-            vertex_curvature.at(static_cast<std::size_t>(face[2]))
-        ) / 3.0;
-        face_scores.emplace_back(score, fidx);
-    }
-
-    std::sort(face_scores.begin(), face_scores.end(), [](const auto& lhs, const auto& rhs) {
-        if (lhs.first == rhs.first) {
-            return lhs.second > rhs.second;
-        }
-        return lhs.first > rhs.first;
-    });
-
-    const int n_faces = static_cast<int>(faces.size());
-    const int rounded = static_cast<int>(std::round(static_cast<double>(n_faces) * split_ratio));
-    const int target = std::max(1, std::min(n_faces, rounded));
-
-    std::set<int> selected_face_indices;
-    for (int i = 0; i < target && i < static_cast<int>(face_scores.size()); ++i) {
-        selected_face_indices.insert(face_scores[static_cast<std::size_t>(i)].second);
-    }
-
-    std::set<Edge> split_edges;
-    for (int fidx = 0; fidx < static_cast<int>(faces.size()); ++fidx) {
-        if (selected_face_indices.find(fidx) == selected_face_indices.end()) {
-            continue;
-        }
-
-        const Face& face = faces[static_cast<std::size_t>(fidx)];
-        split_edges.insert(make_edge_key(face[0], face[1]));
-        split_edges.insert(make_edge_key(face[1], face[2]));
-        split_edges.insert(make_edge_key(face[2], face[0]));
-    }
-
-    return split_edges;
-}
 
 std::pair<std::vector<Vec3>, std::vector<Face>> split_faces_with_edge_set(
     const std::vector<Vec3>& vertices,
@@ -282,47 +182,6 @@ std::pair<std::vector<Vec3>, std::vector<Face>> adaptive_remesh(
         out_faces = std::move(split_result.second);
     }
     return std::make_pair(std::move(out_vertices), std::move(out_faces));
-}
-
-std::pair<std::vector<Vec3>, std::vector<Face>> compact_mesh_to_referenced_vertices(
-    const std::vector<Vec3>& vertices,
-    const std::vector<Face>& faces
-) {
-    if (faces.empty()) {
-        return std::make_pair(std::vector<Vec3>{}, std::vector<Face>{});
-    }
-
-    std::vector<int> old_to_new(vertices.size(), -1);
-    std::vector<Vec3> compact_vertices;
-    compact_vertices.reserve(vertices.size());
-    std::vector<Face> compact_faces;
-    compact_faces.reserve(faces.size());
-
-    auto map_index = [&](int idx) -> int {
-        if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
-            std::ostringstream oss;
-            oss << "compact_mesh_to_referenced_vertices index out of range: " << idx
-                << ", n_vertices=" << vertices.size();
-            throw std::runtime_error(oss.str());
-        }
-        int& mapped = old_to_new[static_cast<std::size_t>(idx)];
-        if (mapped >= 0) {
-            return mapped;
-        }
-        mapped = static_cast<int>(compact_vertices.size());
-        compact_vertices.push_back(vertices[static_cast<std::size_t>(idx)]);
-        return mapped;
-    };
-
-    for (const Face& face : faces) {
-        compact_faces.push_back(Face{
-            map_index(face[0]),
-            map_index(face[1]),
-            map_index(face[2]),
-        });
-    }
-
-    return std::make_pair(std::move(compact_vertices), std::move(compact_faces));
 }
 
 }  // namespace mvrmesh

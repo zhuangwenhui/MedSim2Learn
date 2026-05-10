@@ -5,7 +5,7 @@
 #include <utility>
 
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
-#include "mvrmesh/core/algorithms.h"
+#include "mvrmesh/core/compaction.h"
 #include "mvrmesh/core/reconstruction.h"
 
 namespace mvrmesh {
@@ -60,7 +60,7 @@ SdfRemeshResult reconstruct_and_remesh_surface(
         sdf_options
     );
 
-    CgalMeshOptions cgal_options;
+    CgalMeshConfig cgal_options;
     cgal_options.sharp_edge_dihedral_degrees = options.sharp_edge_dihedral_degrees;
     cgal_options.target_edge_length = options.target_edge_length;
     cgal_options.remesh_iterations = options.remesh_iterations;

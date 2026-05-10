@@ -31,25 +31,6 @@ enum class SurfaceMode {
     SdfReconstruct
 };
 
-struct BuildOptions {
-    bool adaptive_remesh = false;
-    int adaptive_iterations = 1;
-    double adaptive_split_ratio = 0.5;
-    bool uniform_subdivide = false;
-    int uniform_iterations = 1;
-    bool taubin_smooth = false;
-    int taubin_iterations = 8;
-    double taubin_lambda = 0.5;
-    double taubin_mu = -0.53;
-    bool taubin_preserve_boundary = true;
-    bool sdf_reconstruct = false;
-    int sdf_resolution = 72;
-    double sdf_padding_ratio = 0.05;
-    double sdf_sharp_edge_degrees = 179.0;
-    double sdf_target_edge_length = 0.025;
-    int sdf_remesh_iterations = 3;
-};
-
 struct BuildResult {
     std::vector<Vec3> vertices;
     std::vector<Face> faces;
