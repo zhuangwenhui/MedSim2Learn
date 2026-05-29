@@ -89,6 +89,8 @@
 #include <list>
 #include <thread>
 #include <mutex>
+#include <unordered_set>
+#include <functional>
 
 // =============================================================================
 // Graphics Libraries

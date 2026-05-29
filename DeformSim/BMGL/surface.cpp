@@ -113,7 +113,7 @@ bool Surface::ReadPLY(CString filepath)
 	ComputeNormal();
 	ComputeArea();
 	ComputeBoundingBox();
-//	ComputeNeighbors();
+	ComputeNeighbors();
 
 	fin.close();
 

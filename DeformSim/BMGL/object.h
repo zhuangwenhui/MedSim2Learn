@@ -13,9 +13,8 @@
 #include "vector.h"
 #include "matrix.h"
 #include "geometry.h"
-#include "tetgen.h"
-
 #define TETLIBRARY
+#include "tetgen.h"
 
 class Object
 {

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include <algorithm>
 #include <string>
+#include <nlohmann/json.hpp>
 using namespace std;
 constexpr int PROGRESS_BAR_WIDTH = 50;
 // Progress bar variables
@@ -15,10 +16,6 @@ static size_t g_lastProgressRenderLength = 0;
 static time_t g_startTime = 0;
 static atomic<bool> g_progressHeartbeatStop(false);
 
-static std::once_flag g_freezeCacheOnceFlag;
-static std::vector<int> g_freezeCacheIndices;
-static std::vector<std::vector<int>> g_biasContactCache;
-static std::vector<std::shared_ptr<std::once_flag>> g_biasContactOnceFlags;
 static const unsigned long long kFnvOffset64 = 14695981039346656037ULL;
 static const unsigned long long kFnvPrime64 = 1099511628211ULL;
 bool g_useSolverLU = false;
@@ -28,12 +25,8 @@ struct SimHyperParams
     float material_young = 1.0f;
     float material_poisson = 0.40f;
 
-    bool use_triangle_pattern = false;
-    float step_size = 10.0f;
-    float boundary_length = 280.0f;
-    float center_range = 70.0f;
-    float freeze_boundary = 149.0f;
-    float contact_window_half_width = 0.5f;
+    std::string ply_path = "./plate.ply";
+    std::string annotation_path = "./annotation.json";
 
     int num_vector = 100;
     unsigned int seed = 20260328u;
@@ -46,8 +39,6 @@ struct SimHyperParams
     float min_angle_deg = 0.0f;
     float max_angle_deg = 45.0f;
 
-    bool use_freeze_cache = false;
-    bool use_bias_contact_cache = false;
     bool use_reuse_tetra_template = true;
     bool use_solver_lu = true;
     bool use_matrix_solver_cache = true;
@@ -56,17 +47,28 @@ struct SimHyperParams
     bool isolate_output = true;
     int max_objects = 0;
     unsigned int num_threads = 4;
-    unsigned int mkl_num_threads = 1; // 0 means auto-derived
+    unsigned int mkl_num_threads = 1;
     int diag_flush_interval = 32;
+};
+
+struct ContactSeed
+{
+    int vertex_index;
+    int k_ring;
+};
+
+struct AnnotationData
+{
+    std::vector<int> freeze_vertices;
+    std::vector<ContactSeed> contacts;
 };
 
 struct SampleTask
 {
     std::string sample_id;
     std::unique_ptr<Object> object;
-    int coor_i = 0;
-    float x_bias = 0.0f;
-    float y_bias = 0.0f;
+    int contact_i = 0;
+    int seed_vertex = 0;
     float fx = 0.0f;
     float fy = 0.0f;
     float fz = 0.0f;
@@ -402,6 +404,155 @@ static void LoadUIntParam(unsigned int& target, const char* primary, const char*
            primary, (legacy != NULL) ? " / " : "", (legacy != NULL) ? legacy : "", raw);
 }
 
+static void LoadStringParam(std::string& target, const char* primary, const char* legacy = NULL)
+{
+    const char* raw = PickEnv(primary, legacy);
+    if (raw == NULL) return;
+    target = raw;
+}
+
+static bool LoadAnnotationJSON(const std::string& path, int nNode, AnnotationData& out)
+{
+    std::ifstream fin(path);
+    if (!fin.is_open())
+    {
+        printf("Error: Cannot open annotation file: %s\n", path.c_str());
+        return false;
+    }
+
+    nlohmann::json doc;
+    try
+    {
+        fin >> doc;
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        printf("Error: JSON parse error in %s: %s\n", path.c_str(), e.what());
+        return false;
+    }
+
+    out.freeze_vertices.clear();
+    out.contacts.clear();
+
+    if (doc.contains("freeze") && doc["freeze"].is_object() && doc["freeze"].contains("vertices"))
+    {
+        for (const auto& v : doc["freeze"]["vertices"])
+        {
+            int idx = v.get<int>();
+            if (idx < 0 || idx >= nNode)
+            {
+                printf("Error: freeze vertex index %d out of range [0, %d)\n", idx, nNode);
+                return false;
+            }
+            out.freeze_vertices.push_back(idx);
+        }
+    }
+
+    std::unordered_set<int> freeze_set(out.freeze_vertices.begin(), out.freeze_vertices.end());
+    std::unordered_set<int> seed_set;
+
+    if (!doc.contains("contacts") || !doc["contacts"].is_array() || doc["contacts"].empty())
+    {
+        printf("Error: annotation file must contain a non-empty 'contacts' array\n");
+        return false;
+    }
+
+    for (const auto& c : doc["contacts"])
+    {
+        ContactSeed cs;
+        cs.vertex_index = c.at("seed").get<int>();
+        cs.k_ring = c.at("k_ring").get<int>();
+
+        if (cs.vertex_index < 0 || cs.vertex_index >= nNode)
+        {
+            printf("Error: contact seed index %d out of range [0, %d)\n", cs.vertex_index, nNode);
+            return false;
+        }
+        if (freeze_set.count(cs.vertex_index))
+        {
+            printf("Error: contact seed %d is also in freeze list\n", cs.vertex_index);
+            return false;
+        }
+        if (seed_set.count(cs.vertex_index))
+        {
+            printf("Error: duplicate contact seed index %d\n", cs.vertex_index);
+            return false;
+        }
+        if (cs.k_ring < 1)
+        {
+            printf("Error: k_ring must be >= 1, got %d for seed %d\n", cs.k_ring, cs.vertex_index);
+            return false;
+        }
+
+        seed_set.insert(cs.vertex_index);
+        out.contacts.push_back(cs);
+    }
+
+    printf("Annotation loaded: %zu freeze vertices, %zu contact seeds\n",
+           out.freeze_vertices.size(), out.contacts.size());
+    return true;
+}
+
+static std::vector<int> SelectKRingNeighbors(int seed, int k, const Vertex* vertices, int nNode,
+                                              const std::unordered_set<int>& freeze_set)
+{
+    std::unordered_set<int> visited;
+    visited.insert(seed);
+    std::vector<int> frontier;
+    frontier.push_back(seed);
+
+    for (int hop = 0; hop < k; ++hop)
+    {
+        std::vector<int> next_frontier;
+        for (int v : frontier)
+        {
+            for (int u : vertices[v].neighborVertex)
+            {
+                if (u >= 0 && u < nNode && visited.find(u) == visited.end())
+                {
+                    visited.insert(u);
+                    next_frontier.push_back(u);
+                }
+            }
+        }
+        frontier = std::move(next_frontier);
+    }
+
+    std::vector<int> result;
+    result.reserve(visited.size());
+    for (int v : visited)
+    {
+        if (freeze_set.find(v) == freeze_set.end())
+        {
+            result.push_back(v);
+        }
+    }
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+static std::vector<std::vector<int>> PrecomputeContactRegions(
+    const AnnotationData& annotation, const Vertex* vertices, int nNode)
+{
+    std::unordered_set<int> freeze_set(
+        annotation.freeze_vertices.begin(), annotation.freeze_vertices.end());
+
+    std::vector<std::vector<int>> regions;
+    regions.reserve(annotation.contacts.size());
+
+    for (size_t i = 0; i < annotation.contacts.size(); ++i)
+    {
+        const ContactSeed& cs = annotation.contacts[i];
+        std::vector<int> region = SelectKRingNeighbors(
+            cs.vertex_index, cs.k_ring, vertices, nNode, freeze_set);
+        printf("  Contact seed %d (k=%d): %zu vertices in region\n",
+               cs.vertex_index, cs.k_ring, region.size());
+        regions.push_back(std::move(region));
+    }
+
+    return regions;
+}
+
 static SimHyperParams LoadSimHyperParams()
 {
     SimHyperParams params;
@@ -409,12 +560,8 @@ static SimHyperParams LoadSimHyperParams()
     LoadFloatParam(params.material_young, "SIM2LEARN_PARAM_MATERIAL_YOUNG");
     LoadFloatParam(params.material_poisson, "SIM2LEARN_PARAM_MATERIAL_POISSON");
 
-    LoadBoolParam(params.use_triangle_pattern, "SIM2LEARN_PARAM_USE_TRIANGLE_PATTERN");
-    LoadFloatParam(params.step_size, "SIM2LEARN_PARAM_STEP_SIZE");
-    LoadFloatParam(params.boundary_length, "SIM2LEARN_PARAM_BOUNDARY_LENGTH");
-    LoadFloatParam(params.center_range, "SIM2LEARN_PARAM_CENTER_RANGE");
-    LoadFloatParam(params.freeze_boundary, "SIM2LEARN_PARAM_FREEZE_BOUNDARY");
-    LoadFloatParam(params.contact_window_half_width, "SIM2LEARN_PARAM_CONTACT_WINDOW_HALF_WIDTH");
+    LoadStringParam(params.ply_path, "SIM2LEARN_PARAM_PLY_PATH");
+    LoadStringParam(params.annotation_path, "SIM2LEARN_PARAM_ANNOTATION_PATH");
 
     LoadIntParam(params.num_vector, "SIM2LEARN_PARAM_NUM_VECTOR", NULL, true);
     LoadUIntParam(params.seed, "SIM2LEARN_PARAM_SEED");
@@ -427,8 +574,6 @@ static SimHyperParams LoadSimHyperParams()
     LoadFloatParam(params.min_angle_deg, "SIM2LEARN_PARAM_MIN_ANGLE_DEG");
     LoadFloatParam(params.max_angle_deg, "SIM2LEARN_PARAM_MAX_ANGLE_DEG");
 
-    LoadBoolParam(params.use_freeze_cache, "SIM2LEARN_PARAM_USE_FREEZE_CACHE", "SIM2LEARN_CACHE_FREEZE");
-    LoadBoolParam(params.use_bias_contact_cache, "SIM2LEARN_PARAM_USE_BIAS_CONTACT_CACHE", "SIM2LEARN_CACHE_BIAS_CONTACTS");
     LoadBoolParam(params.use_reuse_tetra_template, "SIM2LEARN_PARAM_USE_REUSE_TETRA_TEMPLATE", "SIM2LEARN_REUSE_TETRA_TEMPLATE");
     LoadBoolParam(params.use_solver_lu, "SIM2LEARN_PARAM_USE_SOLVER_LU", "SIM2LEARN_SOLVER_USE_LU");
     LoadBoolParam(params.use_matrix_solver_cache, "SIM2LEARN_PARAM_USE_MATRIX_SOLVER_CACHE", "SIM2LEARN_CACHE_MATRIX_SOLVER");
@@ -461,31 +606,6 @@ static SimHyperParams LoadSimHyperParams()
     {
         printf("Warning: invalid material poisson=%.3f, fallback to default\n", params.material_poisson);
         params.material_poisson = 0.40f;
-    }
-    if (params.step_size <= 0.0f)
-    {
-        printf("Warning: invalid step_size=%.3f, fallback to default\n", params.step_size);
-        params.step_size = 10.0f;
-    }
-    if (params.boundary_length <= 0.0f)
-    {
-        printf("Warning: invalid boundary_length=%.3f, fallback to default\n", params.boundary_length);
-        params.boundary_length = 280.0f;
-    }
-    if (params.center_range < 0.0f)
-    {
-        printf("Warning: invalid center_range=%.3f, fallback to default\n", params.center_range);
-        params.center_range = 70.0f;
-    }
-    if (params.freeze_boundary <= 0.0f)
-    {
-        printf("Warning: invalid freeze_boundary=%.3f, fallback to default\n", params.freeze_boundary);
-        params.freeze_boundary = 149.0f;
-    }
-    if (params.contact_window_half_width <= 0.0f)
-    {
-        printf("Warning: invalid contact_window_half_width=%.3f, fallback to default\n", params.contact_window_half_width);
-        params.contact_window_half_width = 0.5f;
     }
     if (params.min_angle_deg < 0.0f || params.max_angle_deg < params.min_angle_deg)
     {
@@ -638,43 +758,33 @@ static MatrixCacheKey BuildMatrixCacheKey(const Object* object, const SimHyperPa
     return key;
 }
 
-static void BuildFreezeCacheFromObject(const Object* object, const SimHyperParams& params)
+static void ApplyFreezeFromAnnotation(Object* object, const std::vector<int>& freeze_vertices)
 {
-    g_freezeCacheIndices.clear();
-    g_freezeCacheIndices.reserve(object->nNode);
-
-    for (int i = 0; i < object->nNode; ++i)
+    for (int idx : freeze_vertices)
     {
-        const auto& coord = object->vertex[i].new_coord;
-        if (coord.x > params.freeze_boundary || coord.x < -params.freeze_boundary ||
-            coord.y > params.freeze_boundary || coord.y < -params.freeze_boundary)
+        if (idx >= 0 && idx < object->nNode)
         {
-            g_freezeCacheIndices.push_back(i);
+            object->vertex[idx].isFreeze = true;
         }
     }
 }
 
-static void ApplyFreezeState(Object* object, const SimHyperParams& params, bool use_freeze_cache)
+static void ApplyContactRegion(Object* object, const std::vector<int>& region,
+                                float fx, float fy, float fz,
+                                int& selected_count, unsigned long long& selected_hash)
 {
-    if (use_freeze_cache)
-    {
-        std::call_once(g_freezeCacheOnceFlag, [object, params]() {
-            BuildFreezeCacheFromObject(object, params);
-        });
+    selected_count = 0;
+    selected_hash = kFnvOffset64;
 
-        for (int index : g_freezeCacheIndices)
-        {
-            object->vertex[index].isFreeze = true;
-        }
-        return;
-    }
-
-    for (int i = 0; i < object->nNode; ++i)
+    for (int idx : region)
     {
-        if (object->vertex[i].new_coord.x > params.freeze_boundary || object->vertex[i].new_coord.x < -params.freeze_boundary ||
-            object->vertex[i].new_coord.y > params.freeze_boundary || object->vertex[i].new_coord.y < -params.freeze_boundary)
+        if (idx >= 0 && idx < object->nNode)
         {
-            object->vertex[i].isFreeze = true;
+            object->vertex[idx].isSelect = true;
+            object->vertex[idx].force = Vector3f(fx, fy, fz);
+            unsigned long long selected_index = static_cast<unsigned long long>(idx);
+            HashBytes64(selected_hash, &selected_index, sizeof(selected_index));
+            ++selected_count;
         }
     }
 }
@@ -764,98 +874,6 @@ static bool CloneTetraTemplate(const Object& template_object, Object* work_objec
     return true;
 }
 
-static void InitBiasContactCache(size_t bias_count)
-{
-    g_biasContactCache.clear();
-    g_biasContactCache.resize(bias_count);
-
-    g_biasContactOnceFlags.clear();
-    g_biasContactOnceFlags.reserve(bias_count);
-    for (size_t i = 0; i < bias_count; ++i)
-    {
-        g_biasContactOnceFlags.push_back(std::make_shared<std::once_flag>());
-    }
-}
-
-static void BuildBiasContactCache(const Object* object, const SimHyperParams& params, float x_bias, float y_bias, std::vector<int>& cached_indices)
-{
-    cached_indices.clear();
-    cached_indices.reserve(object->nNode);
-
-    for (int i = 0; i < object->nNode; ++i)
-    {
-        if (object->vertex[i].new_coord.x < params.contact_window_half_width + x_bias &&
-            object->vertex[i].new_coord.x > -params.contact_window_half_width + x_bias &&
-            object->vertex[i].new_coord.y < params.contact_window_half_width + y_bias &&
-            object->vertex[i].new_coord.y > -params.contact_window_half_width + y_bias)
-        {
-            cached_indices.push_back(i);
-        }
-    }
-}
-
-static bool ApplyBiasContactSelection(Object* object, const SimHyperParams& params, int coor_i, float x_bias, float y_bias,
-                                     float fx, float fy, float fz, bool use_bias_contact_cache,
-                                     int& selected_count, unsigned long long& selected_hash)
-{
-    selected_count = 0;
-    selected_hash = kFnvOffset64;
-
-    auto select_index = [&](int index)
-    {
-        object->vertex[index].isSelect = true;
-        object->vertex[index].force = Vector3f(fx, fy, fz);
-        unsigned long long selected_index = static_cast<unsigned long long>(index);
-        HashBytes64(selected_hash, &selected_index, sizeof(selected_index));
-        ++selected_count;
-    };
-
-    if (use_bias_contact_cache &&
-        coor_i >= 0 &&
-        coor_i < static_cast<int>(g_biasContactCache.size()) &&
-        coor_i < static_cast<int>(g_biasContactOnceFlags.size()) &&
-        g_biasContactOnceFlags[coor_i])
-    {
-        std::call_once(*g_biasContactOnceFlags[coor_i], [object, coor_i, x_bias, y_bias, params]()
-        {
-            BuildBiasContactCache(object, params, x_bias, y_bias, g_biasContactCache[coor_i]);
-        });
-
-        const std::vector<int>& cached_indices = g_biasContactCache[coor_i];
-        bool cache_valid = true;
-        for (size_t i = 0; i < cached_indices.size(); ++i)
-        {
-            int index = cached_indices[i];
-            if (index < 0 || index >= object->nNode)
-            {
-                cache_valid = false;
-                break;
-            }
-        }
-
-        if (cache_valid)
-        {
-            for (size_t i = 0; i < cached_indices.size(); ++i)
-            {
-                select_index(cached_indices[i]);
-            }
-            return true;
-        }
-    }
-
-    for (int i = 0; i < object->nNode; i++)
-    {
-        if (object->vertex[i].new_coord.x < params.contact_window_half_width + x_bias &&
-            object->vertex[i].new_coord.x > -params.contact_window_half_width + x_bias &&
-            object->vertex[i].new_coord.y < params.contact_window_half_width + y_bias &&
-            object->vertex[i].new_coord.y > -params.contact_window_half_width + y_bias)
-        {
-            select_index(i);
-        }
-    }
-
-    return false;
-}
 void ComputeTetrahedralMesh(Surface *in, Object *out, const SimHyperParams& params)
 {
 
@@ -939,8 +957,8 @@ static bool WriteSampleOutput(SampleTask& task, const std::string& dir_path, FIL
     if (params.use_diag_contact_hash && diag_fp != NULL)
     {
         lock_guard<mutex> lock(g_diagFileMutex);
-        diag_ok = (fprintf(diag_fp, "%s,%d,%.3f,%.3f,%d,%016llx,%d,%016llx\n",
-            task.sample_id.c_str(), task.coor_i, task.x_bias, task.y_bias,
+        diag_ok = (fprintf(diag_fp, "%s,%d,%d,%d,%016llx,%d,%016llx\n",
+            task.sample_id.c_str(), task.contact_i, task.seed_vertex,
             task.object->nNode, task.mesh_hash, task.selected_count, task.selected_hash) >= 0);
         if (diag_ok && params.diag_flush_interval > 0)
         {
@@ -1254,78 +1272,15 @@ std::unique_ptr<std::vector<std::array<float, 4>>> generateVectors(const SimHype
 	return vectors;
 }
 
-// parameter i need to be adjusted when the number of force vectors changed
-void CreateSampleID(char *sampleID, int k, int j, int i)
+void CreateSampleID(char *sampleID, int seed_vertex, int vec_i)
 {
-	sprintf(sampleID, "deformed_%04d_%04d_%04d", k, j, i);
-}
-
-void Generate_bias_Triangle(float boundary_length, float step_size,
-							std::vector<float> &bias_x,
-							std::vector<float> &bias_y)
-{
-	// calculate the size of bias K
-	int counter = static_cast<int>(boundary_length / step_size) + 1;
-	int K = (counter * (counter + 1)) / 2;
-
-	// allocate memory for bias K
-	bias_x.resize(K);
-	bias_y.resize(K);
-
-	// generate m x m matrix, x column, y row, the origin is at the left bottom corner of the matrix
-	int index = 0;
-	for (int diff = 0; diff < counter; diff++)
-	{
-		for (int j = 0; j <= diff; j++)
-		{
-			int i = diff - j;
-			if (i < counter && j < counter)
-			{
-				float start = -boundary_length * 0.5f;
-				bias_x[index] = j * step_size + start;
-				bias_y[index] = i * step_size + start;
-				index++;
-			}
-		}
-	}
-
-	printf("Triangle Pattern: Generated %d contact points in triangular arrangement\n", K);
-	printf("Coordinate range: [%.1f, %.1f] x [%.1f, %.1f] mm\n",
-		-boundary_length * 0.5f, +boundary_length * 0.5f, -boundary_length * 0.5f, +boundary_length * 0.5f);
-}
-
-void Generate_bias_Center(float step_size, float range, 
-							std::vector<float>& bias_x,
-							std::vector<float>& bias_y)
-{
-	// calculate the size of bias
-	const int grid_size = static_cast<int>(2 * range / step_size) + 1;
-
-	// calculate the total number of contact points
-	int total_points = grid_size * grid_size;
-
-	// allocate memory for bias 
-	bias_x.resize(total_points);
-	bias_y.resize(total_points);
-
-	// generate grid_size x grid_size matrix, x column, y row, the origin is at the center of the matrix
-	for (int index = 0; index < total_points; index++) 
-	{
-		int i = index / grid_size;
-		int j = index % grid_size;
-
-		bias_x[index] = -range + j * step_size;  // X: [-range, +range]
-		bias_y[index] = -range + i * step_size;  // Y: [-range, +range]
-	}
-
-	printf("Center Pattern: Generated %d contact points in square grid\n", total_points);
-	printf("Coverage area: [%.1f, %.1f] x [%.1f, %.1f] mm square region\n",
-		-range, range, -range, range);
+	sprintf(sampleID, "deformed_s%04d_v%04d", seed_vertex, vec_i);
 }
 
 void processObjects(int total_objects, const std::string& dir_path, FILE* diag_fp, OutputStats* output_stats, Surface* surface,
-                    const std::vector<float>& bias_x, const std::vector<float>& bias_y,
-                    const std::vector<array<float, 4>>& force_vectors,
+                    const AnnotationData& annotation,
+                    const std::vector<std::vector<int>>& contact_regions,
+                    const std::vector<std::array<float, 4>>& force_vectors,
                     const SimHyperParams& params, const Object* tetra_template,
                     const Object* matrix_template, const MatrixCacheKey* matrix_cache_key)
 {
@@ -1351,11 +1306,11 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
         ApplyMaterialParams(object.get(), params);
         unsigned long long mesh_hash = ComputeMeshHash(object.get());
 
-        int coor_i = k / params.num_vector;
+        int contact_i = k / params.num_vector;
         int vec_i = k % params.num_vector;
 
-        float x_bias = bias_x[coor_i];
-        float y_bias = bias_y[coor_i];
+        int seed_vertex = annotation.contacts[contact_i].vertex_index;
+        const std::vector<int>& region = contact_regions[contact_i];
 
         const auto& force_vector = force_vectors[vec_i];
         float fx = force_vector[0];
@@ -1364,13 +1319,12 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
         float norm = force_vector[3];
 
         char sampleID[100] = "";
-        CreateSampleID(sampleID, static_cast<int>(x_bias), static_cast<int>(y_bias), vec_i);
+        CreateSampleID(sampleID, seed_vertex, vec_i);
 
         int selected_count = 0;
         unsigned long long selected_hash = kFnvOffset64;
-        ApplyBiasContactSelection(object.get(), params, coor_i, x_bias, y_bias, fx, fy, fz,
-                                  params.use_bias_contact_cache, selected_count, selected_hash);
-        ApplyFreezeState(object.get(), params, params.use_freeze_cache);
+        ApplyContactRegion(object.get(), region, fx, fy, fz, selected_count, selected_hash);
+        ApplyFreezeFromAnnotation(object.get(), annotation.freeze_vertices);
 
         bool used_matrix_cache = false;
         if (params.use_matrix_solver_cache && matrix_template != NULL && matrix_cache_key != NULL)
@@ -1385,11 +1339,11 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
                 }
             }
         }
-		if (!used_matrix_cache)
-		{
-			object->ComputeMatrixK();
-			object->ReleaseAssemblyScratch();
-		}
+        if (!used_matrix_cache)
+        {
+            object->ComputeMatrixK();
+            object->ReleaseAssemblyScratch();
+        }
 
         object->Deform();
         object->ReleaseSolverState();
@@ -1401,9 +1355,8 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
         SampleTask task;
         task.sample_id = sampleID;
         task.object = std::move(object);
-        task.coor_i = coor_i;
-        task.x_bias = x_bias;
-        task.y_bias = y_bias;
+        task.contact_i = contact_i;
+        task.seed_vertex = seed_vertex;
         task.fx = fx;
         task.fy = fy;
         task.fz = fz;
@@ -1423,22 +1376,11 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 	SimHyperParams params = LoadSimHyperParams();
 	g_useSolverLU = params.use_solver_lu;
 
-	std::vector<float> bias_x, bias_y;
-	if (params.use_triangle_pattern)
-	{
-		printf("\nUsing Triangle Pattern (Left-bottom triangular arrangement)\n");
-		Generate_bias_Triangle(params.boundary_length, params.step_size, bias_x, bias_y);
-	}
-	else
-	{
-		printf("\nUsing Center Pattern (Center square grid arrangement)\n");
-		Generate_bias_Center(params.step_size, params.center_range, bias_x, bias_y);
-	}
+	printf("\nPLY path: %s\n", params.ply_path.c_str());
+	printf("Annotation path: %s\n", params.annotation_path.c_str());
 
 	srand(params.seed);
 	printf("Random seed: %u\n", params.seed);
-	printf("Freeze cache: %s\n", params.use_freeze_cache ? "ON" : "OFF");
-	printf("Bias contact cache: %s\n", params.use_bias_contact_cache ? "ON" : "OFF");
 	printf("Contact hash diagnostics: %s\n", params.use_diag_contact_hash ? "ON" : "OFF");
 	printf("Tetra template reuse: %s\n", params.use_reuse_tetra_template ? "ON" : "OFF");
 	printf("Solver LU: %s\n", params.use_solver_lu ? "ON" : "OFF");
@@ -1454,17 +1396,37 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 		return 1;
 	}
 
+	auto s = std::make_unique<Surface>();
+	s->ReadPLY(CString(params.ply_path.c_str()));
+	if (s->nNode == 0 || s->nTriangle == 0)
+	{
+		printf("Error: Cannot read PLY file: %s\n", params.ply_path.c_str());
+		return 1;
+	}
+	printf("PLY file read successfully: %d vertices, %d triangles\n\n", s->nNode, s->nTriangle);
+
+	AnnotationData annotation;
+	if (!LoadAnnotationJSON(params.annotation_path, s->nNode, annotation))
+	{
+		printf("Error: Failed to load annotation file\n");
+		return 1;
+	}
+
+	printf("Precomputing contact regions...\n");
+	std::vector<std::vector<int>> contact_regions =
+		PrecomputeContactRegions(annotation, s->vertex.data(), s->nNode);
+	printf("Contact regions ready: %zu seeds\n\n", contact_regions.size());
+
 	char dir_path[200];
-	const char* pattern_suffix = params.use_triangle_pattern ? "Triangle" : "Center";
 	char run_str[100];
 	Generate_run_string(run_str, sizeof(run_str));
 	if (params.isolate_output)
 	{
-		sprintf(dir_path, "./DeformedSampleJul_v1_%s_%s", pattern_suffix, run_str);
+		sprintf(dir_path, "./DeformedSample_ComplexObject_%s", run_str);
 	}
 	else
 	{
-		sprintf(dir_path, "./DeformedSampleJul_v1_%s", pattern_suffix);
+		sprintf(dir_path, "./DeformedSample_ComplexObject");
 	}
 
 	if (_mkdir(dir_path) == 0)
@@ -1491,18 +1453,8 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 			printf("Error: Cannot open file %s\n\n", diag_filename);
 			return 1;
 		}
-		fprintf(diag_fp, "sample_id,bias_index,x_bias,y_bias,n_node,mesh_hash,selected_count,selected_hash\n");
+		fprintf(diag_fp, "sample_id,contact_i,seed_vertex,n_node,mesh_hash,selected_count,selected_hash\n");
 	}
-
-	auto s = std::make_unique<Surface>();
-	s->ReadPLY("./plate.ply");
-	if (s->nNode == 0 || s->nTriangle == 0)
-	{
-		printf("Error: Cannot read PLY file\n\n");
-		if (diag_fp != NULL) fclose(diag_fp);
-		return 1;
-	}
-	printf("PLY file read successfully.\n\n");
 
 	std::unique_ptr<Object> tetra_template;
 	if (params.use_reuse_tetra_template)
@@ -1545,7 +1497,7 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 		if (matrix_source_ready)
 		{
 			ApplyMaterialParams(matrix_template.get(), params);
-			ApplyFreezeState(matrix_template.get(), params, false);
+			ApplyFreezeFromAnnotation(matrix_template.get(), annotation.freeze_vertices);
 			unsigned long long matrix_mesh_hash = ComputeMeshHash(matrix_template.get());
 			matrix_cache_key = BuildMatrixCacheKey(matrix_template.get(), params, matrix_mesh_hash);
 			matrix_template->ComputeMatrixK();
@@ -1565,7 +1517,7 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 		printf("Matrix solver cache ready: NO\n");
 	}
 
-	int numObjects = static_cast<int>(bias_x.size() * static_cast<size_t>(params.num_vector));
+	int numObjects = static_cast<int>(annotation.contacts.size() * static_cast<size_t>(params.num_vector));
 	bool limit_objects = false;
 	if (params.max_objects > 0 && params.max_objects < numObjects)
 	{
@@ -1574,11 +1526,6 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 	}
 	printf("Number of samples: %d\n", numObjects);
 	printf("Max objects limit: %s\n\n", limit_objects ? "ON" : "OFF");
-
-	if (params.use_bias_contact_cache)
-	{
-		InitBiasContactCache(bias_x.size());
-	}
 
 	unsigned int totalThreads = thread::hardware_concurrency();
 	if (totalThreads == 0)
@@ -1616,7 +1563,7 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 	for (unsigned int t = 0; t < numThreads; t++)
 	{
 		threads.emplace_back(processObjects, numObjects, std::string(dir_path), diag_fp, &output_stats, s.get(),
-			std::cref(bias_x), std::cref(bias_y),
+			std::cref(annotation), std::cref(contact_regions),
 			std::cref(*force_vectors), std::cref(params), tetra_template.get(),
 			matrix_cache_ready ? matrix_template.get() : NULL,
 			matrix_cache_ready ? &matrix_cache_key : NULL);
