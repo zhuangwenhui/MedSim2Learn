@@ -59,11 +59,76 @@ void test_thin_axis_becomes_z() {
                            "x extent should be the largest after pose");
 }
 
+void test_resting_face_points_down() {
+    // Trapezoidal slab: wide flat base at original y=-0.5, narrow top at y=+0.5.
+    std::vector<Vec3> v = {
+        {-4,-0.5,-3},{ 4,-0.5,-3},{ 4,-0.5, 3},{-4,-0.5, 3},   // wide base
+        {-2, 0.5,-1},{ 2, 0.5,-1},{ 2, 0.5, 1},{-2, 0.5, 1},   // narrow top
+    };
+    std::vector<Face> f = {
+        {0,2,1},{0,3,2}, {4,5,6},{4,6,7},
+        {0,1,5},{0,5,4}, {1,2,6},{1,6,5},
+        {2,3,7},{2,7,6}, {3,0,4},{3,4,7},
+    };
+    mvrmesh::canonicalize_pose(v, f);
+    double zmin = 1e300; for (auto& p : v) zmin = std::min(zmin, p.z);
+    int base_at_min = 0;
+    for (int i = 0; i < 4; ++i) if (mvrmesh::test::near(v[i].z, zmin, 1e-3)) ++base_at_min;
+    mvrmesh::test::require(base_at_min >= 3,
+        "wide base should rest at min z (-z) after pose");
+}
+
+// Carried-forward from A2 code review (lock the right-handed/rigid invariant):
+void test_pose_is_proper_rigid_transform() {
+    std::vector<Vec3> v; std::vector<Face> f;
+    // reuse make_box from this file
+    make_box(v, f, 4.0, 0.5, 2.0);
+    auto sgnvol = [](const Vec3& a, const Vec3& b, const Vec3& c, const Vec3& d) {
+        Vec3 ab{b.x-a.x,b.y-a.y,b.z-a.z}, ac{c.x-a.x,c.y-a.y,c.z-a.z}, ad{d.x-a.x,d.y-a.y,d.z-a.z};
+        double cx = ab.y*ac.z - ab.z*ac.y;
+        double cy = ab.z*ac.x - ab.x*ac.z;
+        double cz = ab.x*ac.y - ab.y*ac.x;
+        return (cx*ad.x + cy*ad.y + cz*ad.z) / 6.0;  // signed tetra volume
+    };
+    double before = sgnvol(v[0], v[1], v[3], v[4]);
+    mvrmesh::canonicalize_pose(v, f);
+    double after = sgnvol(v[0], v[1], v[3], v[4]);
+    // A proper rigid transform (rotation det +1 + translation) preserves signed volume exactly.
+    mvrmesh::test::require(mvrmesh::test::near(before, after, 1e-6),
+        "signed volume must be preserved (proper rigid transform, right-handed)");
+}
+
+void test_pose_flips_inverted_base() {
+    // Inverted trapezoid: WIDE base at y=+0.5, NARROW top at y=-0.5.
+    // For this axis-symmetric shape raw PCA yields thin-axis (0,+1,0), which would
+    // place the wide base at +z WITHOUT the hull sign correction. The hull correction
+    // must flip it so the wide (resting) base lands at -z. This test fails if the
+    // hull sign-correction block is absent -> it discriminates the A3 feature.
+    std::vector<Vec3> v = {
+        {-4, 0.5,-3},{ 4, 0.5,-3},{ 4, 0.5, 3},{-4, 0.5, 3},   // wide base at +y
+        {-2,-0.5,-1},{ 2,-0.5,-1},{ 2,-0.5, 1},{-2,-0.5, 1},   // narrow top at -y
+    };
+    std::vector<Face> f = {
+        {0,2,1},{0,3,2}, {4,5,6},{4,6,7},
+        {0,1,5},{0,5,4}, {1,2,6},{1,6,5},
+        {2,3,7},{2,7,6}, {3,0,4},{3,4,7},
+    };
+    mvrmesh::canonicalize_pose(v, f);
+    double zmin = 1e300; for (auto& p : v) zmin = std::min(zmin, p.z);
+    int base_at_min = 0;
+    for (int i = 0; i < 4; ++i) if (mvrmesh::test::near(v[i].z, zmin, 1e-3)) ++base_at_min;
+    mvrmesh::test::require(base_at_min >= 3,
+        "inverted wide base must be flipped to min z (-z) by hull sign correction");
+}
+
 }  // namespace
 
 int main() {
     return mvrmesh::test::run_tests({
         {test_centering_puts_centroid_at_origin, "test_centering_puts_centroid_at_origin"},
         {test_thin_axis_becomes_z,               "test_thin_axis_becomes_z"},
+        {test_resting_face_points_down,          "test_resting_face_points_down"},
+        {test_pose_is_proper_rigid_transform,    "test_pose_is_proper_rigid_transform"},
+        {test_pose_flips_inverted_base,          "test_pose_flips_inverted_base"},
     });
 }

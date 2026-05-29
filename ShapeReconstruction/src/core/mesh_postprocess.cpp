@@ -11,6 +11,10 @@
 
 #include "mvrmesh/core/geometry.h"
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/convex_hull_3.h>
+#include <CGAL/Surface_mesh.h>
+
 namespace mvrmesh {
 
 namespace {
@@ -121,6 +125,43 @@ void apply_frame(std::vector<Vec3>& v, const Frame& fr) {
         p.y = dot(fr.cy, d);
         p.z = dot(fr.cz, d);
     }
+}
+
+// Outward normal of the largest convex-hull facet on which the centroid projects
+// inside the facet (most stable resting support). out_dir points "down" (toward
+// the table). Returns false if no stable facet found.
+bool hull_support_down_direction(const std::vector<Vec3>& verts, const Vec3& centroid,
+                                 Vec3& out_dir) {
+    using K = CGAL::Simple_cartesian<double>;
+    using Point_3 = K::Point_3;
+    using SMesh = CGAL::Surface_mesh<Point_3>;
+    std::vector<Point_3> pts;
+    pts.reserve(verts.size());
+    for (const auto& p : verts) pts.emplace_back(p.x, p.y, p.z);
+    SMesh hull;
+    CGAL::convex_hull_3(pts.begin(), pts.end(), hull);
+
+    double best_area = -1.0;
+    bool found = false;
+    for (auto fdesc : hull.faces()) {
+        auto h = hull.halfedge(fdesc);
+        auto q0 = hull.point(hull.source(h));
+        auto q1 = hull.point(hull.target(h));
+        auto q2 = hull.point(hull.target(hull.next(h)));
+        Vec3 a{q0.x(), q0.y(), q0.z()};
+        Vec3 b{q1.x(), q1.y(), q1.z()};
+        Vec3 c{q2.x(), q2.y(), q2.z()};
+        double area = triangle_area(a, b, c);
+        if (area <= 1e-18) continue;
+        Vec3 nrm = normalize(face_normal(a, b, c));   // unit outward normal
+        // Foot = projection of centroid onto the facet plane along nrm.
+        double dd = dot(vsub(centroid, a), nrm);
+        Vec3 foot{centroid.x - dd * nrm.x, centroid.y - dd * nrm.y, centroid.z - dd * nrm.z};
+        Vec3 cp = closest_point_on_triangle(centroid, a, b, c);
+        bool inside = (norm(vsub(cp, foot)) < 1e-6 * (1.0 + norm(foot)));
+        if (inside && area > best_area) { best_area = area; out_dir = nrm; found = true; }
+    }
+    return found;
 }
 
 }  // namespace
@@ -293,11 +334,18 @@ void restore_physical_coordinates(
 void canonicalize_pose(std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
     if (vertices.empty() || faces.empty()) return;
     Frame fr = compute_principal_frame(vertices, faces);
+    // Orient so the most-stable convex-hull support facet faces -z (resting side).
+    Vec3 down;
+    if (hull_support_down_direction(vertices, fr.center, down)) {
+        if (dot(fr.cz, down) > 0.0) {
+            fr.cz = Vec3{-fr.cz.x, -fr.cz.y, -fr.cz.z};
+        }
+    }
     // Ensure right-handed frame: cy = cz x cx, then cx = cy x cz.
     fr.cy = normalize(cross(fr.cz, fr.cx));
     fr.cx = normalize(cross(fr.cy, fr.cz));
     apply_frame(vertices, fr);
-    std::cout << "[info] canonicalize_pose: centered + aligned (PCA axes)\n";
+    std::cout << "[info] canonicalize_pose: centered + aligned (PCA + hull sign)\n";
 }
 
 }  // namespace mvrmesh
