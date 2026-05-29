@@ -270,6 +270,65 @@ def surface_descriptors(mesh):
     return concavity, sharpness
 
 
+def _bfs_within(adj, sources, max_hops):
+    """Set of vertices within max_hops BFS hops of any source (inclusive of sources)."""
+    from collections import deque
+    visited = set(int(s) for s in sources)
+    frontier = deque((int(s), 0) for s in sources)
+    while frontier:
+        v, h = frontier.popleft()
+        if h >= max_hops:
+            continue
+        for u in adj[v]:
+            if u not in visited:
+                visited.add(u)
+                frontier.append((u, h + 1))
+    return visited
+
+
+def accessible_zone(mesh, freeze_set, normal_deg=45.0, curv_percentile=0.75,
+                    support_min_ratio=0.4, k_erode=2):
+    """Vertices on the exposed convex surface, eroded so a k_erode-ring patch stays inside.
+
+    Keep i iff: i not frozen; n_z(i) >= cos(normal_deg) (up-facing); curvature-badness
+    in the smoothest `curv_percentile` fraction (badness = sharpness + max(0, concavity),
+    so sharp edges and concave hilum are dropped); local thickness >= support_min_ratio *
+    median (skipped if support_min_ratio <= 0). Then erode: drop any kept vertex within
+    k_erode hops of an excluded OR open-boundary vertex, guaranteeing its k_erode-ring
+    lies in the kept interior (open-mesh boundary vertices seed the erosion because their
+    ring would otherwise spill past the mesh edge).
+    """
+    mesh.compute_vertex_normals()
+    verts = np.asarray(mesh.vertices)
+    norms = np.asarray(mesh.vertex_normals)
+    n = len(verts)
+    cos_t = float(np.cos(np.deg2rad(normal_deg)))
+
+    keep = norms[:, 2] >= cos_t
+    for i in freeze_set:
+        keep[i] = False
+
+    concavity, sharpness = surface_descriptors(mesh)
+    badness = sharpness + np.maximum(0.0, concavity)
+    if np.any(keep):
+        thr = float(np.quantile(badness[keep], curv_percentile))
+        keep &= badness <= thr
+
+    if support_min_ratio > 0.0 and np.any(keep):
+        thick = local_thickness(mesh)
+        pos = thick[thick > 0]
+        med = float(np.median(pos)) if pos.size else 0.0
+        keep &= thick >= support_min_ratio * med
+
+    mesh.compute_adjacency_list()
+    adj = mesh.adjacency_list
+    boundary_edges = np.asarray(mesh.get_non_manifold_edges(allow_boundary_edges=False))
+    boundary_verts = set(int(v) for v in boundary_edges.reshape(-1))
+    sources = [i for i in range(n) if not keep[i]] + list(boundary_verts)
+    near_excluded = _bfs_within(adj, sources, k_erode)
+    return [i for i in range(n) if keep[i] and i not in near_excluded]
+
+
 def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5,
                      support_min_ratio=0.4):
     """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds.
@@ -345,6 +404,30 @@ def _self_test_descriptors():
     print("descriptors self-test PASS")
 
 
+def _self_test_zone():
+    # Flat grid, no freeze, thickness disabled: zone = interior eroded by k_erode rings.
+    g, nx, ny = _make_grid(11, 11, 1.0)
+    def vid(i, j): return j * nx + i
+    zone = accessible_zone(g, set(), normal_deg=45.0, curv_percentile=1.0,
+                           support_min_ratio=0.0, k_erode=2)
+    zset = set(zone)
+    assert vid(5, 5) in zset, "center of flat grid should be in zone"
+    assert vid(0, 0) not in zset, "corner should be eroded out (boundary margin)"
+    assert vid(1, 1) not in zset, "1-ring-from-corner should be eroded out (k_erode=2)"
+    # Freeze an interior vertex -> it and its k_erode neighborhood are excluded.
+    zone_fz = set(accessible_zone(g, {vid(5, 5)}, normal_deg=45.0, curv_percentile=1.0,
+                                  support_min_ratio=0.0, k_erode=2))
+    assert vid(5, 5) not in zone_fz and vid(6, 5) not in zone_fz, "freeze island must erode"
+    # Tilt the whole grid 60 deg about x -> normals exceed 45 deg from +z -> empty zone.
+    a = np.deg2rad(60.0)
+    R = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
+    g2, _, _ = _make_grid(11, 11, 1.0)
+    g2.rotate(R, center=(0, 0, 0)); g2.compute_vertex_normals()
+    assert accessible_zone(g2, set(), normal_deg=45.0, curv_percentile=1.0,
+                           support_min_ratio=0.0, k_erode=1) == [], "tilted grid -> empty zone"
+    print("zone self-test PASS")
+
+
 def main():
     p = argparse.ArgumentParser(
         description="Kidney pose snapshot + DeformSim annotation generator",
@@ -372,6 +455,7 @@ def main():
     if args.self_test:
         _self_test()
         _self_test_descriptors()
+        _self_test_zone()
         _self_test_annotation()
         return
 
