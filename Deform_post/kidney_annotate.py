@@ -126,3 +126,57 @@ def _self_test_annotation():
     assert all(s not in fset for s in seeds), "seeds must be in the free set"
     assert len(fset) > 0, "freeze set should be non-empty for the slab"
     print("annotation self-test PASS:", len(fset), seeds)
+
+
+def main():
+    p = argparse.ArgumentParser(
+        description="Kidney pose snapshot + DeformSim annotation generator",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    p.add_argument("--ply", type=str, help="Input canonical (posed) PLY")
+    p.add_argument("--out", type=str, default="annotation.json",
+                   help="Output annotation JSON path")
+    p.add_argument("--render-dir", type=str, default="pose_snapshots",
+                   help="Directory for verification PNGs")
+    p.add_argument("--freeze-ratio", type=float, default=0.15,
+                   help="Freeze vertices with z < z_min + r*(z_max - z_min)")
+    p.add_argument("--num-seeds", type=int, default=3,
+                   help="Number of contact seeds (farthest-point sampled)")
+    p.add_argument("--gate", type=float, default=None,
+                   help="If set, fail when the top or bottom flatness fraction < gate")
+    p.add_argument("--self-test", action="store_true",
+                   help="Run internal self-tests and exit")
+    args = p.parse_args()
+
+    if args.self_test:
+        _self_test()
+        _self_test_annotation()
+        return
+
+    if not args.ply:
+        p.error("--ply is required (or use --self-test)")
+
+    if args.freeze_ratio < 0.0 or args.freeze_ratio >= 1.0:
+        p.error("--freeze-ratio must be in [0, 1)")
+    if args.num_seeds < 1:
+        p.error("--num-seeds must be >= 1")
+
+    mesh = load_mesh(args.ply)
+    top, bottom = flatness_metric(mesh)
+    print(f"flatness: top(+z)={top:.3f} bottom(-z)={bottom:.3f}")
+    render_views(mesh, args.render_dir)
+    if args.gate is not None and (top < args.gate or bottom < args.gate):
+        raise SystemExit(
+            f"pose gate failed: top={top:.3f} bottom={bottom:.3f} < {args.gate}")
+    ann = build_annotation(mesh, args.freeze_ratio, args.num_seeds)
+    if not ann["contacts"] or not ann["freeze"]["vertices"]:
+        raise SystemExit(
+            "annotation has empty contacts or freeze; check the mesh, "
+            "--freeze-ratio, and --num-seeds")
+    with open(args.out, "w") as fh:
+        json.dump(ann, fh, indent=4)
+    print(f"wrote {args.out}: {len(ann['freeze']['vertices'])} freeze, "
+          f"{len(ann['contacts'])} contacts")
+
+
+if __name__ == "__main__":
+    main()
