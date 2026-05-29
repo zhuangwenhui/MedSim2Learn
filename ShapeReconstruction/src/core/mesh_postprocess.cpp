@@ -9,6 +9,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "mvrmesh/core/geometry.h"
+
 namespace mvrmesh {
 
 namespace {
@@ -18,15 +20,6 @@ double edge_length_sq(const Vec3& a, const Vec3& b) {
     const double dy = b.y - a.y;
     const double dz = b.z - a.z;
     return dx * dx + dy * dy + dz * dz;
-}
-
-double triangle_area(const Vec3& a, const Vec3& b, const Vec3& c) {
-    const double abx = b.x - a.x, aby = b.y - a.y, abz = b.z - a.z;
-    const double acx = c.x - a.x, acy = c.y - a.y, acz = c.z - a.z;
-    const double cx = aby * acz - abz * acy;
-    const double cy = abz * acx - abx * acz;
-    const double cz = abx * acy - aby * acx;
-    return 0.5 * std::sqrt(cx * cx + cy * cy + cz * cz);
 }
 
 double compute_min_edge_length(const std::vector<Vec3>& vertices,
@@ -41,6 +34,93 @@ double compute_min_edge_length(const std::vector<Vec3>& vertices,
         min_sq = std::min(min_sq, edge_length_sq(c, a));
     }
     return std::sqrt(min_sq);
+}
+
+// Symmetric 3x3 Jacobi eigen-decomposition. Eigenvector i is column i of evec.
+void jacobi_eigen_3x3(const double in[3][3], double eval[3], double evec[3][3]) {
+    double a[3][3];
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j) {
+            a[i][j] = in[i][j];
+            evec[i][j] = (i == j) ? 1.0 : 0.0;
+        }
+    for (int iter = 0; iter < 100; ++iter) {
+        int p = 0, q = 1;
+        double off = std::abs(a[0][1]);
+        if (std::abs(a[0][2]) > off) { off = std::abs(a[0][2]); p = 0; q = 2; }
+        if (std::abs(a[1][2]) > off) { off = std::abs(a[1][2]); p = 1; q = 2; }
+        if (off < 1e-18) break;
+        double theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q]);
+        double t = (theta >= 0.0 ? 1.0 : -1.0) /
+                   (std::abs(theta) + std::sqrt(theta * theta + 1.0));
+        double c = 1.0 / std::sqrt(t * t + 1.0);
+        double s = t * c;
+        double app = a[p][p], aqq = a[q][q], apq = a[p][q];
+        a[p][p] = c*c*app - 2.0*s*c*apq + s*s*aqq;
+        a[q][q] = s*s*app + 2.0*s*c*apq + c*c*aqq;
+        a[p][q] = 0.0; a[q][p] = 0.0;
+        int r = 3 - p - q;
+        double arp = a[r][p], arq = a[r][q];
+        a[r][p] = c*arp - s*arq; a[p][r] = a[r][p];
+        a[r][q] = s*arp + c*arq; a[q][r] = a[r][q];
+        for (int i = 0; i < 3; ++i) {
+            double vip = evec[i][p], viq = evec[i][q];
+            evec[i][p] = c*vip - s*viq;
+            evec[i][q] = s*vip + c*viq;
+        }
+    }
+    for (int i = 0; i < 3; ++i) eval[i] = a[i][i];
+}
+
+struct Frame { Vec3 cx, cy, cz, center; };
+
+Frame compute_principal_frame(const std::vector<Vec3>& v,
+                              const std::vector<Face>& faces) {
+    Vec3 center{0,0,0};
+    double total_area = 0.0;
+    std::vector<Vec3> fc; fc.reserve(faces.size());
+    std::vector<double> fa; fa.reserve(faces.size());
+    for (const auto& f : faces) {
+        const Vec3& a = v[static_cast<std::size_t>(f[0])];
+        const Vec3& b = v[static_cast<std::size_t>(f[1])];
+        const Vec3& c = v[static_cast<std::size_t>(f[2])];
+        double area = triangle_area(a, b, c);
+        Vec3 cc{(a.x+b.x+c.x)/3.0, (a.y+b.y+c.y)/3.0, (a.z+b.z+c.z)/3.0};
+        center.x += cc.x*area; center.y += cc.y*area; center.z += cc.z*area;
+        total_area += area; fc.push_back(cc); fa.push_back(area);
+    }
+    if (total_area <= 0.0) { return Frame{{1,0,0},{0,1,0},{0,0,1},{0,0,0}}; }
+    center.x /= total_area; center.y /= total_area; center.z /= total_area;
+
+    double cov[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+    for (std::size_t i = 0; i < fc.size(); ++i) {
+        double w = fa[i];
+        double dx = fc[i].x - center.x, dy = fc[i].y - center.y, dz = fc[i].z - center.z;
+        cov[0][0]+=w*dx*dx; cov[0][1]+=w*dx*dy; cov[0][2]+=w*dx*dz;
+        cov[1][1]+=w*dy*dy; cov[1][2]+=w*dy*dz; cov[2][2]+=w*dz*dz;
+    }
+    cov[1][0]=cov[0][1]; cov[2][0]=cov[0][2]; cov[2][1]=cov[1][2];
+
+    double eval[3]; double evec[3][3];
+    jacobi_eigen_3x3(cov, eval, evec);
+    int idx[3] = {0,1,2};
+    for (int i=0;i<3;i++) for(int j=i+1;j<3;j++) if (eval[idx[j]]>eval[idx[i]]) std::swap(idx[i],idx[j]);
+    auto col = [&](int k){ return Vec3{evec[0][k], evec[1][k], evec[2][k]}; };
+    Frame fr;
+    fr.cx = normalize(col(idx[0]));
+    fr.cy = normalize(col(idx[1]));
+    fr.cz = normalize(col(idx[2]));
+    fr.center = center;
+    return fr;
+}
+
+void apply_frame(std::vector<Vec3>& v, const Frame& fr) {
+    for (auto& p : v) {
+        Vec3 d{p.x - fr.center.x, p.y - fr.center.y, p.z - fr.center.z};
+        p.x = dot(fr.cx, d);
+        p.y = dot(fr.cy, d);
+        p.z = dot(fr.cz, d);
+    }
 }
 
 }  // namespace
@@ -208,6 +288,16 @@ void restore_physical_coordinates(
               << "] x [" << ry_min << ".." << ry_max
               << "] x [" << rz_min << ".." << rz_max
               << "] mm\n";
+}
+
+void canonicalize_pose(std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
+    if (vertices.empty() || faces.empty()) return;
+    Frame fr = compute_principal_frame(vertices, faces);
+    // Ensure right-handed frame: cy = cz x cx, then cx = cy x cz.
+    fr.cy = normalize(cross(fr.cz, fr.cx));
+    fr.cx = normalize(cross(fr.cy, fr.cz));
+    apply_frame(vertices, fr);
+    std::cout << "[info] canonicalize_pose: centered + aligned (PCA axes)\n";
 }
 
 }  // namespace mvrmesh

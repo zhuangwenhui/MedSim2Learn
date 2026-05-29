@@ -18,4 +18,10 @@ void restore_physical_coordinates(
     const BoundingBox& bounding_box,
     double voxel_spacing_mm);
 
+/// Transform vertices into a canonical "lying-flat" pose in-place:
+/// translate the area-weighted centroid to the origin, align the thinnest
+/// principal axis with +z and the longest with +x, and orient the sign so the
+/// largest stable convex-hull support facet faces -z (the resting side).
+void canonicalize_pose(std::vector<Vec3>& vertices, const std::vector<Face>& faces);
+
 }  // namespace mvrmesh

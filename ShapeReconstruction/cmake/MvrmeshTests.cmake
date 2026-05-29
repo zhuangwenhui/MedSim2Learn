@@ -239,6 +239,13 @@ target_compile_definitions(mvrmesh_postprocess_tests PRIVATE
 )
 add_test(NAME mvrmesh_postprocess COMMAND mvrmesh_postprocess_tests)
 
+add_executable(mvrmesh_pose_tests
+    verification/core/canonicalize_pose_tests.cpp
+)
+target_link_libraries(mvrmesh_pose_tests PRIVATE mvrmesh)
+target_include_directories(mvrmesh_pose_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
+add_test(NAME mvrmesh_pose COMMAND mvrmesh_pose_tests)
+
 set(MVRMESH_SAMPLE_INPUT "")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
     set(MVRMESH_SAMPLE_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
