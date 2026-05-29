@@ -776,12 +776,15 @@ static void ApplyContactRegion(Object* object, const std::vector<int>& region,
     selected_count = 0;
     selected_hash = kFnvOffset64;
 
+    if (region.empty()) return;
+    const float inv_n = 1.0f / static_cast<float>(region.size());
+
     for (int idx : region)
     {
         if (idx >= 0 && idx < object->nNode)
         {
             object->vertex[idx].isSelect = true;
-            object->vertex[idx].force = Vector3f(fx, fy, fz);
+            object->vertex[idx].force = Vector3f(fx, fy, fz) * inv_n;
             unsigned long long selected_index = static_cast<unsigned long long>(idx);
             HashBytes64(selected_hash, &selected_index, sizeof(selected_index));
             ++selected_count;
