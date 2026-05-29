@@ -1,7 +1,7 @@
 """Kidney pose snapshot + DeformSim annotation generator.
 
 Loads a canonical (lying-flat) PLY, renders verification snapshots, and emits a
-DeformSim annotation JSON (z-threshold freeze + farthest-point contact seeds).
+DeformSim annotation JSON (z-threshold freeze + accessible convex-zone Poisson-disk contact centers).
 """
 import os
 import json
@@ -473,68 +473,104 @@ def _self_test_poisson():
     print("poisson self-test PASS")
 
 
-def main():
+def _self_test_cli():
+    p = _build_parser()
+    ns = p.parse_args(["--ply", "x.ply", "--num-centers", "5", "--k-ring", "3",
+                       "--zone-normal-deg", "40", "--zone-curv-percentile", "0.8",
+                       "--zone-edge-margin-rings", "2", "--center-min-dist", "1.5", "--seed", "7"])
+    assert ns.num_centers == 5 and ns.k_ring == 3 and ns.zone_normal_deg == 40.0
+    assert ns.zone_curv_percentile == 0.8 and ns.center_min_dist == 1.5 and ns.seed == 7
+    for removed in (["--num-seeds", "3"], ["--contact-z-floor", "0.5"]):
+        try:
+            p.parse_args(["--ply", "x.ply"] + removed)
+            raise AssertionError(f"removed flag accepted: {removed}")
+        except SystemExit:
+            pass
+    print("cli self-test PASS")
+
+
+def _build_parser():
     p = argparse.ArgumentParser(
         description="Kidney pose snapshot + DeformSim annotation generator",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("--ply", type=str, help="Input canonical (posed) PLY")
-    p.add_argument("--out", type=str, default="annotation.json",
-                   help="Output annotation JSON path")
-    p.add_argument("--render-dir", type=str, default="pose_snapshots",
-                   help="Directory for verification PNGs")
+    p.add_argument("--out", type=str, default="annotation.json", help="Output annotation JSON path")
+    p.add_argument("--render-dir", type=str, default="pose_snapshots", help="Directory for PNGs")
     p.add_argument("--freeze-ratio", type=float, default=0.15,
                    help="Freeze vertices with z < z_min + r*(z_max - z_min)")
-    p.add_argument("--num-seeds", type=int, default=3,
-                   help="Number of contact seeds (farthest-point sampled)")
-    p.add_argument("--contact-z-floor", type=float, default=0.5,
-                   help="Contact seeds only from free vertices with z >= z_min + this*(z_max-z_min) (bias toward +z)")
+    p.add_argument("--num-centers", type=int, default=30,
+                   help="Target number of Poisson-disk contact centers (one sample each)")
+    p.add_argument("--k-ring", type=int, default=2, help="Contact patch radius in BFS rings")
+    p.add_argument("--zone-normal-deg", type=float, default=45.0,
+                   help="Keep up-facing vertices with normal within this angle of +z")
+    p.add_argument("--zone-curv-percentile", type=float, default=0.75,
+                   help="Keep the smoothest fraction by curvature-badness (drops hilum/edges)")
+    p.add_argument("--zone-edge-margin-rings", type=int, default=None,
+                   help="Erosion rings from excluded vertices (default = --k-ring)")
+    p.add_argument("--center-min-dist", type=float, default=None,
+                   help="Min Euclidean spacing between centers (default = 2*k_ring*mean_edge_len)")
     p.add_argument("--support-min-ratio", type=float, default=0.4,
-                   help="Exclude contact candidates whose local thickness < this * median thickness "
-                        "(filters thin/poorly-supported protrusions; 0 disables)")
+                   help="Exclude vertices with local thickness < this*median (0 disables)")
+    p.add_argument("--seed", type=int, default=42, help="RNG seed for Poisson-disk sampling")
     p.add_argument("--gate", type=float, default=None,
-                   help="If set, fail when the top or bottom flatness fraction < gate")
-    p.add_argument("--self-test", action="store_true",
-                   help="Run internal self-tests and exit")
-    args = p.parse_args()
+                   help="If set, fail when top or bottom flatness fraction < gate")
+    p.add_argument("--self-test", action="store_true", help="Run internal self-tests and exit")
+    return p
+
+
+def main():
+    args = _build_parser().parse_args()
 
     if args.self_test:
         _self_test()
         _self_test_descriptors()
         _self_test_zone()
         _self_test_poisson()
+        _self_test_cli()
         _self_test_annotation()
         return
 
     if not args.ply:
-        p.error("--ply is required (or use --self-test)")
-
-    if args.freeze_ratio < 0.0 or args.freeze_ratio >= 1.0:
-        p.error("--freeze-ratio must be in [0, 1)")
-    if args.num_seeds < 1:
-        p.error("--num-seeds must be >= 1")
-    if args.contact_z_floor < 0.0 or args.contact_z_floor >= 1.0:
-        p.error("--contact-z-floor must be in [0, 1)")
-    if args.support_min_ratio < 0.0 or args.support_min_ratio >= 1.0:
-        p.error("--support-min-ratio must be in [0, 1) (0 disables the filter)")
+        raise SystemExit("--ply is required (or use --self-test)")
+    if not (0.0 <= args.freeze_ratio < 1.0):
+        raise SystemExit("--freeze-ratio must be in [0, 1)")
+    if args.num_centers < 1:
+        raise SystemExit("--num-centers must be >= 1")
+    if args.k_ring < 1:
+        raise SystemExit("--k-ring must be >= 1")
+    if not (0.0 < args.zone_normal_deg < 90.0):
+        raise SystemExit("--zone-normal-deg must be in (0, 90)")
+    if not (0.0 < args.zone_curv_percentile <= 1.0):
+        raise SystemExit("--zone-curv-percentile must be in (0, 1]")
+    if not (0.0 <= args.support_min_ratio < 1.0):
+        raise SystemExit("--support-min-ratio must be in [0, 1)")
+    if args.zone_edge_margin_rings is not None and args.zone_edge_margin_rings < 0:
+        raise SystemExit("--zone-edge-margin-rings must be >= 0")
+    if args.center_min_dist is not None and args.center_min_dist <= 0.0:
+        raise SystemExit("--center-min-dist must be > 0")
 
     mesh = load_mesh(args.ply)
     top, bottom = flatness_metric(mesh)
     print(f"flatness: top(+z)={top:.3f} bottom(-z)={bottom:.3f}")
     render_views(mesh, args.render_dir)
     if args.gate is not None and (top < args.gate or bottom < args.gate):
-        raise SystemExit(
-            f"pose gate failed: top={top:.3f} bottom={bottom:.3f} < {args.gate}")
-    ann = build_annotation(mesh, args.freeze_ratio, args.num_seeds,
-                           contact_z_floor=args.contact_z_floor,
-                           support_min_ratio=args.support_min_ratio)
+        raise SystemExit(f"pose gate failed: top={top:.3f} bottom={bottom:.3f} < {args.gate}")
+
+    freeze = compute_freeze(np.asarray(mesh.vertices), args.freeze_ratio)
+    zone, centers = select_contacts(
+        mesh, set(freeze), args.num_centers, k_ring=args.k_ring,
+        normal_deg=args.zone_normal_deg, curv_percentile=args.zone_curv_percentile,
+        support_min_ratio=args.support_min_ratio,
+        edge_margin_rings=args.zone_edge_margin_rings,
+        center_min_dist=args.center_min_dist, rng_seed=args.seed)
+    ann = _assemble_annotation(freeze, centers, args.k_ring)
     if not ann["contacts"] or not ann["freeze"]["vertices"]:
-        raise SystemExit(
-            "annotation has empty contacts or freeze; check the mesh, "
-            "--freeze-ratio, and --num-seeds")
+        raise SystemExit("annotation has empty contacts or freeze; relax the zone/freeze params")
+    render_zone(mesh, freeze, zone, centers, args.k_ring, args.render_dir)
     with open(args.out, "w") as fh:
         json.dump(ann, fh, indent=4)
     print(f"wrote {args.out}: {len(ann['freeze']['vertices'])} freeze, "
-          f"{len(ann['contacts'])} contacts")
+          f"{len(ann['contacts'])} contacts; zone={len(zone)} vertices")
 
 
 if __name__ == "__main__":
