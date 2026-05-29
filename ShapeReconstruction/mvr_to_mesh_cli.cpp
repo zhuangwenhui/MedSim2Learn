@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
         }
 
         if (config.canonicalize_pose) {
-            mvrmesh::canonicalize_pose(result.vertices, result.faces);
+            mvrmesh::canonicalize_pose(result.vertices, result.faces, config.pose_flip);
         }
 
         mvrmesh::write_outputs(result, out_paths);

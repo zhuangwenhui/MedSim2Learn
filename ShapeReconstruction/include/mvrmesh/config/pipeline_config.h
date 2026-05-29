@@ -55,6 +55,7 @@ struct PipelineConfig {
     bool restore_physical_coords = true;
     bool mesh_quality_fix = true;
     bool canonicalize_pose = false;
+    bool   pose_flip               = false;
 
     void validate() const;
 };

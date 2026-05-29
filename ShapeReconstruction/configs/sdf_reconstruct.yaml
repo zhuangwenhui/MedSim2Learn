@@ -13,3 +13,4 @@ voxel_spacing_mm: 1.0
 restore_physical_coords: true
 mesh_quality_fix: true
 canonicalize_pose: false
+pose_flip: false

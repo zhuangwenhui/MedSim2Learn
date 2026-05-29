@@ -49,7 +49,8 @@ void read_optional(const YAML::Node& node, const char* key, T& target) {
         "[--target-edge-length L] [--remesh-iterations N]] "
         "[--voxel-spacing-mm X] [--restore-physical-coords true|false] "
         "[--mesh-quality-fix true|false] "
-        "[--canonicalize-pose true|false]\n"
+        "[--canonicalize-pose true|false] "
+        "[--pose-flip true|false]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
         "Default output (without --output): <project_root>/outPut/PLY/<input_stem>.ply"
     );
@@ -152,6 +153,7 @@ PipelineConfig load_config_from_yaml(const std::filesystem::path& yaml_path) {
     read_optional(root, "restore_physical_coords", config.restore_physical_coords);
     read_optional(root, "mesh_quality_fix", config.mesh_quality_fix);
     read_optional(root, "canonicalize_pose", config.canonicalize_pose);
+    read_optional(root, "pose_flip", config.pose_flip);
 
     return config;
 }
@@ -352,6 +354,12 @@ PipelineConfig load_config(int argc, char** argv) {
             }
             const std::string val = argv[++i];
             config.canonicalize_pose = (val == "true" || val == "1");
+        } else if (arg == "--pose-flip") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --pose-flip.");
+            }
+            const std::string val = argv[++i];
+            config.pose_flip = (val == "true" || val == "1");
         } else if (!arg.empty() && arg[0] == '-') {
             throw_usage_error("Unknown option: " + arg);
         } else {

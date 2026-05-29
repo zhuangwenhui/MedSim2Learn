@@ -121,6 +121,26 @@ void test_pose_flips_inverted_base() {
         "inverted wide base must be flipped to min z (-z) by hull sign correction");
 }
 
+void test_pose_flip_inverts_resting_face() {
+    // Wide base at y=-0.5, narrow top at y=+0.5 (same as test_resting_face_points_down).
+    std::vector<Vec3> v = {
+        {-4,-0.5,-3},{ 4,-0.5,-3},{ 4,-0.5, 3},{-4,-0.5, 3},
+        {-2, 0.5,-1},{ 2, 0.5,-1},{ 2, 0.5, 1},{-2, 0.5, 1},
+    };
+    std::vector<Face> f = {
+        {0,2,1},{0,3,2}, {4,5,6},{4,6,7},
+        {0,1,5},{0,5,4}, {1,2,6},{1,6,5},
+        {2,3,7},{2,7,6}, {3,0,4},{3,4,7},
+    };
+    mvrmesh::canonicalize_pose(v, f, /*flip=*/true);
+    // Without flip the wide base rests at MIN z; with flip it must be at MAX z.
+    double zmax = -1e300; for (auto& p : v) zmax = std::max(zmax, p.z);
+    int base_at_max = 0;
+    for (int i = 0; i < 4; ++i) if (mvrmesh::test::near(v[i].z, zmax, 1e-3)) ++base_at_max;
+    mvrmesh::test::require(base_at_max >= 3,
+        "flip should put the wide resting base at MAX z (+z)");
+}
+
 }  // namespace
 
 int main() {
@@ -130,5 +150,6 @@ int main() {
         {test_resting_face_points_down,          "test_resting_face_points_down"},
         {test_pose_is_proper_rigid_transform,    "test_pose_is_proper_rigid_transform"},
         {test_pose_flips_inverted_base,          "test_pose_flips_inverted_base"},
+        {test_pose_flip_inverts_resting_face,    "test_pose_flip_inverts_resting_face"},
     });
 }

@@ -331,7 +331,7 @@ void restore_physical_coordinates(
               << "] mm\n";
 }
 
-void canonicalize_pose(std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
+void canonicalize_pose(std::vector<Vec3>& vertices, const std::vector<Face>& faces, bool flip) {
     if (vertices.empty() || faces.empty()) return;
     Frame fr = compute_principal_frame(vertices, faces);
     // Orient so the most-stable convex-hull support facet faces -z (resting side).
@@ -341,11 +341,15 @@ void canonicalize_pose(std::vector<Vec3>& vertices, const std::vector<Face>& fac
             fr.cz = Vec3{-fr.cz.x, -fr.cz.y, -fr.cz.z};
         }
     }
+    if (flip) {
+        fr.cz = Vec3{-fr.cz.x, -fr.cz.y, -fr.cz.z};  // rest on the opposite broad face
+    }
     // Ensure right-handed frame: cy = cz x cx, then cx = cy x cz.
     fr.cy = normalize(cross(fr.cz, fr.cx));
     fr.cx = normalize(cross(fr.cy, fr.cz));
     apply_frame(vertices, fr);
-    std::cout << "[info] canonicalize_pose: centered + aligned (PCA + hull sign)\n";
+    std::cout << "[info] canonicalize_pose: centered + aligned (PCA + hull sign"
+              << (flip ? ", flipped" : "") << ")\n";
 }
 
 }  // namespace mvrmesh
