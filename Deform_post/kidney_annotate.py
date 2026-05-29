@@ -104,13 +104,23 @@ def farthest_point_sampling(vertices, candidate_idx, num_seeds, rng_seed=42):
     return selected
 
 
-def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1):
-    """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds."""
+def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5):
+    """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds.
+
+    Contact seeds are drawn only from free vertices in the upper region
+    (z >= z_min + contact_z_floor*(z_max - z_min)), biasing them toward the
+    accessible +z surface rather than the sides/bottom.
+    """
     vertices = np.asarray(mesh.vertices)
+    z = vertices[:, 2]
+    z_min, z_max = float(z.min()), float(z.max())
+    z_range = z_max - z_min
     freeze = compute_freeze(vertices, freeze_ratio)
     freeze_set = set(freeze)
-    free_idx = [i for i in range(len(vertices)) if i not in freeze_set]
-    seeds = farthest_point_sampling(vertices, free_idx, num_seeds)
+    contact_floor = z_min + contact_z_floor * z_range
+    candidate_idx = [i for i in range(len(vertices))
+                     if i not in freeze_set and z[i] >= contact_floor]
+    seeds = farthest_point_sampling(vertices, candidate_idx, num_seeds)
     return {
         "freeze": {"vertices": [int(i) for i in freeze]},
         "contacts": [{"seed": int(s), "k_ring": int(k_ring)} for s in seeds],
@@ -119,12 +129,14 @@ def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1):
 
 def _self_test_annotation():
     mesh = _make_slab()
-    ann = build_annotation(mesh, freeze_ratio=0.15, num_seeds=3)
+    ann = build_annotation(mesh, freeze_ratio=0.15, num_seeds=3, contact_z_floor=0.5)
     fset = set(ann["freeze"]["vertices"])
     seeds = [c["seed"] for c in ann["contacts"]]
+    verts = np.asarray(mesh.vertices)
     assert len(seeds) == 3 and len(set(seeds)) == 3, "seeds must be distinct"
     assert all(s not in fset for s in seeds), "seeds must be in the free set"
     assert len(fset) > 0, "freeze set should be non-empty for the slab"
+    assert all(verts[s][2] > 0.0 for s in seeds), "biased seeds must be in the upper (+z) region"
     print("annotation self-test PASS:", len(fset), seeds)
 
 
@@ -141,6 +153,8 @@ def main():
                    help="Freeze vertices with z < z_min + r*(z_max - z_min)")
     p.add_argument("--num-seeds", type=int, default=3,
                    help="Number of contact seeds (farthest-point sampled)")
+    p.add_argument("--contact-z-floor", type=float, default=0.5,
+                   help="Contact seeds only from free vertices with z >= z_min + this*(z_max-z_min) (bias toward +z)")
     p.add_argument("--gate", type=float, default=None,
                    help="If set, fail when the top or bottom flatness fraction < gate")
     p.add_argument("--self-test", action="store_true",
@@ -159,6 +173,8 @@ def main():
         p.error("--freeze-ratio must be in [0, 1)")
     if args.num_seeds < 1:
         p.error("--num-seeds must be >= 1")
+    if args.contact_z_floor < 0.0 or args.contact_z_floor >= 1.0:
+        p.error("--contact-z-floor must be in [0, 1)")
 
     mesh = load_mesh(args.ply)
     top, bottom = flatness_metric(mesh)
@@ -167,7 +183,8 @@ def main():
     if args.gate is not None and (top < args.gate or bottom < args.gate):
         raise SystemExit(
             f"pose gate failed: top={top:.3f} bottom={bottom:.3f} < {args.gate}")
-    ann = build_annotation(mesh, args.freeze_ratio, args.num_seeds)
+    ann = build_annotation(mesh, args.freeze_ratio, args.num_seeds,
+                           contact_z_floor=args.contact_z_floor)
     if not ann["contacts"] or not ann["freeze"]["vertices"]:
         raise SystemExit(
             "annotation has empty contacts or freeze; check the mesh, "
