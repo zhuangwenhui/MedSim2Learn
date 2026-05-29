@@ -29,27 +29,97 @@ def flatness_metric(mesh, angle_deg=30.0):
     return top, bottom
 
 
+def _look_at_extrinsic(eye, center, up):
+    """World->camera 4x4 extrinsic (open3d convention: camera looks down +z,
+    image y is down). Returns the matrix expected by PinholeCameraParameters."""
+    eye = np.asarray(eye, float)
+    center = np.asarray(center, float)
+    up = np.asarray(up, float)
+    f = center - eye
+    f /= np.linalg.norm(f)            # forward (camera +z)
+    s = np.cross(f, up)
+    s /= np.linalg.norm(s)            # right (camera +x)
+    # open3d image-y points DOWN, so camera +y (down) = cross(f, s).
+    u = np.cross(f, s)                # down (camera +y)
+    R = np.stack([s, u, f], axis=0)   # rows = camera axes in world
+    t = -R @ eye
+    M = np.eye(4)
+    M[:3, :3] = R
+    M[:3, 3] = t
+    return M
+
+
+def _union_bbox(geoms):
+    """Axis-aligned bounding box (min, max) enclosing all geometries."""
+    mn = np.array([np.inf] * 3)
+    mx = np.array([-np.inf] * 3)
+    for g in geoms:
+        b = g.get_axis_aligned_bounding_box()
+        mn = np.minimum(mn, b.get_min_bound())
+        mx = np.maximum(mx, b.get_max_bound())
+    return mn, mx
+
+
+def _intrinsic_matrix(w, h, fov_deg):
+    f = (h / 2.0) / np.tan(np.deg2rad(fov_deg) / 2.0)
+    cx = (w - 1) / 2.0
+    cy = (h - 1) / 2.0
+    K = o3d.camera.PinholeCameraIntrinsic()
+    K.set_intrinsics(w, h, f, f, cx, cy)
+    return K
+
+
+def render_geoms(geoms, direction, up, path, size=800, fov_deg=60.0, dist_mult=2.0):
+    """Render geometries from a camera placed along `direction` from the union
+    bbox center, framing them via an EXPLICIT bbox-derived camera extrinsic
+    (the legacy Visualizer auto-zoom / origin look-at left side/iso views blank
+    when the mesh sat off-origin). Returns pixel std (0 => blank)."""
+    mn, mx = _union_bbox(geoms)
+    center = (mn + mx) / 2.0
+    max_extent = float((mx - mn).max())
+    d = np.asarray(direction, float)
+    d /= np.linalg.norm(d)
+    eye = center + d * (dist_mult * max_extent)
+    extr = _look_at_extrinsic(eye, center, up)
+
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(visible=False, width=size, height=size)
+    opt = vis.get_render_option()
+    opt.background_color = np.array([1.0, 1.0, 1.0])
+    opt.light_on = True
+    opt.mesh_show_back_face = True
+    for g in geoms:
+        vis.add_geometry(g)
+
+    ctr = vis.get_view_control()
+    cam = ctr.convert_to_pinhole_camera_parameters()
+    cam.intrinsic = _intrinsic_matrix(size, size, fov_deg)
+    cam.extrinsic = extr
+    ctr.convert_from_pinhole_camera_parameters(cam, allow_arbitrary=True)
+
+    vis.poll_events()
+    vis.update_renderer()
+    buf = np.asarray(vis.capture_screen_float_buffer(do_render=True))
+    arr = (np.clip(buf, 0, 1) * 255).astype(np.uint8)
+    o3d.io.write_image(path, o3d.geometry.Image(arr))
+    vis.destroy_window()
+    return float(buf.std())
+
+
 def render_views(mesh, out_dir, size=800):
-    """Render top / side / isometric snapshots of the (centered) mesh to PNG."""
+    """Render top / side / isometric snapshots to PNG using an explicit
+    bbox-derived camera so every view frames the mesh (no blank side/iso)."""
     os.makedirs(out_dir, exist_ok=True)
     views = {
         "top":  ([0.0, 0.0, 1.0], [0.0, 1.0, 0.0]),
         "side": ([0.0, -1.0, 0.0], [0.0, 0.0, 1.0]),
         "iso":  ([1.0, 1.0, 1.0], [0.0, 0.0, 1.0]),
     }
+    mesh.compute_vertex_normals()
     for name, (front, up) in views.items():
-        vis = o3d.visualization.Visualizer()
-        vis.create_window(visible=False, width=size, height=size)
-        vis.add_geometry(mesh)
-        ctr = vis.get_view_control()
-        ctr.set_lookat([0.0, 0.0, 0.0])
-        ctr.set_front(front)
-        ctr.set_up(up)
-        ctr.set_zoom(0.7)
-        vis.poll_events()
-        vis.update_renderer()
-        vis.capture_screen_image(os.path.join(out_dir, f"pose_{name}.png"))
-        vis.destroy_window()
+        path = os.path.join(out_dir, f"pose_{name}.png")
+        std = render_geoms([mesh], front, up, path, size=size)
+        print(f"  pose_{name}: std={std:.4f} -> {path}")
 
 
 def _make_slab():
@@ -104,12 +174,63 @@ def farthest_point_sampling(vertices, candidate_idx, num_seeds, rng_seed=42):
     return selected
 
 
-def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5):
+def local_thickness(mesh, cone_half_angle_deg=30.0, cone_rays=6):
+    """Per-vertex local thickness (Shape-Diameter-Function style): cast inward rays
+    and measure distance to the opposite surface. Thin protrusions -> small thickness.
+
+    We cast the inward normal (-vertex normal) PLUS a small cone of rays tilted
+    `cone_half_angle_deg` off that axis and take the MINIMUM hit distance. A single
+    inward ray alone is fooled by protrusion *tips* (a hilum flap tip's normal ray
+    runs lengthwise down the flap into the body, reading falsely thick); the cone's
+    off-axis rays strike the near opposite wall and correctly report the small local
+    thickness. Set `cone_rays=0` to recover the plain single-ray behaviour.
+    """
+    mesh.compute_vertex_normals()
+    verts = np.asarray(mesh.vertices)
+    norms = np.asarray(mesh.vertex_normals)
+    diag = float(np.linalg.norm(mesh.get_max_bound() - mesh.get_min_bound()))
+    eps = 1e-4 * diag
+    scene = o3d.t.geometry.RaycastingScene()
+    scene.add_triangles(o3d.t.geometry.TriangleMesh.from_legacy(mesh))
+    origins = verts - norms * eps           # start just inside the surface
+    inward = -norms
+
+    directions = [inward]
+    if cone_rays > 0:
+        # per-vertex orthonormal basis perpendicular to the inward axis
+        ref = np.tile(np.array([0.0, 0.0, 1.0]), (len(verts), 1))
+        ref[np.abs((inward * ref).sum(1)) > 0.9] = np.array([1.0, 0.0, 0.0])
+        t1 = np.cross(inward, ref)
+        t1 /= np.linalg.norm(t1, axis=1, keepdims=True)
+        t2 = np.cross(inward, t1)
+        ha = np.deg2rad(cone_half_angle_deg)
+        for k in range(cone_rays):
+            phi = 2.0 * np.pi * k / cone_rays
+            d = (np.cos(ha) * inward
+                 + np.sin(ha) * (np.cos(phi) * t1 + np.sin(phi) * t2))
+            d /= np.linalg.norm(d, axis=1, keepdims=True)
+            directions.append(d)
+
+    best = np.full(len(verts), diag, dtype=np.float64)
+    for d in directions:
+        rays = np.concatenate([origins, d], axis=1).astype(np.float32)
+        t = scene.cast_rays(o3d.core.Tensor(rays))["t_hit"].numpy()
+        t[~np.isfinite(t)] = diag           # ray that escapes -> treat as 'thick'
+        best = np.minimum(best, t)
+    return best
+
+
+def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5,
+                     support_min_ratio=0.4):
     """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds.
 
     Contact seeds are drawn only from free vertices in the upper region
     (z >= z_min + contact_z_floor*(z_max - z_min)), biasing them toward the
     accessible +z surface rather than the sides/bottom.
+
+    Thin / poorly-supported candidates (local thickness < support_min_ratio *
+    median thickness) are excluded so seeds do not land on hilum flaps and
+    over-deform. Set support_min_ratio <= 0 to disable the filter.
     """
     vertices = np.asarray(mesh.vertices)
     z = vertices[:, 2]
@@ -120,6 +241,19 @@ def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.
     contact_floor = z_min + contact_z_floor * z_range
     candidate_idx = [i for i in range(len(vertices))
                      if i not in freeze_set and z[i] >= contact_floor]
+
+    if support_min_ratio > 0.0 and candidate_idx:
+        thick = local_thickness(mesh)
+        pos = thick[thick > 0]
+        med = float(np.median(pos)) if pos.size else 0.0
+        thr = support_min_ratio * med
+        filtered = [i for i in candidate_idx if thick[i] >= thr]
+        if filtered:
+            candidate_idx = filtered
+        else:
+            print("WARNING: support/thickness filter emptied the candidate set "
+                  f"(threshold={thr:.4g}); falling back to unfiltered upper candidates")
+
     seeds = farthest_point_sampling(vertices, candidate_idx, num_seeds)
     return {
         "freeze": {"vertices": [int(i) for i in freeze]},
@@ -129,7 +263,10 @@ def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.
 
 def _self_test_annotation():
     mesh = _make_slab()
-    ann = build_annotation(mesh, freeze_ratio=0.15, num_seeds=3, contact_z_floor=0.5)
+    # Disable the support filter here: the slab is roughly uniform thickness, but
+    # tiny-box raycasting can be flaky. The filter is exercised on the real kidney.
+    ann = build_annotation(mesh, freeze_ratio=0.15, num_seeds=3, contact_z_floor=0.5,
+                           support_min_ratio=0.0)
     fset = set(ann["freeze"]["vertices"])
     seeds = [c["seed"] for c in ann["contacts"]]
     verts = np.asarray(mesh.vertices)
@@ -155,6 +292,9 @@ def main():
                    help="Number of contact seeds (farthest-point sampled)")
     p.add_argument("--contact-z-floor", type=float, default=0.5,
                    help="Contact seeds only from free vertices with z >= z_min + this*(z_max-z_min) (bias toward +z)")
+    p.add_argument("--support-min-ratio", type=float, default=0.4,
+                   help="Exclude contact candidates whose local thickness < this * median thickness "
+                        "(filters thin/poorly-supported protrusions; 0 disables)")
     p.add_argument("--gate", type=float, default=None,
                    help="If set, fail when the top or bottom flatness fraction < gate")
     p.add_argument("--self-test", action="store_true",
@@ -175,6 +315,8 @@ def main():
         p.error("--num-seeds must be >= 1")
     if args.contact_z_floor < 0.0 or args.contact_z_floor >= 1.0:
         p.error("--contact-z-floor must be in [0, 1)")
+    if args.support_min_ratio < 0.0 or args.support_min_ratio >= 1.0:
+        p.error("--support-min-ratio must be in [0, 1) (0 disables the filter)")
 
     mesh = load_mesh(args.ply)
     top, bottom = flatness_metric(mesh)
@@ -184,7 +326,8 @@ def main():
         raise SystemExit(
             f"pose gate failed: top={top:.3f} bottom={bottom:.3f} < {args.gate}")
     ann = build_annotation(mesh, args.freeze_ratio, args.num_seeds,
-                           contact_z_floor=args.contact_z_floor)
+                           contact_z_floor=args.contact_z_floor,
+                           support_min_ratio=args.support_min_ratio)
     if not ann["contacts"] or not ann["freeze"]["vertices"]:
         raise SystemExit(
             "annotation has empty contacts or freeze; check the mesh, "
