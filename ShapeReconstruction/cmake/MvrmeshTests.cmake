@@ -229,6 +229,16 @@ add_test(
         -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_mode_flag"
 )
 
+add_executable(mvrmesh_postprocess_tests
+    verification/core/mesh_postprocess_tests.cpp
+)
+target_link_libraries(mvrmesh_postprocess_tests PRIVATE mvrmesh)
+target_include_directories(mvrmesh_postprocess_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR})
+target_compile_definitions(mvrmesh_postprocess_tests PRIVATE
+    MVRMESH_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/verification/fixtures"
+)
+add_test(NAME mvrmesh_postprocess COMMAND mvrmesh_postprocess_tests)
+
 set(MVRMESH_SAMPLE_INPUT "")
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
     set(MVRMESH_SAMPLE_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")

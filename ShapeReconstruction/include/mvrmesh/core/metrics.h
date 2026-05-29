@@ -8,7 +8,7 @@
 
 namespace mvrmesh {
 
-struct BoundingBox {
+struct MeshBoundingBox {
     bool valid = false;
     Vec3 min;
     Vec3 max;
@@ -25,7 +25,7 @@ struct SurfaceMetrics {
     std::size_t connected_component_count = 0;
     double degeneracy_epsilon = 0.0;
     double surface_area = 0.0;
-    BoundingBox bounding_box;
+    MeshBoundingBox bounding_box;
 };
 
 SurfaceMetrics compute_surface_metrics(

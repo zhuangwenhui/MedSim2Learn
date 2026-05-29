@@ -7,6 +7,7 @@
 #include "mvrmesh/config/config_loader.h"
 #include "mvrmesh/config/pipeline_config.h"
 #include "mvrmesh/core/io.h"
+#include "mvrmesh/core/mesh_postprocess.h"
 #include "mvrmesh/core/pipeline.h"
 #include "mvrmesh/core/types.h"
 
@@ -31,6 +32,17 @@ int main(int argc, char** argv) {
             std::cout << "[info] cgal_mesh post-step: vertices="
                       << result.vertices.size()
                       << ", faces=" << result.faces.size() << "\n";
+        }
+
+        if (config.mesh_quality_fix) {
+            mvrmesh::mesh_quality_fix(result.vertices, result.faces);
+        }
+
+        if (config.restore_physical_coords) {
+            mvrmesh::restore_physical_coordinates(
+                result.vertices,
+                parsed.bounding_box,
+                config.voxel_spacing_mm);
         }
 
         mvrmesh::write_outputs(result, out_paths);

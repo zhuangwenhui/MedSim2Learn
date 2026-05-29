@@ -4,3 +4,9 @@ mode: adaptive_remesh
 adaptive_remesh:
   iterations: 1
   split_ratio: 0.5
+
+# Post-processing
+voxel_spacing_mm: 1.0
+restore_physical_coords: true
+mesh_quality_fix: true
+canonicalize_pose: false

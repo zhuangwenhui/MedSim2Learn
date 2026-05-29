@@ -8,3 +8,9 @@ taubin:
   iterations: 8
   lambda: 0.5
   mu: -0.53
+
+# Post-processing
+voxel_spacing_mm: 1.0
+restore_physical_coords: true
+mesh_quality_fix: true
+canonicalize_pose: false

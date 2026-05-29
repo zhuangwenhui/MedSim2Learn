@@ -51,6 +51,11 @@ struct PipelineConfig {
     SdfReconstructConfig sdf_reconstruct;
     CgalMeshConfig cgal_mesh;
 
+    double voxel_spacing_mm = 1.0;
+    bool restore_physical_coords = true;
+    bool mesh_quality_fix = true;
+    bool canonicalize_pose = false;
+
     void validate() const;
 };
 

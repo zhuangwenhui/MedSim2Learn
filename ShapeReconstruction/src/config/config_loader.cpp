@@ -46,7 +46,10 @@ void read_optional(const YAML::Node& node, const char* key, T& target) {
         "[--sdf-target-edge-length L] [--sdf-remesh-iterations N] "
         "[--sdf-sharp-edge-degrees D]] "
         "[--cgal-mesh [--sharp-edge-degrees D] "
-        "[--target-edge-length L] [--remesh-iterations N]]\n"
+        "[--target-edge-length L] [--remesh-iterations N]] "
+        "[--voxel-spacing-mm X] [--restore-physical-coords true|false] "
+        "[--mesh-quality-fix true|false] "
+        "[--canonicalize-pose true|false]\n"
         "Default input root for relative paths: <project_root>/originalData\n"
         "Default output (without --output): <project_root>/outPut/PLY/<input_stem>.ply"
     );
@@ -144,6 +147,11 @@ PipelineConfig load_config_from_yaml(const std::filesystem::path& yaml_path) {
     if (root["cgal_mesh"]) {
         load_cgal_mesh_section(root["cgal_mesh"], config.cgal_mesh);
     }
+
+    read_optional(root, "voxel_spacing_mm", config.voxel_spacing_mm);
+    read_optional(root, "restore_physical_coords", config.restore_physical_coords);
+    read_optional(root, "mesh_quality_fix", config.mesh_quality_fix);
+    read_optional(root, "canonicalize_pose", config.canonicalize_pose);
 
     return config;
 }
@@ -320,6 +328,30 @@ PipelineConfig load_config(int argc, char** argv) {
             config.cgal_mesh.remesh_iterations =
                 parse_int_value(argv[++i], "--remesh-iterations");
             has_cgal_tuning = true;
+        } else if (arg == "--voxel-spacing-mm") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --voxel-spacing-mm.");
+            }
+            config.voxel_spacing_mm =
+                parse_double_value(argv[++i], "--voxel-spacing-mm");
+        } else if (arg == "--restore-physical-coords") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --restore-physical-coords.");
+            }
+            const std::string val = argv[++i];
+            config.restore_physical_coords = (val == "true" || val == "1");
+        } else if (arg == "--mesh-quality-fix") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --mesh-quality-fix.");
+            }
+            const std::string val = argv[++i];
+            config.mesh_quality_fix = (val == "true" || val == "1");
+        } else if (arg == "--canonicalize-pose") {
+            if (i + 1 >= argc) {
+                throw_usage_error("Missing value for --canonicalize-pose.");
+            }
+            const std::string val = argv[++i];
+            config.canonicalize_pose = (val == "true" || val == "1");
         } else if (!arg.empty() && arg[0] == '-') {
             throw_usage_error("Unknown option: " + arg);
         } else {

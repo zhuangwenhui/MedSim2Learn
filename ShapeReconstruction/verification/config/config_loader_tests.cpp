@@ -123,6 +123,54 @@ void test_cli_overrides_yaml() {
             "uniform_subdivide.iterations should be preserved from YAML");
 }
 
+void test_load_yaml_postprocess_defaults() {
+    const auto cfg = mvrmesh::load_config_from_yaml(
+        kConfigsDir / "uniform_taubin.yaml");
+
+    require(cfg.voxel_spacing_mm == 1.0,
+            "voxel_spacing_mm default should be 1.0");
+    require(cfg.restore_physical_coords == true,
+            "restore_physical_coords default should be true");
+    require(cfg.mesh_quality_fix == true,
+            "mesh_quality_fix default should be true");
+}
+
+void test_cli_postprocess_flags() {
+    std::vector<std::string> args_str = {
+        "mvr_to_mesh_cli", "test.mvr",
+        "--voxel-spacing-mm", "0.35",
+        "--restore-physical-coords", "false",
+        "--mesh-quality-fix", "false"
+    };
+    std::vector<char*> argv;
+    for (auto& s : args_str) argv.push_back(s.data());
+
+    auto cfg = mvrmesh::load_config(
+        static_cast<int>(argv.size()), argv.data());
+
+    require(cfg.voxel_spacing_mm == 0.35,
+            "voxel_spacing_mm should be 0.35 from CLI");
+    require(cfg.restore_physical_coords == false,
+            "restore_physical_coords should be false from CLI");
+    require(cfg.mesh_quality_fix == false,
+            "mesh_quality_fix should be false from CLI");
+}
+
+void test_canonicalize_pose_from_cli() {
+    std::vector<std::string> args_str = {
+        "mvr_to_mesh_cli", "test.mvr",
+        "--canonicalize-pose", "true"
+    };
+    std::vector<char*> argv;
+    for (auto& s : args_str) argv.push_back(s.data());
+
+    auto cfg = mvrmesh::load_config(
+        static_cast<int>(argv.size()), argv.data());
+
+    require(cfg.canonicalize_pose == true,
+            "canonicalize_pose should be true from CLI");
+}
+
 }  // namespace
 
 int main() {
@@ -132,5 +180,8 @@ int main() {
         {test_cli_args_basic,           "test_cli_args_basic"},
         {test_cli_legacy_flags,         "test_cli_legacy_flags"},
         {test_cli_overrides_yaml,       "test_cli_overrides_yaml"},
+        {test_load_yaml_postprocess_defaults, "test_load_yaml_postprocess_defaults"},
+        {test_cli_postprocess_flags,          "test_cli_postprocess_flags"},
+        {test_canonicalize_pose_from_cli,     "test_canonicalize_pose_from_cli"},
     });
 }

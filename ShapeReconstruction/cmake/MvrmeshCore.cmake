@@ -4,6 +4,7 @@ set(MVRMESH_CORE_SOURCES
     src/core/compaction.cpp
     src/core/geometry.cpp
     src/core/io.cpp
+    src/core/mesh_postprocess.cpp
     src/core/metrics.cpp
     src/core/reconstruction.cpp
     src/core/reconstruction_pipeline.cpp

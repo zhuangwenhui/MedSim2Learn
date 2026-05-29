@@ -6,3 +6,9 @@ cgal_mesh_post: true
 cgal_mesh:
   sharp_edge_dihedral_degrees: 60
   remesh_iterations: 3
+
+# Post-processing
+voxel_spacing_mm: 1.0
+restore_physical_coords: true
+mesh_quality_fix: true
+canonicalize_pose: false

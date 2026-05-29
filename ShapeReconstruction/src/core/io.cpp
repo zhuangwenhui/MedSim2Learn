@@ -123,6 +123,7 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
     std::optional<int> declared_vertices;
     std::optional<int> declared_triangles;
     std::optional<int> declared_tetra;
+    BoundingBox bounding_box;
 
     std::string raw;
     while (std::getline(input, raw)) {
@@ -138,6 +139,21 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
                 declared_triangles = parse_required_int(split_ws(line), "nTriangle");
             } else if (line.rfind("nTetrahedron", 0) == 0) {
                 declared_tetra = parse_required_int(split_ws(line), "nTetrahedron");
+            } else if (line.rfind("Bounding Box", 0) == 0) {
+                const std::vector<std::string> bb_parts = split_ws(line);
+                if (bb_parts.size() >= 8) {
+                    try {
+                        bounding_box.x_min = std::stod(bb_parts[2]);
+                        bounding_box.x_max = std::stod(bb_parts[3]);
+                        bounding_box.y_min = std::stod(bb_parts[4]);
+                        bounding_box.y_max = std::stod(bb_parts[5]);
+                        bounding_box.z_min = std::stod(bb_parts[6]);
+                        bounding_box.z_max = std::stod(bb_parts[7]);
+                        bounding_box.valid = true;
+                    } catch (const std::exception&) {
+                        // Malformed values: leave valid=false
+                    }
+                }
             }
         }
 
@@ -179,6 +195,7 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
                   << ", parsed=" << tets_raw.size() << "\n";
     }
 
+    parsed.bounding_box = bounding_box;
     return parsed;
 }
 
