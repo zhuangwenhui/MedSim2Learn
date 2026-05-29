@@ -329,6 +329,44 @@ def accessible_zone(mesh, freeze_set, normal_deg=45.0, curv_percentile=0.75,
     return [i for i in range(n) if keep[i] and i not in near_excluded]
 
 
+def mean_edge_length(mesh):
+    """Mean undirected triangle-edge length (used to size the default Poisson spacing)."""
+    v = np.asarray(mesh.vertices)
+    t = np.asarray(mesh.triangles)
+    if t.size == 0:
+        return 0.0
+    e = np.vstack([t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]])
+    d = np.linalg.norm(v[e[:, 0]] - v[e[:, 1]], axis=1)
+    return float(np.mean(d)) if d.size else 0.0
+
+
+def poisson_disk_centers(vertices, candidate_idx, min_dist, num_centers, rng_seed=42):
+    """Greedy Poisson-disk over a discrete candidate vertex set.
+
+    Scan candidates in a seeded random order; accept one if it is >= min_dist
+    (Euclidean) from every already-accepted center; stop at num_centers or when
+    candidates are exhausted. Deterministic given rng_seed. Logs a shortfall.
+    """
+    cand = np.asarray(list(candidate_idx), dtype=np.int64)
+    if cand.size == 0:
+        return []
+    rng = np.random.default_rng(rng_seed)
+    order = rng.permutation(cand.size)
+    selected = []
+    sel_pts = np.empty((0, 3))
+    for k in order:
+        if len(selected) >= num_centers:
+            break
+        p = vertices[cand[k]]
+        if sel_pts.shape[0] == 0 or np.all(np.linalg.norm(sel_pts - p, axis=1) >= min_dist):
+            selected.append(int(cand[k]))
+            sel_pts = np.vstack([sel_pts, p])
+    if len(selected) < num_centers:
+        print(f"WARNING: Poisson-disk fit only {len(selected)}/{num_centers} centers "
+              f"at min_dist={min_dist:.4g}; zone may be too small or min_dist too large")
+    return selected
+
+
 def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5,
                      support_min_ratio=0.4):
     """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds.
@@ -428,6 +466,23 @@ def _self_test_zone():
     print("zone self-test PASS")
 
 
+def _self_test_poisson():
+    pts = np.zeros((100, 3)); pts[:, 0] = np.arange(100) * 1.0   # colinear, spacing 1.0
+    sel = poisson_disk_centers(pts, list(range(100)), min_dist=2.5, num_centers=10, rng_seed=1)
+    P = pts[sel]
+    for a in range(len(sel)):
+        for b in range(a + 1, len(sel)):
+            assert np.linalg.norm(P[a] - P[b]) >= 2.5 - 1e-9, "centers must be >= min_dist apart"
+    assert sel == poisson_disk_centers(pts, list(range(100)), 2.5, 10, rng_seed=1), "deterministic"
+    assert all(0 <= s < 100 for s in sel), "selected indices must be valid candidates"
+    assert len(sel) <= 10
+    # mean_edge_length on a unit grid ~ 1.0 (axis edges) .. sqrt(2) (diagonals); in (0, 2).
+    g, _, _ = _make_grid(6, 6, 1.0)
+    mel = mean_edge_length(g)
+    assert 0.0 < mel < 2.0, f"unit-grid mean edge length out of range: {mel}"
+    print("poisson self-test PASS")
+
+
 def main():
     p = argparse.ArgumentParser(
         description="Kidney pose snapshot + DeformSim annotation generator",
@@ -456,6 +511,7 @@ def main():
         _self_test()
         _self_test_descriptors()
         _self_test_zone()
+        _self_test_poisson()
         _self_test_annotation()
         return
 
