@@ -45,6 +45,10 @@ int main(int argc, char** argv) {
                 config.voxel_spacing_mm);
         }
 
+        if (config.canonicalize_pose) {
+            mvrmesh::canonicalize_pose(result.vertices, result.faces);
+        }
+
         mvrmesh::write_outputs(result, out_paths);
     } catch (const std::exception& ex) {
         std::cerr << ex.what() << "\n";
