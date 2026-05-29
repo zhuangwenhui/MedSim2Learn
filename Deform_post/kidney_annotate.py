@@ -122,6 +122,33 @@ def render_views(mesh, out_dir, size=800):
         print(f"  pose_{name}: std={std:.4f} -> {path}")
 
 
+def render_zone(mesh, freeze, zone, centers, k_ring, out_dir, size=800):
+    """Color-code and render BC zones for visual verification, and write a colored PLY.
+    gray = free (non-zone), light-blue = accessible zone, red = freeze,
+    green = contact patches (centers + their k_ring)."""
+    import copy
+    mesh.compute_adjacency_list()
+    adj = mesh.adjacency_list
+    n = len(np.asarray(mesh.vertices))
+    color = np.tile(np.array([0.62, 0.62, 0.62]), (n, 1))     # free non-zone: gray
+    for i in zone:
+        color[i] = [0.40, 0.70, 1.00]                          # accessible zone: light blue
+    for i in freeze:
+        color[i] = [0.85, 0.10, 0.10]                          # freeze: red
+    for i in _bfs_within(adj, list(centers), k_ring):
+        color[i] = [0.10, 0.80, 0.20]                          # contact patches: green
+    m = copy.deepcopy(mesh)
+    m.vertex_colors = o3d.utility.Vector3dVector(color)
+    m.compute_vertex_normals()
+    os.makedirs(out_dir, exist_ok=True)
+    o3d.io.write_triangle_mesh(os.path.join(out_dir, "bc_zone.ply"), m)
+    for name, (front, up) in {"top": ([0, 0, 1], [0, 1, 0]),
+                              "side": ([0, -1, 0], [0, 0, 1]),
+                              "iso": ([1, 1, 1], [0, 0, 1])}.items():
+        render_geoms([m], front, up, os.path.join(out_dir, f"zone_{name}.png"), size=size)
+    print(f"wrote BC-zone overlay (PLY + 3 PNG) to {out_dir}")
+
+
 def _make_slab():
     """Synthetic thin axis-aligned slab (thin along z) for self-test."""
     mesh = o3d.geometry.TriangleMesh.create_box(width=8.0, height=8.0, depth=0.4)
