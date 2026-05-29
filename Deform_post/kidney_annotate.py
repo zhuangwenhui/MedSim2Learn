@@ -176,23 +176,6 @@ def compute_freeze(vertices, ratio):
     return np.where(z < thr)[0].tolist()
 
 
-def farthest_point_sampling(vertices, candidate_idx, num_seeds, rng_seed=42):
-    """Pick num_seeds indices from candidate_idx with even spatial coverage (FPS)."""
-    cand = np.asarray(list(candidate_idx), dtype=np.int64)
-    if num_seeds >= len(cand):
-        return cand.tolist()
-    rng = np.random.default_rng(rng_seed)
-    first = int(cand[rng.integers(len(cand))])
-    selected = [first]
-    dist = np.linalg.norm(vertices[cand] - vertices[first], axis=1)
-    while len(selected) < num_seeds:
-        nxt = int(cand[int(np.argmax(dist))])
-        selected.append(nxt)
-        d = np.linalg.norm(vertices[cand] - vertices[nxt], axis=1)
-        dist = np.minimum(dist, d)
-    return selected
-
-
 def local_thickness(mesh, cone_half_angle_deg=30.0, cone_rays=6):
     """Per-vertex local thickness (Shape-Diameter-Function style): cast inward rays
     and measure distance to the opposite surface. Thin protrusions -> small thickness.
@@ -367,60 +350,67 @@ def poisson_disk_centers(vertices, candidate_idx, min_dist, num_centers, rng_see
     return selected
 
 
-def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5,
-                     support_min_ratio=0.4):
-    """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds.
-
-    Contact seeds are drawn only from free vertices in the upper region
-    (z >= z_min + contact_z_floor*(z_max - z_min)), biasing them toward the
-    accessible +z surface rather than the sides/bottom.
-
-    Thin / poorly-supported candidates (local thickness < support_min_ratio *
-    median thickness) are excluded so seeds do not land on hilum flaps and
-    over-deform. Set support_min_ratio <= 0 to disable the filter.
-    """
-    vertices = np.asarray(mesh.vertices)
-    z = vertices[:, 2]
-    z_min, z_max = float(z.min()), float(z.max())
-    z_range = z_max - z_min
-    freeze = compute_freeze(vertices, freeze_ratio)
-    freeze_set = set(freeze)
-    contact_floor = z_min + contact_z_floor * z_range
-    candidate_idx = [i for i in range(len(vertices))
-                     if i not in freeze_set and z[i] >= contact_floor]
-
-    if support_min_ratio > 0.0 and candidate_idx:
-        thick = local_thickness(mesh)
-        pos = thick[thick > 0]
-        med = float(np.median(pos)) if pos.size else 0.0
-        thr = support_min_ratio * med
-        filtered = [i for i in candidate_idx if thick[i] >= thr]
-        if filtered:
-            candidate_idx = filtered
-        else:
-            print("WARNING: support/thickness filter emptied the candidate set "
-                  f"(threshold={thr:.4g}); falling back to unfiltered upper candidates")
-
-    seeds = farthest_point_sampling(vertices, candidate_idx, num_seeds)
+def _assemble_annotation(freeze, centers, k_ring):
     return {
         "freeze": {"vertices": [int(i) for i in freeze]},
-        "contacts": [{"seed": int(s), "k_ring": int(k_ring)} for s in seeds],
+        "contacts": [{"seed": int(c), "k_ring": int(k_ring)} for c in centers],
     }
 
 
-def _self_test_annotation():
-    mesh = _make_slab()
-    # Disable the support filter here: the slab is roughly uniform thickness, but
-    # tiny-box raycasting can be flaky. The filter is exercised on the real kidney.
-    ann = build_annotation(mesh, freeze_ratio=0.15, num_seeds=3, contact_z_floor=0.5,
-                           support_min_ratio=0.0)
-    fset = set(ann["freeze"]["vertices"])
-    seeds = [c["seed"] for c in ann["contacts"]]
+def select_contacts(mesh, freeze_set, num_centers, k_ring=2, normal_deg=45.0,
+                    curv_percentile=0.75, support_min_ratio=0.4,
+                    edge_margin_rings=None, center_min_dist=None, rng_seed=42):
+    """Return (zone, centers): the accessible convex zone and Poisson-disk patch centers."""
+    k_erode = k_ring if edge_margin_rings is None else edge_margin_rings
+    zone = accessible_zone(mesh, freeze_set, normal_deg=normal_deg,
+                           curv_percentile=curv_percentile,
+                           support_min_ratio=support_min_ratio, k_erode=k_erode)
+    if not zone:
+        raise ValueError("accessible zone is empty; relax --zone-normal-deg / "
+                         "--zone-curv-percentile / --support-min-ratio / "
+                         "--zone-edge-margin-rings")
     verts = np.asarray(mesh.vertices)
-    assert len(seeds) == 3 and len(set(seeds)) == 3, "seeds must be distinct"
-    assert all(s not in fset for s in seeds), "seeds must be in the free set"
-    assert len(fset) > 0, "freeze set should be non-empty for the slab"
-    assert all(verts[s][2] > 0.0 for s in seeds), "biased seeds must be in the upper (+z) region"
+    cmd = center_min_dist if center_min_dist is not None else 2.0 * k_ring * mean_edge_length(mesh)
+    centers = poisson_disk_centers(verts, zone, cmd, num_centers, rng_seed)
+    return zone, centers
+
+
+def build_annotation(mesh, freeze_ratio, num_centers, k_ring=2, normal_deg=45.0,
+                     curv_percentile=0.75, support_min_ratio=0.4,
+                     edge_margin_rings=None, center_min_dist=None, rng_seed=42):
+    """z-threshold freeze + accessible-convex-zone Poisson-disk contact centers.
+
+    Each center becomes one contact {seed, k_ring}. Replaces the old FPS-over-upper-half
+    multi-seed selection; DeformSim runs each contact as an independent single-contact sample.
+    """
+    freeze = compute_freeze(np.asarray(mesh.vertices), freeze_ratio)
+    _, centers = select_contacts(mesh, set(freeze), num_centers, k_ring=k_ring,
+                                 normal_deg=normal_deg, curv_percentile=curv_percentile,
+                                 support_min_ratio=support_min_ratio,
+                                 edge_margin_rings=edge_margin_rings,
+                                 center_min_dist=center_min_dist, rng_seed=rng_seed)
+    return _assemble_annotation(freeze, centers, k_ring)
+
+
+def _self_test_annotation():
+    # Subdivided slab: thickness along z so freeze (bottom band) and an up-facing top exist.
+    mesh = o3d.geometry.TriangleMesh.create_box(width=8.0, height=8.0, depth=2.0)
+    mesh.translate(-mesh.get_center())
+    mesh = mesh.subdivide_midpoint(number_of_iterations=3)
+    mesh.compute_vertex_normals()
+    ann = build_annotation(mesh, freeze_ratio=0.15, num_centers=5, k_ring=2,
+                           normal_deg=45.0, curv_percentile=0.9,
+                           support_min_ratio=0.0, rng_seed=3)
+    fset = set(ann["freeze"]["vertices"])
+    contacts = ann["contacts"]
+    verts = np.asarray(mesh.vertices)
+    assert len(fset) > 0, "freeze band should be non-empty"
+    assert len(contacts) >= 1, "should produce at least one contact center"
+    seeds = [c["seed"] for c in contacts]
+    assert len(seeds) == len(set(seeds)), "centers must be distinct"
+    assert all(c["k_ring"] == 2 for c in contacts), "each contact is a single k_ring=2 patch"
+    assert all(s not in fset for s in seeds), "centers must not be frozen"
+    assert all(verts[s][2] > 0.0 for s in seeds), "centers must be on the up-facing top"
     print("annotation self-test PASS:", len(fset), seeds)
 
 
