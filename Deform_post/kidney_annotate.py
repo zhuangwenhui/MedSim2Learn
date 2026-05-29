@@ -130,6 +130,25 @@ def _make_slab():
     return mesh
 
 
+def _make_grid(nx=11, ny=11, step=1.0):
+    """Flat z=0 triangulated grid centered at origin, normals +z. Returns (mesh, nx, ny)."""
+    xs = np.arange(nx) * step
+    ys = np.arange(ny) * step
+    verts = np.array([[xs[i], ys[j], 0.0] for j in range(ny) for i in range(nx)], float)
+    verts[:, :2] -= verts[:, :2].mean(axis=0)
+    def vid(i, j): return j * nx + i
+    tris = []
+    for j in range(ny - 1):
+        for i in range(nx - 1):
+            a, b, c, d = vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)
+            tris.append([a, b, c]); tris.append([a, c, d])
+    m = o3d.geometry.TriangleMesh()
+    m.vertices = o3d.utility.Vector3dVector(verts)
+    m.triangles = o3d.utility.Vector3iVector(np.array(tris, dtype=np.int32))
+    m.compute_vertex_normals()
+    return m, nx, ny
+
+
 def _self_test():
     # Flat slab: only the top/bottom faces align with +/-z; both positive and symmetric.
     mesh = _make_slab()
@@ -220,6 +239,37 @@ def local_thickness(mesh, cone_half_angle_deg=30.0, cone_rays=6):
     return best
 
 
+def surface_descriptors(mesh):
+    """Per-vertex concavity and sharpness from the 1-ring.
+
+    concavity[i] = mean over 1-ring neighbors j of dot((v_j - v_i)/|v_j - v_i|, n_i)
+      with n_i the OUTWARD vertex normal. Convex bump -> neighbors fall away from n_i
+      -> negative; concave dip (hilum) -> neighbors rise toward n_i -> positive.
+    sharpness[i] = mean over neighbors j of (1 - dot(n_i, n_j)); high at sharp edges.
+    """
+    mesh.compute_vertex_normals()
+    verts = np.asarray(mesh.vertices)
+    norms = np.asarray(mesh.vertex_normals)
+    mesh.compute_adjacency_list()
+    adj = mesh.adjacency_list
+    n = len(verts)
+    concavity = np.zeros(n)
+    sharpness = np.zeros(n)
+    for i in range(n):
+        nbrs = list(adj[i])
+        if not nbrs:
+            continue
+        d = verts[nbrs] - verts[i]
+        norm_d = np.linalg.norm(d, axis=1)
+        ok = norm_d > 1e-12
+        if not np.any(ok):
+            continue
+        dirs = d[ok] / norm_d[ok, None]
+        concavity[i] = float(np.mean(dirs @ norms[i]))
+        sharpness[i] = float(np.mean(1.0 - (norms[nbrs] @ norms[i])))
+    return concavity, sharpness
+
+
 def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1, contact_z_floor=0.5,
                      support_min_ratio=0.4):
     """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds.
@@ -277,6 +327,24 @@ def _self_test_annotation():
     print("annotation self-test PASS:", len(fset), seeds)
 
 
+def _self_test_descriptors():
+    # Convex sphere: outward normals; neighbors fall away from the normal -> concavity < 0.
+    sph = o3d.geometry.TriangleMesh.create_sphere(radius=1.0, resolution=20)
+    conc, sharp = surface_descriptors(sph)
+    assert float(np.mean(conc)) < -1e-3, f"convex sphere should be concavity<0, got {np.mean(conc)}"
+    assert float(np.mean(sharp)) > 0.0, "curved surface should have sharpness>0"
+    # Flip winding -> inward normals -> same surface now reads concave (concavity>0).
+    flip = o3d.geometry.TriangleMesh.create_sphere(radius=1.0, resolution=20)
+    flip.triangles = o3d.utility.Vector3iVector(np.asarray(flip.triangles)[:, ::-1])
+    fconc, _ = surface_descriptors(flip)
+    assert float(np.mean(fconc)) > 1e-3, f"flipped sphere should be concavity>0, got {np.mean(fconc)}"
+    # Flat grid: near-zero concavity and sharpness.
+    g, _, _ = _make_grid(11, 11, 1.0)
+    gconc, gsharp = surface_descriptors(g)
+    assert abs(float(np.mean(gconc))) < 1e-6 and float(np.mean(gsharp)) < 1e-6, "flat grid ~0"
+    print("descriptors self-test PASS")
+
+
 def main():
     p = argparse.ArgumentParser(
         description="Kidney pose snapshot + DeformSim annotation generator",
@@ -303,6 +371,7 @@ def main():
 
     if args.self_test:
         _self_test()
+        _self_test_descriptors()
         _self_test_annotation()
         return
 
