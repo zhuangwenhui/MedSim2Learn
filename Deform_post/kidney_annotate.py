@@ -77,3 +77,52 @@ def _self_test():
     tt, tb = flatness_metric(tilted, angle_deg=30.0)
     assert tt < 1e-9 and tb < 1e-9, f"tilted slab should have no +/-z-aligned faces: {tt},{tb}"
     print(f"flatness self-test PASS: flat top={top:.3f} bottom={bottom:.3f}; tilted top={tt:.3f} bottom={tb:.3f}")
+
+
+def compute_freeze(vertices, ratio):
+    """Freeze vertices with z < z_min + ratio*(z_max - z_min) (the resting band)."""
+    z = vertices[:, 2]
+    z_min, z_max = float(z.min()), float(z.max())
+    thr = z_min + ratio * (z_max - z_min)
+    return np.where(z < thr)[0].tolist()
+
+
+def farthest_point_sampling(vertices, candidate_idx, num_seeds, rng_seed=42):
+    """Pick num_seeds indices from candidate_idx with even spatial coverage (FPS)."""
+    cand = np.asarray(list(candidate_idx), dtype=np.int64)
+    if num_seeds >= len(cand):
+        return cand.tolist()
+    rng = np.random.default_rng(rng_seed)
+    first = int(cand[rng.integers(len(cand))])
+    selected = [first]
+    dist = np.linalg.norm(vertices[cand] - vertices[first], axis=1)
+    while len(selected) < num_seeds:
+        nxt = int(cand[int(np.argmax(dist))])
+        selected.append(nxt)
+        d = np.linalg.norm(vertices[cand] - vertices[nxt], axis=1)
+        dist = np.minimum(dist, d)
+    return selected
+
+
+def build_annotation(mesh, freeze_ratio, num_seeds, k_ring=1):
+    """Build the DeformSim annotation: z-threshold freeze + FPS contact seeds."""
+    vertices = np.asarray(mesh.vertices)
+    freeze = compute_freeze(vertices, freeze_ratio)
+    freeze_set = set(freeze)
+    free_idx = [i for i in range(len(vertices)) if i not in freeze_set]
+    seeds = farthest_point_sampling(vertices, free_idx, num_seeds)
+    return {
+        "freeze": {"vertices": [int(i) for i in freeze]},
+        "contacts": [{"seed": int(s), "k_ring": int(k_ring)} for s in seeds],
+    }
+
+
+def _self_test_annotation():
+    mesh = _make_slab()
+    ann = build_annotation(mesh, freeze_ratio=0.15, num_seeds=3)
+    fset = set(ann["freeze"]["vertices"])
+    seeds = [c["seed"] for c in ann["contacts"]]
+    assert len(seeds) == 3 and len(set(seeds)) == 3, "seeds must be distinct"
+    assert all(s not in fset for s in seeds), "seeds must be in the free set"
+    assert len(fset) > 0, "freeze set should be non-empty for the slab"
+    print("annotation self-test PASS:", len(fset), seeds)
