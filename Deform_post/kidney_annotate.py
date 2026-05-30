@@ -176,6 +176,34 @@ def _make_grid(nx=11, ny=11, step=1.0):
     return m, nx, ny
 
 
+def _make_dome(nx=21, ny=21, step=0.5, amp=4.0):
+    """Paraboloid cap grid z = amp*(1 - r^2/R^2) (clamped >=0 region). amp>0 convex bump,
+    amp<0 concave bowl. Centered at origin in xy; returns (mesh, nx, ny)."""
+    cx = (nx - 1) / 2.0
+    cy = (ny - 1) / 2.0
+    xs = (np.arange(nx) - cx) * step
+    ys = (np.arange(ny) - cy) * step
+    R = float(max(xs.max(), ys.max()))
+    verts = []
+    for j in range(ny):
+        for i in range(nx):
+            r2 = xs[i] ** 2 + ys[j] ** 2
+            t = max(0.0, 1.0 - r2 / (R * R))
+            verts.append([xs[i], ys[j], amp * t])
+    verts = np.array(verts, float)
+    def vid(i, j): return j * nx + i
+    tris = []
+    for j in range(ny - 1):
+        for i in range(nx - 1):
+            a, b, c, d = vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)
+            tris.append([a, b, c]); tris.append([a, c, d])
+    m = o3d.geometry.TriangleMesh()
+    m.vertices = o3d.utility.Vector3dVector(verts)
+    m.triangles = o3d.utility.Vector3iVector(np.array(tris, dtype=np.int32))
+    m.compute_vertex_normals()
+    return m, nx, ny
+
+
 def _self_test():
     # Flat slab: only the top/bottom faces align with +/-z; both positive and symmetric.
     mesh = _make_slab()
@@ -296,33 +324,34 @@ def _bfs_within(adj, sources, max_hops):
     return visited
 
 
-def accessible_zone(mesh, freeze_set, normal_deg=45.0, curv_percentile=0.75,
-                    support_min_ratio=0.4, k_erode=2):
-    """Vertices on the exposed convex surface, eroded so a k_erode-ring patch stays inside.
+def accessible_zone(mesh, freeze_set, normal_deg=45.0, shoulder_deg=30.0,
+                    sharp_max=0.15, concave_max=0.05, support_min_ratio=0.4, k_erode=2):
+    """Vertices on the exposed convex top surface, eroded so a k_erode-ring patch stays inside.
 
-    Keep i iff: i not frozen; n_z(i) >= cos(normal_deg) (up-facing); curvature-badness
-    in the smoothest `curv_percentile` fraction (badness = sharpness + max(0, concavity),
-    so sharp edges and concave hilum are dropped); local thickness >= support_min_ratio *
-    median (skipped if support_min_ratio <= 0). Then erode: drop any kept vertex within
-    k_erode hops of an excluded OR open-boundary vertex, guaranteeing its k_erode-ring
-    lies in the kept interior (open-mesh boundary vertices seed the erosion because their
-    ring would otherwise spill past the mesh edge).
+    Keep i iff ALL hold (uses surface_descriptors: concavity signed convex<0/concave>0,
+    sharpness = curvature magnitude >= 0):
+      - up-facing:    n_z(i) >= cos(normal_deg)
+      - non-concave:  concavity(i) <= concave_max            (drops the hilum, ANY orientation)
+      - not a convex shoulder: NOT( n_z(i) < cos(shoulder_deg) AND sharpness(i) > sharp_max )
+                               (drops the tilted+curved lateral wall; keeps a curved top bump)
+      - thick enough: local_thickness(i) >= support_min_ratio * median  (skipped if <= 0)
+    Then erode: drop any kept vertex within k_erode hops of an excluded vertex OR an open
+    mesh boundary (no-op on a closed/watertight mesh), so its k_erode-ring lies in the kept set.
     """
     mesh.compute_vertex_normals()
     verts = np.asarray(mesh.vertices)
     norms = np.asarray(mesh.vertex_normals)
     n = len(verts)
-    cos_t = float(np.cos(np.deg2rad(normal_deg)))
-
-    keep = norms[:, 2] >= cos_t
-    for i in freeze_set:
-        keep[i] = False
+    nz = norms[:, 2]
+    cos_up = float(np.cos(np.deg2rad(normal_deg)))
+    cos_sh = float(np.cos(np.deg2rad(shoulder_deg)))
 
     concavity, sharpness = surface_descriptors(mesh)
-    badness = sharpness + np.maximum(0.0, concavity)
-    if np.any(keep):
-        thr = float(np.quantile(badness[keep], curv_percentile))
-        keep &= badness <= thr
+    keep = nz >= cos_up
+    keep &= concavity <= concave_max
+    keep &= ~((nz < cos_sh) & (sharpness > sharp_max))
+    for i in freeze_set:
+        keep[i] = False
 
     if support_min_ratio > 0.0 and np.any(keep):
         thick = local_thickness(mesh)
@@ -332,10 +361,10 @@ def accessible_zone(mesh, freeze_set, normal_deg=45.0, curv_percentile=0.75,
 
     mesh.compute_adjacency_list()
     adj = mesh.adjacency_list
-    boundary_edges = np.asarray(mesh.get_non_manifold_edges(allow_boundary_edges=False))
-    boundary_verts = set(int(v) for v in boundary_edges.reshape(-1))
-    sources = [i for i in range(n) if not keep[i]] + list(boundary_verts)
-    near_excluded = _bfs_within(adj, sources, k_erode)
+    nm = np.asarray(mesh.get_non_manifold_edges(allow_boundary_edges=False))
+    boundary_verts = set(nm.reshape(-1).tolist()) if nm.size else set()
+    excluded = [i for i in range(n) if not keep[i]] + list(boundary_verts)
+    near_excluded = _bfs_within(adj, excluded, k_erode)
     return [i for i in range(n) if keep[i] and i not in near_excluded]
 
 
@@ -385,17 +414,17 @@ def _assemble_annotation(freeze, centers, k_ring):
 
 
 def select_contacts(mesh, freeze_set, num_centers, k_ring=2, normal_deg=45.0,
-                    curv_percentile=0.75, support_min_ratio=0.4,
+                    shoulder_deg=30.0, sharp_max=0.15, concave_max=0.05, support_min_ratio=0.4,
                     edge_margin_rings=None, center_min_dist=None, rng_seed=42):
     """Return (zone, centers): the accessible convex zone and Poisson-disk patch centers."""
     k_erode = k_ring if edge_margin_rings is None else edge_margin_rings
     zone = accessible_zone(mesh, freeze_set, normal_deg=normal_deg,
-                           curv_percentile=curv_percentile,
+                           shoulder_deg=shoulder_deg, sharp_max=sharp_max, concave_max=concave_max,
                            support_min_ratio=support_min_ratio, k_erode=k_erode)
     if not zone:
         raise ValueError("accessible zone is empty; relax --zone-normal-deg / "
-                         "--zone-curv-percentile / --support-min-ratio / "
-                         "--zone-edge-margin-rings")
+                         "--zone-shoulder-deg / --zone-sharp-max / --zone-concave-max / "
+                         "--support-min-ratio / --zone-edge-margin-rings")
     verts = np.asarray(mesh.vertices)
     cmd = center_min_dist if center_min_dist is not None else 2.0 * k_ring * mean_edge_length(mesh)
     centers = poisson_disk_centers(verts, zone, cmd, num_centers, rng_seed)
@@ -403,7 +432,7 @@ def select_contacts(mesh, freeze_set, num_centers, k_ring=2, normal_deg=45.0,
 
 
 def build_annotation(mesh, freeze_ratio, num_centers, k_ring=2, normal_deg=45.0,
-                     curv_percentile=0.75, support_min_ratio=0.4,
+                     shoulder_deg=30.0, sharp_max=0.15, concave_max=0.05, support_min_ratio=0.4,
                      edge_margin_rings=None, center_min_dist=None, rng_seed=42):
     """z-threshold freeze + accessible-convex-zone Poisson-disk contact centers.
 
@@ -412,7 +441,8 @@ def build_annotation(mesh, freeze_ratio, num_centers, k_ring=2, normal_deg=45.0,
     """
     freeze = compute_freeze(np.asarray(mesh.vertices), freeze_ratio)
     _, centers = select_contacts(mesh, set(freeze), num_centers, k_ring=k_ring,
-                                 normal_deg=normal_deg, curv_percentile=curv_percentile,
+                                 normal_deg=normal_deg, shoulder_deg=shoulder_deg,
+                                 sharp_max=sharp_max, concave_max=concave_max,
                                  support_min_ratio=support_min_ratio,
                                  edge_margin_rings=edge_margin_rings,
                                  center_min_dist=center_min_dist, rng_seed=rng_seed)
@@ -426,7 +456,7 @@ def _self_test_annotation():
     mesh = mesh.subdivide_midpoint(number_of_iterations=3)
     mesh.compute_vertex_normals()
     ann = build_annotation(mesh, freeze_ratio=0.15, num_centers=5, k_ring=2,
-                           normal_deg=45.0, curv_percentile=0.9,
+                           normal_deg=45.0,
                            support_min_ratio=0.0, rng_seed=3)
     fset = set(ann["freeze"]["vertices"])
     contacts = ann["contacts"]
@@ -460,26 +490,53 @@ def _self_test_descriptors():
 
 
 def _self_test_zone():
-    # Flat grid, no freeze, thickness disabled: zone = interior eroded by k_erode rings.
-    g, nx, ny = _make_grid(11, 11, 1.0)
-    def vid(i, j): return j * nx + i
-    zone = accessible_zone(g, set(), normal_deg=45.0, curv_percentile=1.0,
-                           support_min_ratio=0.0, k_erode=2)
-    zset = set(zone)
-    assert vid(5, 5) in zset, "center of flat grid should be in zone"
-    assert vid(0, 0) not in zset, "corner should be eroded out (boundary margin)"
-    assert vid(1, 1) not in zset, "1-ring-from-corner should be eroded out (k_erode=2)"
-    # Freeze an interior vertex -> it and its k_erode neighborhood are excluded.
-    zone_fz = set(accessible_zone(g, {vid(5, 5)}, normal_deg=45.0, curv_percentile=1.0,
-                                  support_min_ratio=0.0, k_erode=2))
-    assert vid(5, 5) not in zone_fz and vid(6, 5) not in zone_fz, "freeze island must erode"
-    # Tilt the whole grid 60 deg about x -> normals exceed 45 deg from +z -> empty zone.
-    a = np.deg2rad(60.0)
-    R = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
-    g2, _, _ = _make_grid(11, 11, 1.0)
-    g2.rotate(R, center=(0, 0, 0)); g2.compute_vertex_normals()
-    assert accessible_zone(g2, set(), normal_deg=45.0, curv_percentile=1.0,
-                           support_min_ratio=0.0, k_erode=1) == [], "tilted grid -> empty zone"
+    # (a) Flat grid: all kept by criteria -> erosion drops the border-2 rings.
+    g, gnx, gny = _make_grid(11, 11, 1.0)
+    def gvid(i, j): return j * gnx + i
+    zf = set(accessible_zone(g, set(), support_min_ratio=0.0, k_erode=2))
+    assert gvid(5, 5) in zf, "flat-grid center should be kept"
+    assert gvid(0, 0) not in zf and gvid(1, 1) not in zf, "flat-grid border should erode"
+
+    # (b) Convex dome: the convex-shoulder rule drops a tilted+curved flank but keeps it
+    #     when the shoulder rule is disabled (shoulder_deg >= normal_deg). Isolate via k_erode=0
+    #     and concave_max large (so only the shoulder rule decides). Restrict candidates to
+    #     INTERIOR vertices: the cap is an open mesh, and accessible_zone seeds erosion on the
+    #     open boundary even at k_erode=0, which would otherwise drop a rim candidate for the
+    #     wrong reason (boundary, not shoulder) and mask the rule under test.
+    dome, _, _ = _make_dome(21, 21, 0.5, amp=4.0)
+    nz = np.asarray(dome.vertex_normals)[:, 2]
+    tilt = np.degrees(np.arccos(np.clip(nz, -1.0, 1.0)))
+    conc, sharp = surface_descriptors(dome)
+    dome.compute_adjacency_list()
+    nm_b = np.asarray(dome.get_non_manifold_edges(allow_boundary_edges=False))
+    bverts = set(nm_b.reshape(-1).tolist()) if nm_b.size else set()
+    cand = np.where((tilt > 32.0) & (tilt < 44.0) & (conc < 0.0))[0]   # up-facing (<45) but tilted, convex
+    cand = np.array([c for c in cand.tolist() if c not in bverts], dtype=int)  # interior only
+    assert cand.size > 0, "dome should have a tilted convex flank band"
+    v = int(cand[int(np.argmax(sharp[cand]))])
+    sm = float(sharp[v]) * 0.5                                          # threshold below this flank's curvature
+    z_on = set(accessible_zone(dome, set(), normal_deg=45.0, shoulder_deg=30.0, sharp_max=sm,
+                               concave_max=1.0, support_min_ratio=0.0, k_erode=0))
+    z_off = set(accessible_zone(dome, set(), normal_deg=45.0, shoulder_deg=90.0, sharp_max=sm,
+                                concave_max=1.0, support_min_ratio=0.0, k_erode=0))
+    assert v not in z_on, "convex shoulder (tilted+curved) must be excluded"
+    assert v in z_off, "same vertex must be kept when the shoulder rule is disabled"
+
+    # (c) Concave bowl: the non-concave rule drops the up-facing concave center, but keeps it
+    #     when non-concave is disabled (concave_max huge). Shoulder disabled to isolate.
+    bowl, bnx, bny = _make_dome(21, 21, 0.5, amp=-4.0)
+    center = (bny // 2) * bnx + (bnx // 2)
+    nzb = float(np.asarray(bowl.vertex_normals)[center, 2])
+    cb, _ = surface_descriptors(bowl)
+    assert nzb > 0.7, "bowl center should face +z (up)"
+    assert cb[center] > 0.0, "bowl center should be concave"
+    cm = float(cb[center]) * 0.5
+    out = set(accessible_zone(bowl, set(), concave_max=cm, shoulder_deg=90.0,
+                              support_min_ratio=0.0, k_erode=0))
+    keep = set(accessible_zone(bowl, set(), concave_max=float(cb[center]) * 2.0, shoulder_deg=90.0,
+                               support_min_ratio=0.0, k_erode=0))
+    assert center not in out, "up-facing concave center must be excluded by non-concave"
+    assert center in keep, "same center must be kept when non-concave is disabled"
     print("zone self-test PASS")
 
 
@@ -503,11 +560,14 @@ def _self_test_poisson():
 def _self_test_cli():
     p = _build_parser()
     ns = p.parse_args(["--ply", "x.ply", "--num-centers", "5", "--k-ring", "3",
-                       "--zone-normal-deg", "40", "--zone-curv-percentile", "0.8",
+                       "--zone-normal-deg", "40", "--zone-shoulder-deg", "25",
+                       "--zone-sharp-max", "0.2", "--zone-concave-max", "0.1",
                        "--zone-edge-margin-rings", "2", "--center-min-dist", "1.5", "--seed", "7"])
     assert ns.num_centers == 5 and ns.k_ring == 3 and ns.zone_normal_deg == 40.0
-    assert ns.zone_curv_percentile == 0.8 and ns.center_min_dist == 1.5 and ns.seed == 7
-    for removed in (["--num-seeds", "3"], ["--contact-z-floor", "0.5"]):
+    assert ns.zone_shoulder_deg == 25.0 and ns.zone_sharp_max == 0.2 and ns.zone_concave_max == 0.1
+    assert ns.center_min_dist == 1.5 and ns.seed == 7
+    for removed in (["--num-seeds", "3"], ["--contact-z-floor", "0.5"],
+                    ["--zone-curv-percentile", "0.8"]):
         try:
             p.parse_args(["--ply", "x.ply"] + removed)
             raise AssertionError(f"removed flag accepted: {removed}")
@@ -530,8 +590,13 @@ def _build_parser():
     p.add_argument("--k-ring", type=int, default=2, help="Contact patch radius in BFS rings")
     p.add_argument("--zone-normal-deg", type=float, default=45.0,
                    help="Keep up-facing vertices with normal within this angle of +z")
-    p.add_argument("--zone-curv-percentile", type=float, default=0.75,
-                   help="Keep the smoothest fraction by curvature-badness (drops hilum/edges)")
+    p.add_argument("--zone-shoulder-deg", type=float, default=30.0,
+                   help="A vertex tilted beyond this angle from +z is a 'shoulder'; drop it "
+                        "if also curved (sharpness > --zone-sharp-max), keeping curved top bumps")
+    p.add_argument("--zone-sharp-max", type=float, default=0.15,
+                   help="Curvature (1-ring sharpness) above which a shoulder vertex is excluded")
+    p.add_argument("--zone-concave-max", type=float, default=0.05,
+                   help="Max signed concavity to keep (drops concave hilum at any orientation)")
     p.add_argument("--zone-edge-margin-rings", type=int, default=None,
                    help="Erosion rings from excluded vertices (default = --k-ring)")
     p.add_argument("--center-min-dist", type=float, default=None,
@@ -567,8 +632,12 @@ def main():
         raise SystemExit("--k-ring must be >= 1")
     if not (0.0 < args.zone_normal_deg < 90.0):
         raise SystemExit("--zone-normal-deg must be in (0, 90)")
-    if not (0.0 < args.zone_curv_percentile <= 1.0):
-        raise SystemExit("--zone-curv-percentile must be in (0, 1]")
+    if not (0.0 < args.zone_shoulder_deg < 90.0):
+        raise SystemExit("--zone-shoulder-deg must be in (0, 90)")
+    if args.zone_sharp_max < 0.0:
+        raise SystemExit("--zone-sharp-max must be >= 0")
+    if not (-1.0 <= args.zone_concave_max <= 1.0):
+        raise SystemExit("--zone-concave-max must be in [-1, 1]")
     if not (0.0 <= args.support_min_ratio < 1.0):
         raise SystemExit("--support-min-ratio must be in [0, 1)")
     if args.zone_edge_margin_rings is not None and args.zone_edge_margin_rings < 0:
@@ -586,7 +655,8 @@ def main():
     freeze = compute_freeze(np.asarray(mesh.vertices), args.freeze_ratio)
     zone, centers = select_contacts(
         mesh, set(freeze), args.num_centers, k_ring=args.k_ring,
-        normal_deg=args.zone_normal_deg, curv_percentile=args.zone_curv_percentile,
+        normal_deg=args.zone_normal_deg, shoulder_deg=args.zone_shoulder_deg,
+        sharp_max=args.zone_sharp_max, concave_max=args.zone_concave_max,
         support_min_ratio=args.support_min_ratio,
         edge_margin_rings=args.zone_edge_margin_rings,
         center_min_dist=args.center_min_dist, rng_seed=args.seed)
