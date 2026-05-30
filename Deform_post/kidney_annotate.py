@@ -149,80 +149,6 @@ def render_zone(mesh, freeze, zone, centers, k_ring, out_dir, size=800):
     print(f"wrote BC-zone overlay (PLY + 3 PNG) to {out_dir}")
 
 
-def _make_slab():
-    """Synthetic thin axis-aligned slab (thin along z) for self-test."""
-    mesh = o3d.geometry.TriangleMesh.create_box(width=8.0, height=8.0, depth=0.4)
-    mesh.translate(-mesh.get_center())
-    mesh.compute_triangle_normals()
-    return mesh
-
-
-def _make_grid(nx=11, ny=11, step=1.0):
-    """Flat z=0 triangulated grid centered at origin, normals +z. Returns (mesh, nx, ny)."""
-    xs = np.arange(nx) * step
-    ys = np.arange(ny) * step
-    verts = np.array([[xs[i], ys[j], 0.0] for j in range(ny) for i in range(nx)], float)
-    verts[:, :2] -= verts[:, :2].mean(axis=0)
-    def vid(i, j): return j * nx + i
-    tris = []
-    for j in range(ny - 1):
-        for i in range(nx - 1):
-            a, b, c, d = vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)
-            tris.append([a, b, c]); tris.append([a, c, d])
-    m = o3d.geometry.TriangleMesh()
-    m.vertices = o3d.utility.Vector3dVector(verts)
-    m.triangles = o3d.utility.Vector3iVector(np.array(tris, dtype=np.int32))
-    m.compute_vertex_normals()
-    return m, nx, ny
-
-
-def _make_dome(nx=21, ny=21, step=0.5, amp=4.0):
-    """Paraboloid cap grid z = amp*(1 - r^2/R^2) (clamped >=0 region). amp>0 convex bump,
-    amp<0 concave bowl. Centered at origin in xy; returns (mesh, nx, ny)."""
-    cx = (nx - 1) / 2.0
-    cy = (ny - 1) / 2.0
-    xs = (np.arange(nx) - cx) * step
-    ys = (np.arange(ny) - cy) * step
-    R = float(max(xs.max(), ys.max()))
-    verts = []
-    for j in range(ny):
-        for i in range(nx):
-            r2 = xs[i] ** 2 + ys[j] ** 2
-            t = max(0.0, 1.0 - r2 / (R * R))
-            verts.append([xs[i], ys[j], amp * t])
-    verts = np.array(verts, float)
-    def vid(i, j): return j * nx + i
-    tris = []
-    for j in range(ny - 1):
-        for i in range(nx - 1):
-            a, b, c, d = vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)
-            tris.append([a, b, c]); tris.append([a, c, d])
-    m = o3d.geometry.TriangleMesh()
-    m.vertices = o3d.utility.Vector3dVector(verts)
-    m.triangles = o3d.utility.Vector3iVector(np.array(tris, dtype=np.int32))
-    m.compute_vertex_normals()
-    return m, nx, ny
-
-
-def _self_test():
-    # Flat slab: only the top/bottom faces align with +/-z; both positive and symmetric.
-    mesh = _make_slab()
-    top, bottom = flatness_metric(mesh, angle_deg=30.0)
-    assert top > 0.0 and bottom > 0.0, f"flat slab faces should align with +/-z: {top},{bottom}"
-    assert abs(top - bottom) < 1e-6, f"top/bottom should be symmetric: {top},{bottom}"
-    # Tilt 45 deg about x: no face should align with +/-z within 30 deg.
-    a = np.deg2rad(45.0)
-    R = np.array([[1.0, 0.0, 0.0],
-                  [0.0, np.cos(a), -np.sin(a)],
-                  [0.0, np.sin(a),  np.cos(a)]])
-    tilted = _make_slab()
-    tilted.rotate(R, center=(0.0, 0.0, 0.0))
-    tilted.compute_triangle_normals()
-    tt, tb = flatness_metric(tilted, angle_deg=30.0)
-    assert tt < 1e-9 and tb < 1e-9, f"tilted slab should have no +/-z-aligned faces: {tt},{tb}"
-    print(f"flatness self-test PASS: flat top={top:.3f} bottom={bottom:.3f}; tilted top={tt:.3f} bottom={tb:.3f}")
-
-
 def compute_freeze(vertices, ratio):
     """Freeze vertices with z < z_min + ratio*(z_max - z_min) (the resting band)."""
     z = vertices[:, 2]
@@ -436,8 +362,8 @@ def build_annotation(mesh, freeze_ratio, num_centers, k_ring=2, normal_deg=45.0,
                      edge_margin_rings=None, center_min_dist=None, rng_seed=42):
     """z-threshold freeze + accessible-convex-zone Poisson-disk contact centers.
 
-    Each center becomes one contact {seed, k_ring}. Replaces the old FPS-over-upper-half
-    multi-seed selection; DeformSim runs each contact as an independent single-contact sample.
+    Each center becomes one contact {seed, k_ring}; DeformSim runs each contact as an
+    independent single-contact sample.
     """
     freeze = compute_freeze(np.asarray(mesh.vertices), freeze_ratio)
     _, centers = select_contacts(mesh, set(freeze), num_centers, k_ring=k_ring,
@@ -449,26 +375,78 @@ def build_annotation(mesh, freeze_ratio, num_centers, k_ring=2, normal_deg=45.0,
     return _assemble_annotation(freeze, centers, k_ring)
 
 
-def _self_test_annotation():
-    # Subdivided slab: thickness along z so freeze (bottom band) and an up-facing top exist.
-    mesh = o3d.geometry.TriangleMesh.create_box(width=8.0, height=8.0, depth=2.0)
+def _make_slab():
+    """Synthetic thin axis-aligned slab (thin along z) for self-test."""
+    mesh = o3d.geometry.TriangleMesh.create_box(width=8.0, height=8.0, depth=0.4)
     mesh.translate(-mesh.get_center())
-    mesh = mesh.subdivide_midpoint(number_of_iterations=3)
-    mesh.compute_vertex_normals()
-    ann = build_annotation(mesh, freeze_ratio=0.15, num_centers=5, k_ring=2,
-                           normal_deg=45.0,
-                           support_min_ratio=0.0, rng_seed=3)
-    fset = set(ann["freeze"]["vertices"])
-    contacts = ann["contacts"]
-    verts = np.asarray(mesh.vertices)
-    assert len(fset) > 0, "freeze band should be non-empty"
-    assert len(contacts) >= 1, "should produce at least one contact center"
-    seeds = [c["seed"] for c in contacts]
-    assert len(seeds) == len(set(seeds)), "centers must be distinct"
-    assert all(c["k_ring"] == 2 for c in contacts), "each contact is a single k_ring=2 patch"
-    assert all(s not in fset for s in seeds), "centers must not be frozen"
-    assert all(verts[s][2] > 0.0 for s in seeds), "centers must be on the up-facing top"
-    print("annotation self-test PASS:", len(fset), seeds)
+    mesh.compute_triangle_normals()
+    return mesh
+
+
+def _make_grid(nx=11, ny=11, step=1.0):
+    """Flat z=0 triangulated grid centered at origin, normals +z. Returns (mesh, nx, ny)."""
+    xs = np.arange(nx) * step
+    ys = np.arange(ny) * step
+    verts = np.array([[xs[i], ys[j], 0.0] for j in range(ny) for i in range(nx)], float)
+    verts[:, :2] -= verts[:, :2].mean(axis=0)
+    def vid(i, j): return j * nx + i
+    tris = []
+    for j in range(ny - 1):
+        for i in range(nx - 1):
+            a, b, c, d = vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)
+            tris.append([a, b, c]); tris.append([a, c, d])
+    m = o3d.geometry.TriangleMesh()
+    m.vertices = o3d.utility.Vector3dVector(verts)
+    m.triangles = o3d.utility.Vector3iVector(np.array(tris, dtype=np.int32))
+    m.compute_vertex_normals()
+    return m, nx, ny
+
+
+def _make_dome(nx=21, ny=21, step=0.5, amp=4.0):
+    """Paraboloid cap grid z = amp*(1 - r^2/R^2) (clamped >=0 region). amp>0 convex bump,
+    amp<0 concave bowl. Centered at origin in xy; returns (mesh, nx, ny)."""
+    cx = (nx - 1) / 2.0
+    cy = (ny - 1) / 2.0
+    xs = (np.arange(nx) - cx) * step
+    ys = (np.arange(ny) - cy) * step
+    R = float(max(xs.max(), ys.max()))
+    verts = []
+    for j in range(ny):
+        for i in range(nx):
+            r2 = xs[i] ** 2 + ys[j] ** 2
+            t = max(0.0, 1.0 - r2 / (R * R))
+            verts.append([xs[i], ys[j], amp * t])
+    verts = np.array(verts, float)
+    def vid(i, j): return j * nx + i
+    tris = []
+    for j in range(ny - 1):
+        for i in range(nx - 1):
+            a, b, c, d = vid(i, j), vid(i + 1, j), vid(i + 1, j + 1), vid(i, j + 1)
+            tris.append([a, b, c]); tris.append([a, c, d])
+    m = o3d.geometry.TriangleMesh()
+    m.vertices = o3d.utility.Vector3dVector(verts)
+    m.triangles = o3d.utility.Vector3iVector(np.array(tris, dtype=np.int32))
+    m.compute_vertex_normals()
+    return m, nx, ny
+
+
+def _self_test():
+    # Flat slab: only the top/bottom faces align with +/-z; both positive and symmetric.
+    mesh = _make_slab()
+    top, bottom = flatness_metric(mesh, angle_deg=30.0)
+    assert top > 0.0 and bottom > 0.0, f"flat slab faces should align with +/-z: {top},{bottom}"
+    assert abs(top - bottom) < 1e-6, f"top/bottom should be symmetric: {top},{bottom}"
+    # Tilt 45 deg about x: no face should align with +/-z within 30 deg.
+    a = np.deg2rad(45.0)
+    R = np.array([[1.0, 0.0, 0.0],
+                  [0.0, np.cos(a), -np.sin(a)],
+                  [0.0, np.sin(a),  np.cos(a)]])
+    tilted = _make_slab()
+    tilted.rotate(R, center=(0.0, 0.0, 0.0))
+    tilted.compute_triangle_normals()
+    tt, tb = flatness_metric(tilted, angle_deg=30.0)
+    assert tt < 1e-9 and tb < 1e-9, f"tilted slab should have no +/-z-aligned faces: {tt},{tb}"
+    print(f"flatness self-test PASS: flat top={top:.3f} bottom={bottom:.3f}; tilted top={tt:.3f} bottom={tb:.3f}")
 
 
 def _self_test_descriptors():
@@ -491,7 +469,7 @@ def _self_test_descriptors():
 
 def _self_test_zone():
     # (a) Flat grid: all kept by criteria -> erosion drops the border-2 rings.
-    g, gnx, gny = _make_grid(11, 11, 1.0)
+    g, gnx, _ = _make_grid(11, 11, 1.0)
     def gvid(i, j): return j * gnx + i
     zf = set(accessible_zone(g, set(), support_min_ratio=0.0, k_erode=2))
     assert gvid(5, 5) in zf, "flat-grid center should be kept"
@@ -574,6 +552,28 @@ def _self_test_cli():
         except SystemExit:
             pass
     print("cli self-test PASS")
+
+
+def _self_test_annotation():
+    # Subdivided slab: thickness along z so freeze (bottom band) and an up-facing top exist.
+    mesh = o3d.geometry.TriangleMesh.create_box(width=8.0, height=8.0, depth=2.0)
+    mesh.translate(-mesh.get_center())
+    mesh = mesh.subdivide_midpoint(number_of_iterations=3)
+    mesh.compute_vertex_normals()
+    ann = build_annotation(mesh, freeze_ratio=0.15, num_centers=5, k_ring=2,
+                           normal_deg=45.0,
+                           support_min_ratio=0.0, rng_seed=3)
+    fset = set(ann["freeze"]["vertices"])
+    contacts = ann["contacts"]
+    verts = np.asarray(mesh.vertices)
+    assert len(fset) > 0, "freeze band should be non-empty"
+    assert len(contacts) >= 1, "should produce at least one contact center"
+    seeds = [c["seed"] for c in contacts]
+    assert len(seeds) == len(set(seeds)), "centers must be distinct"
+    assert all(c["k_ring"] == 2 for c in contacts), "each contact is a single k_ring=2 patch"
+    assert all(s not in fset for s in seeds), "centers must not be frozen"
+    assert all(verts[s][2] > 0.0 for s in seeds), "centers must be on the up-facing top"
+    print("annotation self-test PASS:", len(fset), seeds)
 
 
 def _build_parser():
