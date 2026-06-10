@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include <algorithm>
+#include <cctype>
 #include <string>
 #include <nlohmann/json.hpp>
 using namespace std;
@@ -27,6 +28,9 @@ struct SimHyperParams
 
     std::string ply_path = "./plate.ply";
     std::string annotation_path = "./annotation.json";
+    // Optional explicit force list (bare "fx,fy,fz" CSV, no header). When set,
+    // these vectors replace random+cone sampling for exact per-frame replay.
+    std::string force_list_csv = "";
 
     int num_vector = 100;
     unsigned int seed = 20260328u;
@@ -562,6 +566,7 @@ static SimHyperParams LoadSimHyperParams()
 
     LoadStringParam(params.ply_path, "SIM2LEARN_PARAM_PLY_PATH");
     LoadStringParam(params.annotation_path, "SIM2LEARN_PARAM_ANNOTATION_PATH");
+    LoadStringParam(params.force_list_csv, "SIM2LEARN_PARAM_FORCE_LIST_CSV");
 
     LoadIntParam(params.num_vector, "SIM2LEARN_PARAM_NUM_VECTOR", NULL, true);
     LoadUIntParam(params.seed, "SIM2LEARN_PARAM_SEED");
@@ -1246,8 +1251,71 @@ float AngleWithZAxis(float x, float y, float z)
 	return acosf(cosTheta);		 // return the value in radian (use acosf to deal with float type)
 }
 
-std::unique_ptr<std::vector<std::array<float, 4>>> generateVectors(const SimHyperParams& params)
+// Parse an explicit force list ("fx,fy,fz" per line, no header) into the force
+// vector list, in file order. On any failure (missing/empty/unparseable file)
+// returns nullptr so the caller can fail fast: a digital-twin replay must never
+// silently fall back to random sampling. On success sets params.num_vector to
+// the number of parsed rows so processObjects iterates exactly those frames.
+static std::unique_ptr<std::vector<std::array<float, 4>>> generateVectorsFromCsv(SimHyperParams& params)
 {
+	std::ifstream fin(params.force_list_csv);
+	if (!fin.is_open())
+	{
+		fprintf(stderr, "Error: Cannot open SIM2LEARN_PARAM_FORCE_LIST_CSV: %s\n", params.force_list_csv.c_str());
+		return nullptr;
+	}
+
+	auto vectors = std::make_unique<std::vector<std::array<float, 4>>>();
+
+	std::string line;
+	int line_no = 0;
+	while (std::getline(fin, line))
+	{
+		++line_no;
+		// Skip fully-blank lines (e.g. a trailing newline) but reject malformed content.
+		bool only_ws = true;
+		for (char ch : line)
+		{
+			if (!isspace(static_cast<unsigned char>(ch))) { only_ws = false; break; }
+		}
+		if (only_ws) continue;
+
+		float x = 0.0f, y = 0.0f, z = 0.0f;
+		char extra = 0;
+		// Require exactly three comma-separated floats and nothing trailing.
+		if (sscanf(line.c_str(), " %f , %f , %f %c", &x, &y, &z, &extra) != 3)
+		{
+			fprintf(stderr, "Error: Malformed force row at %s:%d: '%s' (expected 'fx,fy,fz')\n",
+			        params.force_list_csv.c_str(), line_no, line.c_str());
+			return nullptr;
+		}
+
+		float norm = ComputeForceEuclidean(x, y, z);
+		array<float, 4> temp = {x, y, z, norm};
+		vectors->push_back(temp);
+	}
+
+	if (vectors->empty())
+	{
+		fprintf(stderr, "Error: SIM2LEARN_PARAM_FORCE_LIST_CSV is empty: %s\n", params.force_list_csv.c_str());
+		return nullptr;
+	}
+
+	params.num_vector = static_cast<int>(vectors->size());
+	printf("Force list CSV: %s (%d explicit vectors; random+cone sampling bypassed)\n",
+	       params.force_list_csv.c_str(), params.num_vector);
+	return vectors;
+}
+
+std::unique_ptr<std::vector<std::array<float, 4>>> generateVectors(SimHyperParams& params)
+{
+	// Explicit replay mode: when a force list CSV is provided, use it verbatim and
+	// ignore the FORCE_*_MIN/MAX ranges and MIN/MAX_ANGLE_DEG cone entirely.
+	if (!params.force_list_csv.empty())
+	{
+		return generateVectorsFromCsv(params);
+	}
+
 	// this ANGLE need literature endoresement
 	const float MIN_ANGLE_RAD = params.min_angle_deg * M_PI / 180.0f;
 	const float MAX_ANGLE_RAD = params.max_angle_deg * M_PI / 180.0f;
