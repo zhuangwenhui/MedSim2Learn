@@ -40,10 +40,10 @@
 #>
 param(
     [Parameter(Mandatory = $true)] [string]$SeqList,
-    [string]$OutRoot = 'D:\MedSim2Learn-ComplexObject\twin_full',
+    [string]$OutRoot = 'D:\MedSim2Learn-ComplexObject\DataFlow\Deform_post\twin_full',
     [int]$MaxParallel = 1,
     [switch]$KeepIntermediate,
-    [string]$MeshPath = 'D:\MedSim2Learn-ComplexObject\e1_scratch\kidney_anat.ply',
+    [string]$MeshPath = 'D:\MedSim2Learn-ComplexObject\DataFlow\ShapeReconstruction\meshes\kidney_anat.ply',
     [string]$Python = 'C:/Users/space/anaconda3/envs/MedLearning/python.exe',
     [double]$Fps = 30.0
 )

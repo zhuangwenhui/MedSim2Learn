@@ -61,8 +61,13 @@ def _load_config(config_path: str, logger: logging.Logger) -> dict:
 #=========================================================#
 #                 Evaluation-mode helpers.                #
 #=========================================================#
-def _resolve_evaluation_context(model_arg: str) -> tuple[Path, Path, Path]:
-    """Resolve evaluation artifacts from experiment name."""
+def _resolve_evaluation_context(model_arg: str, output_dir: str = None) -> tuple[Path, Path, Path]:
+    """Resolve evaluation artifacts from experiment name.
+
+    Experiments are looked up under ``output_dir`` (the config's
+    general.output_dir, e.g. a DataFlow/ location) when given, falling back to
+    the legacy in-module KiDKNet/outputs/experiments path.
+    """
     if not model_arg:
         # if model_arg is None or empty
         raise ValueError("Evaluation mode requires --model (experiment name).")
@@ -72,12 +77,15 @@ def _resolve_evaluation_context(model_arg: str) -> tuple[Path, Path, Path]:
             f"Please pass an experiment name, not a path: {model_arg}"
         )
 
-    project_root = Path(__file__).resolve().parent  # KiDKNet/
-
-    experiment_dir = project_root / "outputs" / "experiments" / model_arg
+    candidates = []
+    if output_dir:
+        candidates.append(Path(output_dir) / model_arg)
+    candidates.append(Path(__file__).resolve().parent / "outputs" / "experiments" / model_arg)
+    experiment_dir = next((c for c in candidates if c.exists()), candidates[0])
     if not experiment_dir.exists():
         raise FileNotFoundError(
-            f"Experiment directory not found: {experiment_dir}"
+            "Experiment directory not found (looked in: "
+            + ", ".join(str(c) for c in candidates) + ")"
         )
 
     config_path = experiment_dir / "experimentConfig.yaml"
@@ -219,7 +227,12 @@ def main():
             from scripts.train import main as train_main
             train_main(args, config)
         elif args.mode == "evaluate":
-            experiment_dir, model_path, config_path = _resolve_evaluation_context(args.model)
+            # Honor the config's general.output_dir (may be a DataFlow/ path) when
+            # locating the experiment; fall back to the legacy in-module location.
+            _eval_output_dir = None
+            if getattr(args, "config", None) and os.path.exists(args.config):
+                _eval_output_dir = _load_config(args.config, logger).get("general", {}).get("output_dir")
+            experiment_dir, model_path, config_path = _resolve_evaluation_context(args.model, _eval_output_dir)
 
             config = _load_config(str(config_path), logger)
             if "data" not in config or "split_file" not in config["data"]:

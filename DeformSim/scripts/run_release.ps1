@@ -1,6 +1,9 @@
 param(
     [string]$ProjectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
-    [string]$BuildDir = (Join-Path (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path 'build')
+    [string]$BuildDir = (Join-Path (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path 'build'),
+    # The exe writes ./DeformedSample_* relative to CWD; land it under DataFlow,
+    # not inside the DeformSim source tree.
+    [string]$OutDir = (Join-Path (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path 'DataFlow\DeformSim\scratch')
 )
 
 Set-StrictMode -Version Latest
@@ -22,10 +25,11 @@ if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) {
     throw "Executable not found: $exePath"
 }
 
-Push-Location $ProjectRoot
+New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
+Push-Location $OutDir
 try {
     Write-Output "Running $exePath"
-    Write-Output "WorkingDirectory=$ProjectRoot"
+    Write-Output "WorkingDirectory=$OutDir"
     & $exePath
     if ($LASTEXITCODE -ne 0) {
         throw "LVBasicFramework.exe exited with code $LASTEXITCODE"

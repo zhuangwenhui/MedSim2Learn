@@ -19,6 +19,9 @@ __pycache__/
 
 # CMake / Visual Studio generated files
 /build/
+
+# All pipeline data + run artifacts live under DataFlow/ (single source-vs-data boundary).
+/DataFlow/
 /ShapeReconstruction/build/
 /ShapeReconstruction/build-tetgen/
 /ShapeReconstruction/build-cgal/

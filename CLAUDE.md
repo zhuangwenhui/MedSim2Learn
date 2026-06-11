@@ -12,10 +12,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `DeformSim/` | Deformation simulation solver. |
 | `Deform_post/` | Post-processing of DeformSim outputs. |
 | `KiDKNet/` | Learning-based component. |
+| `DataFlow/` | All pipeline data, partitioned by producing stage (`DataFlow/<Module>/`). Single source-vs-data boundary; git-ignored as a unit. See **Data flow** below. |
 | `build/` | Out-of-tree CMake build artefacts (sibling per project, e.g. `build/ShapeReconstruction/...`). |
 | `docs/`, `plans/`, `specs/` | Cross-project documentation and planning. |
 
 When working inside a sub-project, always read that sub-project's `CLAUDE.md` (if present) for build commands, architecture, and module-specific conventions. The rules in this top-level file apply across **all** sub-projects.
+
+## Data flow
+
+All data produced or consumed by the pipeline lives under `DataFlow/`, never inside the source module directories. Each stage owns its subdirectory: it writes there, and the next stage reads from it via config/CLI/env (paths are not hardcoded deep in source).
+
+| Stage dir | Holds |
+|---|---|
+| `DataFlow/ShapeReconstruction/` | raw `.mvr` inputs (`originalData/`) + reconstructed/posed/scaled meshes (`meshes/`). |
+| `DataFlow/DeformSim/` | deformed-sample PLY runs by time/params (`e3_sim/`, `scratch/`). |
+| `DataFlow/Deform_post/` | contact/pose annotations (`annotations/`), rendered PNG, force CSV, MP4, `.pt` datasets (`twin_full/`, `twin_trial/`, `twin_merged/`). |
+| `DataFlow/KiDKNet/` | training/eval checkpoints, logs, visualizations, dataset splits (`outputs/`, `splits/`). |
+
+`DataFlow/` is git-ignored as a unit (one rule). Read-only external corpora (the real visual-force dataset) and toolchain deps are NOT copied in — they are referenced by absolute path, registered in `data_sources.yaml` at the repo root. `build/` is NOT pipeline data and stays out of `DataFlow/` (CMake cache holds absolute paths; regenerate, don't move).
 
 ## Knowledge graphs
 

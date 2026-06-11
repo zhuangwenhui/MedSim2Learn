@@ -1,0 +1,22 @@
+# External data sources referenced (not copied) by the MedSim2Learn pipeline.
+# Pipeline-PRODUCED data lives under DataFlow/. The entries below are read-only
+# external inputs and toolchain dependencies kept in place and referenced by
+# absolute path (per the "reference, don't copy" rule for external corpora).
+
+real_visual_force_dataset:
+  path: "D:/Image2Force Data/Real Visual-force Paired Data"
+  role: >-
+    Real surgical (video, force) corpus: NN.csv force waveforms (30 fps, Newtons),
+    NN.mp4 video, NN.txt tool boxes. Source of the digital-twin force replay
+    (consumed as SIM2LEARN_PARAM_FORCE_LIST_CSV after sensor->model rotation).
+  used_by: "Deform_post/run_replay.ps1 (-RealDataRoot)"
+  access: read-only
+
+toolchain:
+  vcpkg:  { path: "D:/dev/vcpkg",                     role: "CGAL etc. (ShapeReconstruction)" }
+  tetgen: { path: "D:/dev/tetgen-1.6.0",              role: "tetrahedralization (DeformSim)" }
+  gmsh:   { path: "D:/dev/gmsh-4.15.2-Windows64-sdk", role: "meshing dependency" }
+
+python_env:
+  path: "C:/Users/space/anaconda3/envs/MedLearning/python.exe"
+  role: "open3d 0.19 / numpy / torch / pandas - Deform_post + KiDKNet runtime"

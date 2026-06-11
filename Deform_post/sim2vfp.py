@@ -25,26 +25,31 @@ class CaptureConfig:
     def __init__(self) -> None:
         """Initialize default configuration paths and settings."""
         self.base_dir = os.path.abspath(os.path.dirname(__file__))
+        # Pipeline data lives under the workspace DataFlow/ root, not next to the
+        # source module. base_dir = Deform_post/, its parent = workspace root.
+        self.dataflow_dir = os.path.join(
+            os.path.dirname(self.base_dir), "DataFlow", "Deform_post"
+        )
 
         self.camera_dir = os.path.join(
-            self.base_dir, "cameraSetupTest"
+            self.dataflow_dir, "cameraSetupTest"
         )
         self.default_sample_ply = os.path.join(
             self.camera_dir, "plate.ply"
         )
 
         self.default_input = os.path.join(
-            self.base_dir, "Ori_deformation"
+            self.dataflow_dir, "Ori_deformation"
         )
         self.render_result_path = os.path.join(
-            self.base_dir, "Ren_png"
+            self.dataflow_dir, "Ren_png"
         )
         self.default_serialization_result_path = os.path.join(
-            self.base_dir, "preprocessed_data"
+            self.dataflow_dir, "preprocessed_data"
         )
 
         self.default_error_log = os.path.join(
-            self.base_dir, "render_errors", "error_log.csv"
+            self.dataflow_dir, "render_errors", "error_log.csv"
         )
 
 
