@@ -3,8 +3,8 @@
 """Assemble per-sequence digital-twin datasets into a single KiDKNet data_dir.
 
 This is the bridge between the kidney digital-twin DATA production
-(``twin_full/seqNN/dataset/`` and ``twin_trial/seqNN/dataset/`` folders, each
-holding a ``preprocessed_batch_0000.pt`` plus ``metadata.yaml``) and KiDKNet
+(``twin_full/seqNN/dataset/`` folders, each holding a
+``preprocessed_batch_0000.pt`` plus ``metadata.yaml``) and KiDKNet
 TRAINING (a single ``data_dir`` whose ``.pt`` files are sorted and concatenated
 by ``dknet.data.dataset.ForceDataset``).
 
@@ -92,7 +92,7 @@ def discover_ready_sequences(
     used as the authoritative sample count.
 
     Args:
-        twin_roots: Roots such as ``twin_full`` and ``twin_trial``.
+        twin_roots: One or more roots holding per-sequence dirs, e.g. ``twin_full``.
         only_seqs: Optional allow-list of sequence ids; when given, sequences
             outside the list are skipped even if ready (used to build small
             subsets such as the smoke dataset).
@@ -658,8 +658,8 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--twin-roots",
         type=str,
-        help="Comma-separated twin root dirs, e.g. "
-             "'D:\\...\\twin_full,D:\\...\\twin_trial'.",
+        help="Comma-separated twin root dir(s), e.g. "
+             "'D:\\...\\DataFlow\\Deform_post\\twin_full'.",
     )
     parser.add_argument("--out-dir", type=str,
                         help="Output merged data_dir.")

@@ -26,7 +26,7 @@ All data produced or consumed by the pipeline lives under `DataFlow/`, never ins
 |---|---|
 | `DataFlow/ShapeReconstruction/` | raw `.mvr` inputs (`originalData/`) + reconstructed/posed/scaled meshes (`meshes/`). |
 | `DataFlow/DeformSim/` | deformed-sample PLY runs by time/params (`e3_sim/`, `scratch/`). |
-| `DataFlow/Deform_post/` | contact/pose annotations (`annotations/`), rendered PNG, force CSV, MP4, `.pt` datasets (`twin_full/`, `twin_trial/`, `twin_merged/`). |
+| `DataFlow/Deform_post/` | contact/pose annotations (`annotations/`), rendered PNG, force CSV, MP4, `.pt` datasets (`twin_full/` = all 32 per-sequence replays, `twin_merged/` = assembled training set). |
 | `DataFlow/KiDKNet/` | training/eval checkpoints, logs, visualizations, dataset splits (`outputs/`, `splits/`). |
 
 `DataFlow/` is git-ignored as a unit (one rule). Read-only external corpora (the real visual-force dataset) and toolchain deps are NOT copied in — they are referenced by absolute path, registered in `data_sources.yaml` at the repo root. `build/` is NOT pipeline data and stays out of `DataFlow/` (CMake cache holds absolute paths; regenerate, don't move).
