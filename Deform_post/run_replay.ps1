@@ -7,12 +7,12 @@
     Python (kidney_replay.py) stays pure: it builds forces_model.csv (the exact
     per-frame model forces for SIM2LEARN_PARAM_FORCE_LIST_CSV), labels.csv (the
     real sensor Newtons used as supervision), a single fixed laparoscope camera,
-    and replay_meta.json. This script owns the only MKL-aware step: it sources
-    DeformSim/scripts/setup_env.ps1 (Intel oneAPI runtime on PATH) and launches
-    the Release exe in exact-replay mode from inside the sim output dir (the exe
-    writes "./DeformedSample_ComplexObject_*" relative to its CWD), mirroring
-    run_kidney_sim.ps1. Then it renders one PNG per deformed PLY with the fixed
-    camera and serializes the vision-force pairs into a .pt dataset.
+    and replay_meta.json. The sim step is delegated to
+    DeformSim/scripts/run_kidney_sim.ps1 (which owns the MKL setup_env and the
+    exe launch); in -ForceListCsv mode the exe writes its
+    "./DeformedSample_ComplexObject_*" folder under the sim output dir. Then this
+    script renders one PNG per deformed PLY with the fixed camera and serializes
+    the vision-force pairs into a .pt dataset.
 
     Single-thread sims by default (-NumThreads 1, MKL 1). Material is fixed to
     the kidney decision E=0.03 MPa, v=0.49.
@@ -71,36 +71,17 @@ if ($Subsample -ne $null) { $prepArgs += @('--subsample', "$Subsample") }
 & $Python @prepArgs
 if ($LASTEXITCODE -ne 0) { throw "prep failed (exit $LASTEXITCODE)" }
 
-# --- Stage 2: DeformSim exact replay (MKL-aware; mirrors run_kidney_sim.ps1) ---
+# --- Stage 2: DeformSim exact replay (delegated to the DeformSim runner) ---
+# run_kidney_sim.ps1 owns the only MKL-aware step (setup_env + exe launch). It
+# Push-Locations into -OutputDir, so the exe still writes its timestamped
+# "DeformedSample_ComplexObject_*" folder under $SimDir.
 Write-Output '=== Stage 2: DeformSim exact replay ==='
-. "$SetupEnv" -ProjectRoot $DeformSimRoot -BuildType 'Release'
-
-$env:SIM2LEARN_PARAM_PLY_PATH = (Resolve-Path -LiteralPath $MeshPath).Path
-$env:SIM2LEARN_PARAM_ANNOTATION_PATH = (Resolve-Path -LiteralPath $AnnotationPath).Path
-$env:SIM2LEARN_PARAM_FORCE_LIST_CSV = (Resolve-Path -LiteralPath $ForcesModel).Path
-$env:SIM2LEARN_PARAM_MATERIAL_YOUNG = "$MaterialYoung"
-$env:SIM2LEARN_PARAM_MATERIAL_POISSON = "$MaterialPoisson"
-$env:SIM2LEARN_PARAM_NUM_THREADS = "$NumThreads"
-$env:SIM2LEARN_PARAM_MKL_NUM_THREADS = '1'
-
-Write-Output "Exe:          $ExePath"
-Write-Output "PLY:          $($env:SIM2LEARN_PARAM_PLY_PATH)"
-Write-Output "Annotation:   $($env:SIM2LEARN_PARAM_ANNOTATION_PATH)"
-Write-Output "ForceListCsv: $($env:SIM2LEARN_PARAM_FORCE_LIST_CSV)"
-Write-Output "Material:     E=$MaterialYoung MPa, v=$MaterialPoisson"
-Write-Output "Threads:      $NumThreads (MKL 1)"
-Write-Output "SimDir:       $SimDir"
-
-Push-Location $SimDir
-try {
-    & $ExePath
-    $exit = $LASTEXITCODE
-    Write-Output "=== DeformSim exit code: $exit ==="
-    if ($exit -ne 0) { throw "LVBasicFramework.exe exited with code $exit" }
-}
-finally {
-    Pop-Location
-}
+& (Join-Path $DeformSimRoot 'scripts\run_kidney_sim.ps1') `
+    -PlyPath $MeshPath -AnnotationPath $AnnotationPath -OutputDir $SimDir `
+    -ForceListCsv $ForcesModel `
+    -MaterialYoung $MaterialYoung -MaterialPoisson $MaterialPoisson `
+    -NumThreads $NumThreads -MklNumThreads 1 -ExePath $ExePath
+if ($LASTEXITCODE -ne 0) { throw "DeformSim replay failed (exit $LASTEXITCODE)" }
 
 # Locate the timestamped DeformedSample dir the exe just wrote under $SimDir.
 $DeformedDir = Get-ChildItem -LiteralPath $SimDir -Directory -Filter 'DeformedSample_ComplexObject*' |
