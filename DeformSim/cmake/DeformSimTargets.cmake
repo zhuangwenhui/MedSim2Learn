@@ -1,11 +1,22 @@
 include_guard(GLOBAL)
 
+# Third-party code is vendored once for the whole workspace under
+# third_party/ at the repo root (pristine upstream files plus their own
+# licenses; see THIRD_PARTY_NOTICES.md).
+set(DEFORMSIM_WORKSPACE_THIRD_PARTY ${DEFORMSIM_PROJECT_ROOT}/../third_party)
+set(DEFORMSIM_TETGEN_ROOT ${DEFORMSIM_WORKSPACE_THIRD_PARTY}/tetgen-1.6.0)
+
+foreach(_deformsim_tetgen_file IN ITEMS tetgen.cxx predicates.cxx tetgen.h)
+    deformsim_require_file("${DEFORMSIM_TETGEN_ROOT}/${_deformsim_tetgen_file}"
+        "workspace-vendored TetGen file")
+endforeach()
+
 set(DEFORMSIM_COMMON_INCLUDE_DIRS
     ${DEFORMSIM_ONEAPI_MKL_INCLUDE}
     ${DEFORMSIM_PROJECT_ROOT}
     ${DEFORMSIM_PROJECT_ROOT}/BMGL
-    ${DEFORMSIM_PROJECT_ROOT}/Utility
-    ${DEFORMSIM_PROJECT_ROOT}/third_party
+    ${DEFORMSIM_TETGEN_ROOT}
+    ${DEFORMSIM_WORKSPACE_THIRD_PARTY}
 )
 
 set(DEFORMSIM_TETRA_SUPPORT_SOURCES
@@ -14,7 +25,7 @@ set(DEFORMSIM_TETRA_SUPPORT_SOURCES
     ${DEFORMSIM_PROJECT_ROOT}/BMGL/object.cpp
     ${DEFORMSIM_PROJECT_ROOT}/BMGL/surface.cpp
     ${DEFORMSIM_PROJECT_ROOT}/BMGL/vector.cpp
-    ${DEFORMSIM_PROJECT_ROOT}/Utility/predicates.cpp
+    ${DEFORMSIM_TETGEN_ROOT}/predicates.cxx
 )
 
 function(deformsim_apply_common_compile_settings target_name)
@@ -66,10 +77,18 @@ set(DEFORMSIM_SIM_SOURCES
 )
 
 function(deformsim_add_main_target)
+    # TETLIBRARY strips TetGen's standalone main() and switches its error path
+    # to throw (BMGL/object.h defines the same macro on the consumer side).
+    add_library(deformsim_main_tetgen OBJECT
+        ${DEFORMSIM_TETGEN_ROOT}/tetgen.cxx
+    )
+    deformsim_apply_common_compile_settings(deformsim_main_tetgen)
+    target_compile_definitions(deformsim_main_tetgen PRIVATE TETLIBRARY)
+
     add_executable(LVBasicFramework
         ${DEFORMSIM_SIM_SOURCES}
         ${DEFORMSIM_TETRA_SUPPORT_SOURCES}
-        ${DEFORMSIM_PROJECT_ROOT}/Utility/tetgen.cpp
+        $<TARGET_OBJECTS:deformsim_main_tetgen>
     )
 
     deformsim_apply_common_target_settings(LVBasicFramework)
@@ -87,7 +106,7 @@ function(deformsim_add_tetra_verification_tool target_name source_path)
     set(tetgen_object_target ${target_name}_tetgen)
 
     add_library(${tetgen_object_target} OBJECT
-        ${DEFORMSIM_PROJECT_ROOT}/Utility/tetgen.cpp
+        ${DEFORMSIM_TETGEN_ROOT}/tetgen.cxx
     )
 
     deformsim_apply_common_compile_settings(${tetgen_object_target})

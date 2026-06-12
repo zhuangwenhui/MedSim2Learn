@@ -40,9 +40,7 @@ deformsim_require_path("${DEFORMSIM_ONEAPI_MKL_BIN}" "DEFORMSIM_ONEAPI_MKL_BIN")
 deformsim_require_path("${DEFORMSIM_ONEAPI_COMPILER_LIB}" "DEFORMSIM_ONEAPI_COMPILER_LIB")
 deformsim_require_path("${DEFORMSIM_ONEAPI_COMPILER_BIN}" "DEFORMSIM_ONEAPI_COMPILER_BIN")
 
-foreach(local_dir IN ITEMS BMGL Utility)
-  deformsim_require_path("${DEFORMSIM_PROJECT_ROOT}/${local_dir}" "DEFORMSIM_PROJECT_ROOT/${local_dir}")
-endforeach()
+deformsim_require_path("${DEFORMSIM_PROJECT_ROOT}/BMGL" "DEFORMSIM_PROJECT_ROOT/BMGL")
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(_deformsim_target_arch "x64")

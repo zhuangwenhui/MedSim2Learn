@@ -9,7 +9,7 @@
 ## Build (non-obvious bits)
 
 - Out-of-tree: build output goes to `../build/ShapeReconstruction/`, never inside this folder.
-- Mandatory deps: vcpkg-provided CGAL (`VCPKG_ROOT` set, triplet `x64-windows`) **and** a local TetGen 1.6 source at `D:/dev/tetgen-1.6.0` (override `-DTETGEN_ROOT=...`); the CMake module fails fast if the TetGen sources are missing.
+- Mandatory deps: vcpkg-provided CGAL (`VCPKG_ROOT` set, triplet `x64-windows`) **and** the workspace-vendored TetGen 1.6 source at `../third_party/tetgen-1.6.0` (override via the `TETGEN_ROOT` env variable or `-DTETGEN_ROOT=...`); the CMake module fails fast if the TetGen sources are missing.
 - Presets (see `CMakePresets.json`): `cmake --preset vs2022-x64`, then `cmake --build --preset vs2022-x64-{debug,release}`, then `ctest --preset vs2022-x64-debug`.
 
 ## Module-local rules

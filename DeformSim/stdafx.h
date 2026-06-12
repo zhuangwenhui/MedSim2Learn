@@ -4,11 +4,11 @@
 // BMGL Visual Studio GUI application, was retargeted from Windows XP to
 // Windows 10, moved from MKL 10 (libguide40) to oneAPI MKL, and lost its
 // GL/MFC content when the rendering stack was removed. It is no longer a
-// precompiled header: it survives only because the BMGL/ and Utility/
-// sources (and the verification apps) include it by name and rely on its
-// include order (targeting defines -> windows -> C libs -> C++ libs ->
-// MKL -> bmgl). Do not extend it: new orchestrator code lives under src/
-// and includes what it uses directly.
+// precompiled header: it survives only because the BMGL/ sources (and the
+// verification apps) include it by name and rely on its include order
+// (targeting defines -> windows -> C libs -> C++ libs -> MKL -> bmgl).
+// Do not extend it: new orchestrator code lives under src/ and includes
+// what it uses directly.
 
 #pragma once
 

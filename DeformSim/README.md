@@ -6,6 +6,24 @@ TetGen, assembles a linear isotropic stiffness matrix, applies sampled or
 replayed contact forces, and writes deformed PLY samples plus a force-label
 CSV for `Deform_post` / `KiDKNet` training.
 
+## Layout
+
+- `src/main.cpp` -- run orchestration: load params -> sample/replay forces ->
+  read PLY -> annotation -> tetra/matrix templates -> worker pool -> final
+  CSV and consistency check
+- `src/sim/` -- orchestrator modules: `hyper_params` (env config),
+  `annotation` (freeze/contact JSON, k-ring regions), `force_sampling`
+  (mt19937 cone sampling, CSV replay), `sample_pipeline` (tetra template
+  clone, material/freeze/contact state, cache keys), `output_writer`
+  (verified PLY, CSV journal and final CSV, diagnostics), `progress`
+  (console bar, heartbeat), `worker` (thread pool)
+- `BMGL/` -- frozen legacy zone (FEM kernel); compiles against the root
+  `stdafx.h` umbrella header, which new code must not extend
+- third-party code (TetGen 1.6.0, nlohmann json) is vendored once for the
+  whole workspace at `../third_party/` and referenced in place; see
+  `../THIRD_PARTY_NOTICES.md`
+- `verification/` -- standalone check tools (see below)
+
 ## Build
 
 ```powershell

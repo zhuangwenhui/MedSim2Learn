@@ -37,8 +37,8 @@ ShapeReconstruction is the only part of this chain that lives in this repo. Defo
 ### Prerequisites
 
 - **Visual Studio 2022** with C++20 toolchain
-- **vcpkg** with `VCPKG_ROOT` environment variable set; vcpkg toolchain provides `CGAL` for triplet `x64-windows`
-- **TetGen 1.6 source** at `D:/dev/tetgen-1.6.0` (overridable via `-DTETGEN_ROOT=...`). The CMake module asserts the presence of `predicates.cxx`, `tetgen.cxx`, `tetgen.h` and fails fast if missing.
+- **vcpkg** with `VCPKG_ROOT` environment variable set (the preset points at its toolchain file). Dependencies (`cgal`, `yaml-cpp`) are pinned by `vcpkg.json` (manifest mode, fixed baseline) and install into the build tree automatically on first configure -- no manual `vcpkg install` step.
+- **TetGen 1.6 source**: vendored in-repo at `../third_party/tetgen-1.6.0` (the default; overridable via the `TETGEN_ROOT` env variable or `-DTETGEN_ROOT=...`). The CMake module asserts the presence of `predicates.cxx`, `tetgen.cxx`, `tetgen.h` and fails fast if missing.
 - **PowerShell 5.1+** (for the matrix orchestration script)
 
 ### Build (3 commands)
@@ -408,11 +408,12 @@ These match the JSON `check_fem_pressure` produces.
 
 Common errors, ordered by frequency:
 
-### 7.1 `Required TetGen file not found: D:/dev/tetgen-1.6.0/predicates.cxx`
+### 7.1 `Required TetGen file not found: .../predicates.cxx`
 
-`TETGEN_ROOT` points at a missing or wrong path. Either:
-- Place TetGen 1.6 source at `D:/dev/tetgen-1.6.0`
-- Override at configure time: `cmake --preset vs2022-x64 -DTETGEN_ROOT=C:/path/to/tetgen-1.6.0`
+`TETGEN_ROOT` points at a missing or wrong path. The default is the
+workspace-vendored copy at `../third_party/tetgen-1.6.0`; if the assertion
+fires, either restore that directory or override at configure time:
+`cmake --preset vs2022-x64 -DTETGEN_ROOT=C:/path/to/tetgen-1.6.0`
 
 ### 7.2 CGAL `protect_constraints` precondition violated
 
@@ -435,13 +436,16 @@ Fix: pass `--sharp-edge-degrees 130` (used by the CTest fixture).
 
 ### 7.4 `cmake --preset` fails to find CGAL
 
-`VCPKG_ROOT` not set, or vcpkg hasn't installed CGAL for triplet x64-windows.
+`VCPKG_ROOT` not set, or the manifest install failed during configure.
 
-Fix:
+Fix: set `VCPKG_ROOT` and reconfigure -- manifest mode (`vcpkg.json`) installs
+the pinned `cgal`/`yaml-cpp` into the build tree automatically:
 ```powershell
 $env:VCPKG_ROOT = "C:\path\to\vcpkg"
-& $env:VCPKG_ROOT\vcpkg install cgal:x64-windows
+cmake --preset vs2022-x64
 ```
+The first configure on a cold machine builds the dependencies from source
+(long); with a warm vcpkg binary cache it restores in seconds.
 
 ### 7.5 TetGen `exit(1)` terminates the CLI
 
@@ -485,7 +489,7 @@ Four locations to touch:
 ### 8.3 Files that must NOT be modified
 
 - `legacy/mvr_to_mesh.py` - kept untouched as the project's "anti-bloat mirror". Its existence reminds maintainers that the core functionality (read .mvr -> mesh -> write .ply) was originally a few hundred Python lines. New features must justify their complexity against this baseline.
-- The vendored TetGen 1.6 source under `D:/dev/tetgen-1.6.0/tetgen.cxx` should not be modified except for the `exit(1)` -> `terminatetetgen(1)` patch enforced by `mvrmesh_tetgen_no_direct_exit` ctest.
+- The workspace-vendored TetGen 1.6 source under `../third_party/tetgen-1.6.0/` should not be modified; the absence of direct `exit(1)` calls is enforced by the `mvrmesh_tetgen_no_direct_exit` ctest.
 
 ### 8.4 Build / test invariants
 

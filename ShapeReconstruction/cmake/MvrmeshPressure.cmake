@@ -1,14 +1,14 @@
 # Default TetGen location: prefer the TETGEN_ROOT environment variable when
-# set, falling back to the local checkout. An explicit -DTETGEN_ROOT=... on
-# the configure line still overrides both.
+# set, falling back to the workspace-vendored copy. An explicit
+# -DTETGEN_ROOT=... on the configure line still overrides both.
 if(DEFINED ENV{TETGEN_ROOT})
     set(MVRMESH_TETGEN_DEFAULT_ROOT "$ENV{TETGEN_ROOT}")
 else()
-    set(MVRMESH_TETGEN_DEFAULT_ROOT "D:/dev/tetgen-1.6.0")
+    set(MVRMESH_TETGEN_DEFAULT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/tetgen-1.6.0")
 endif()
 
 set(TETGEN_ROOT "${MVRMESH_TETGEN_DEFAULT_ROOT}" CACHE PATH
-    "Root directory of the external TetGen 1.6 source checkout")
+    "Root directory of the TetGen 1.6 source (workspace third_party by default)")
 
 set(MVRMESH_REQUIRED_TETGEN_SOURCES
     "${TETGEN_ROOT}/predicates.cxx"
