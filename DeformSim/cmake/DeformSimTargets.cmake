@@ -54,14 +54,29 @@ function(deformsim_apply_common_target_settings target_name)
     deformsim_apply_common_link_settings(${target_name})
 endfunction()
 
+set(DEFORMSIM_SIM_SOURCES
+    ${DEFORMSIM_PROJECT_ROOT}/src/main.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/annotation.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/force_sampling.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/hyper_params.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/output_writer.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/progress.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/sample_pipeline.cpp
+    ${DEFORMSIM_PROJECT_ROOT}/src/sim/worker.cpp
+)
+
 function(deformsim_add_main_target)
     add_executable(LVBasicFramework
-        ${DEFORMSIM_PROJECT_ROOT}/stdafx.cpp
+        ${DEFORMSIM_SIM_SOURCES}
         ${DEFORMSIM_TETRA_SUPPORT_SOURCES}
         ${DEFORMSIM_PROJECT_ROOT}/Utility/tetgen.cpp
     )
 
     deformsim_apply_common_target_settings(LVBasicFramework)
+
+    target_include_directories(LVBasicFramework PRIVATE
+        ${DEFORMSIM_PROJECT_ROOT}/src
+    )
 
     set_target_properties(LVBasicFramework PROPERTIES
         WIN32_EXECUTABLE OFF
