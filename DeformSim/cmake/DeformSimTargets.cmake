@@ -30,7 +30,6 @@ function(deformsim_apply_common_compile_settings target_name)
         _USE_MATH_DEFINES
     )
 
-    target_compile_options(${target_name} PRIVATE /openmp)
 endfunction()
 
 function(deformsim_apply_common_link_settings target_name)
@@ -43,7 +42,6 @@ function(deformsim_apply_common_link_settings target_name)
     )
 
     target_link_libraries(${target_name} PRIVATE
-        OpenMP::OpenMP_CXX
         ${DEFORMSIM_MKL_INTEL_LP64_LIB}
         ${DEFORMSIM_MKL_INTEL_THREAD_LIB}
         ${DEFORMSIM_MKL_CORE_LIB}

@@ -10,7 +10,9 @@
 #include "stdafx.h"
 #include "object.h"
 
-extern bool g_useSolverLU;
+// Vendored tetgen mutates shared robust-predicate globals (exactinit static
+// filters derived from the input bounding box); concurrent calls are UB.
+static std::mutex g_tetgenMutex;
 
 Object::Object()
 {
@@ -58,6 +60,7 @@ Object::Object()
 
 	flag = false;
 	useDirectSolver = false;
+	solverStateShared = false;
 }
 
 Object::~Object()
@@ -71,7 +74,8 @@ void Object::Clear()
 	if (line) delete[] line;
 	if (triangle) delete[] triangle;
 
-	if (K){
+	// Element scratch ownership is independent of K: gate on tetra itself.
+	if (tetra){
 		for (int i = 0; i < nTetra; i++) {
 			if (tetra[i].Ke) { Free2Dim(tetra[i].Ke); tetra[i].Ke = 0; }
 			if (tetra[i].Se) { Free2Dim(tetra[i].Se); tetra[i].Se = 0; }
@@ -79,6 +83,8 @@ void Object::Clear()
 	}
 
 	if (tetra) delete[] tetra;
+
+	if (solverStateShared) { L = 0; luPivot = 0; solverStateShared = false; }
 
 	if (K) Free2Dim(K);
 	if (L) Free2Dim(L);
@@ -127,6 +133,7 @@ void Object::Clear()
 	lambda = 1.0f;
 	flag = false;
 	useDirectSolver = false;
+	solverStateShared = false;
 }
 void Object::ReleaseAssemblyScratch()
 {
@@ -149,6 +156,13 @@ void Object::ReleaseSolverState()
 {
 	if (matrixNode) { delete[] matrixNode; matrixNode = 0; }
 	if (checkList) { delete[] checkList; checkList = 0; }
+	if (solverStateShared)
+	{
+		// L/luPivot belong to the matrix template; drop the references only.
+		luPivot = 0;
+		L = 0;
+		solverStateShared = false;
+	}
 	if (luPivot) { delete[] luPivot; luPivot = 0; }
 	if (K) { Free2Dim(K); K = 0; }
 	if (L) { Free2Dim(L); L = 0; }
@@ -172,7 +186,7 @@ double **Object::Alloc2Dim(int  nRows, int nColumns)
 		return nullptr;
 	}
 
-	for (int i = 0; i < nRows; i++)  Array[i] = Array[0] + i * nColumns;
+	for (int i = 0; i < nRows; i++)  Array[i] = Array[0] + static_cast<size_t>(i) * static_cast<size_t>(nColumns);
 	return (double **)Array;
 
 }
@@ -189,14 +203,14 @@ bool Object::CloneMatrixStateFrom(const Object& source)
 	{
 		return true;
 	}
-	if (!source.matrixNode || !source.checkList || !source.K || !source.L)
+	if (!source.matrixNode || !source.checkList || !source.L ||
+	    (source.useDirectSolver && !source.luPivot))
 	{
 		ReleaseSolverState();
 		return false;
 	}
 
 	int nOrder = nMatrixNode * 3;
-	size_t matrixSize = static_cast<size_t>(nOrder) * static_cast<size_t>(nOrder);
 
 	matrixNode = new int[nMatrixNode];
 	memcpy(matrixNode, source.matrixNode, sizeof(int) * static_cast<size_t>(nMatrixNode));
@@ -204,21 +218,12 @@ bool Object::CloneMatrixStateFrom(const Object& source)
 	checkList = new int[nNode];
 	memcpy(checkList, source.checkList, sizeof(int) * static_cast<size_t>(nNode));
 
-	K = Alloc2Dim(nOrder, nOrder);
-	L = Alloc2Dim(nOrder, nOrder);
-	if (!K || !L)
-	{
-		ReleaseSolverState();
-		return false;
-	}
-	memcpy(K[0], source.K[0], sizeof(double) * matrixSize);
-	memcpy(L[0], source.L[0], sizeof(double) * matrixSize);
-
-	if (source.luPivot)
-	{
-		luPivot = new int[nOrder];
-		memcpy(luPivot, source.luPivot, sizeof(int) * static_cast<size_t>(nOrder));
-	}
+	// Share the template's factorization read-only instead of copying it:
+	// DGETRS never writes the factor matrix or the pivots, and the per-worker
+	// O(V^2) copies of K and L were the dominant memory cost of the pipeline.
+	L = source.L;
+	luPivot = source.luPivot;
+	solverStateShared = true;
 
 	f = (double*)calloc(static_cast<size_t>(nOrder), sizeof(double));
 	u = (double*)calloc(static_cast<size_t>(nOrder), sizeof(double));
@@ -231,7 +236,7 @@ bool Object::CloneMatrixStateFrom(const Object& source)
 	return true;
 }
 
-void Object::ComputeMatrixK(void)
+bool Object::ComputeMatrixK(void)
 {
 	useDirectSolver = false;
 	if (luPivot) { delete[] luPivot; luPivot = 0; }
@@ -246,7 +251,9 @@ void Object::ComputeMatrixK(void)
 		else { checkList[i] = -1; }
 	}
 
-	if (nMatrixNode == nNode) {
+	if (nMatrixNode == 0 || nMatrixNode == nNode) {
+		printf("Error: boundary conditions unusable (%d free of %d vertices); the system needs at least one frozen and one free vertex\n",
+			nMatrixNode, nNode);
 		if (checkList) { delete[] checkList; checkList = 0; }
 		if (matrixNode) { delete[] matrixNode; matrixNode = 0; }
 		if (K) { Free2Dim(K); K = 0; }
@@ -256,7 +263,7 @@ void Object::ComputeMatrixK(void)
 		if (luPivot) { delete[] luPivot; luPivot = 0; }
 		nMatrixNode = 0;
 		useDirectSolver = false;
-		return;
+		return false;
 	}
 
 	int m = 0;
@@ -271,6 +278,11 @@ void Object::ComputeMatrixK(void)
 	// Compute Matrix K
 	if (K) Free2Dim(K);
 	K = Alloc2Dim(nMatrixNode * 3, nMatrixNode * 3);
+	if (!K)
+	{
+		printf("Error: out of memory allocating K (order %d)\n", nMatrixNode * 3);
+		return false;
+	}
 
 	// Compute Ke Matrix
 	for (int i = 0; i<nTetra; i++) {
@@ -278,7 +290,11 @@ void Object::ComputeMatrixK(void)
 		if (tetra[i].Se) Free2Dim(tetra[i].Se);
 		tetra[i].Ke = Alloc2Dim(12, 12);
 		tetra[i].Se = Alloc2Dim(6, 12);
-		ComputeMatrixKe(i);
+		if (!tetra[i].Ke || !tetra[i].Se || !ComputeMatrixKe(i))
+		{
+			printf("Error: element stiffness build failed at tetra %d\n", i);
+			return false;
+		}
 	}
 
 	for (int k = 0; k<nTetra; k++)	{
@@ -303,48 +319,36 @@ void Object::ComputeMatrixK(void)
 	}
 
 
-	// Compute L (inverse K) matrix or keep LU factors for direct solve
+	// Factor K into L (LU) for the direct solve. This is the only solver
+	// path: the explicit-inverse variant cost 3x the flops, was not backward
+	// stable, and forced K to stay resident for its refactorization fallback.
 	if (L) Free2Dim(L);
 	L = Alloc2Dim(nMatrixNode * 3, nMatrixNode * 3);
+	if (!L)
+	{
+		printf("Error: out of memory allocating L (order %d)\n", nMatrixNode * 3);
+		return false;
+	}
 	memcpy(L[0], K[0], sizeof(double)*nMatrixNode*nMatrixNode * 9);
 
 	int nOrder = nMatrixNode * 3;
+
+	luPivot = new int[nOrder];
 	int info = 0;
-
-	auto build_inverse_path = [&]()
+	DGETRF(&nOrder, &nOrder, &L[0][0], &nOrder, &luPivot[0], &info);
+	if (info != 0)
 	{
-		int nWork = nMatrixNode * 64;
-		double *work = new double[nWork];
-		int *ipiv = new int[nOrder];
-
-		memcpy(L[0], K[0], sizeof(double) * static_cast<size_t>(nOrder) * static_cast<size_t>(nOrder));
-		DGETRF(&nOrder, &nOrder, &L[0][0], &nOrder, &ipiv[0], &info);
-		DGETRI(&nOrder, &L[0][0], &nOrder, &ipiv[0], &work[0], &nWork, &info);
-
-		delete[] ipiv;
-		delete[] work;
-		useDirectSolver = false;
-		if (luPivot) { delete[] luPivot; luPivot = 0; }
-	};
-
-	if (g_useSolverLU)
-	{
-		luPivot = new int[nOrder];
-		DGETRF(&nOrder, &nOrder, &L[0][0], &nOrder, &luPivot[0], &info);
-		if (info == 0)
-		{
-			useDirectSolver = true;
-		}
-		else
-		{
-			printf("Warning: SIM2LEARN_SOLVER_USE_LU factorization failed (info=%d), falling back to inverse path\n", info);
-			build_inverse_path();
-		}
+		// No inverse fallback: refactorizing the same singular matrix cannot
+		// succeed; fail the sample instead of emitting garbage.
+		printf("Error: LU factorization failed (info=%d), stiffness matrix is singular\n", info);
+		return false;
 	}
-	else
-	{
-		build_inverse_path();
-	}
+	useDirectSolver = true;
+
+	// K is not needed once the factors exist; freeing it here halves the
+	// resident matrix memory of the template object.
+	Free2Dim(K);
+	K = 0;
 
 	if (f) free(f);
 	if (u) free(u);
@@ -352,9 +356,15 @@ void Object::ComputeMatrixK(void)
 	size_t vectorSize = static_cast<size_t>(nMatrixNode) * 3;
 	f = (double*)calloc(vectorSize, sizeof(double));
 	u = (double*)calloc(vectorSize, sizeof(double));
+	if (!f || !u)
+	{
+		printf("Error: out of memory allocating solver vectors (order %d)\n", nOrder);
+		return false;
+	}
 
+	return true;
 }
-void Object::ComputeMatrixKe(int num)
+bool Object::ComputeMatrixKe(int num)
 {
 	double **D;
 	double **B;
@@ -364,9 +374,38 @@ void Object::ComputeMatrixKe(int num)
 	D = Alloc2Dim(6, 6);
 	B = Alloc2Dim(6, 12);
 	BD = Alloc2Dim(12, 6);
+	if (!D || !B || !BD)
+	{
+		if (B) Free2Dim(B);
+		if (D) Free2Dim(D);
+		if (BD) Free2Dim(BD);
+		return false;
+	}
 
-	ComputeMatrixD(D, tetra[num].young, tetra[num].poisson);
+	// Material sanity: v = 0.5 divides by zero in D; nan/inf poisons K silently.
+	const double E = tetra[num].young;
+	const double v = tetra[num].poisson;
+	if (!std::isfinite(E) || E <= 0.0 || !std::isfinite(v) || v <= -1.0 || v >= 0.5)
+	{
+		printf("Error: invalid material at tetra %d (young=%f, poisson=%f)\n", num, E, v);
+		Free2Dim(B);
+		Free2Dim(D);
+		Free2Dim(BD);
+		return false;
+	}
+
+	ComputeMatrixD(D, E, v);
 	ComputeMatrixB(B, detJ, num);
+
+	// A degenerate or inverted element yields garbage-but-finite Ke entries.
+	if (!std::isfinite(detJ) || detJ <= 0.0)
+	{
+		printf("Error: degenerate tetra %d (detJ=%g)\n", num, detJ);
+		Free2Dim(B);
+		Free2Dim(D);
+		Free2Dim(BD);
+		return false;
+	}
 	tetra[num].volume = (float)detJ / 6.0f;
 
 	// Create Ke and Se matrix. [Ke] = [B]^T*[D]*[B]*Ve / 6,  [Se] = [D][B]
@@ -416,6 +455,7 @@ void Object::ComputeMatrixKe(int num)
 	Free2Dim(D);
 	Free2Dim(BD);
 
+	return true;
 }
 
 //========================================================================================================
@@ -496,33 +536,52 @@ void Object::ComputeMatrixB(double **B, double &detJ, int num)
 	Differential_N[0][1] = 0.0; Differential_N[1][1] = 1.0;  Differential_N[2][1] = 0.0; Differential_N[3][1] = -1.0;
 	Differential_N[0][2] = 0.0; Differential_N[1][2] = 0.0;  Differential_N[2][2] = 1.0; Differential_N[3][2] = -1.0;
 
-	// jacobi = N_global * X
-	Matrix3x3 jacobi;
-	jacobi.m[0][0] = 0.0f; jacobi.m[1][1] = 0.0f; jacobi.m[2][2] = 0.0f;
+	// J = dN * X, accumulated in double: float cancellation in the cofactors
+	// hits the worst-conditioned (sliver) elements hardest, and everything
+	// downstream of B is double already.
+	double J[3][3] = { { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 }, { 0.0, 0.0, 0.0 } };
 	for (int w = 0; w < 3; w++)
 		for (int v = 0; v < 4; v++){
-			jacobi.m[0][w] += (float)Differential_N[v][w] * vertex[tetra[num].set[v]].coord.x;
-			jacobi.m[1][w] += (float)Differential_N[v][w] * vertex[tetra[num].set[v]].coord.y;
-			jacobi.m[2][w] += (float)Differential_N[v][w] * vertex[tetra[num].set[v]].coord.z;
+			J[0][w] += Differential_N[v][w] * static_cast<double>(vertex[tetra[num].set[v]].coord.x);
+			J[1][w] += Differential_N[v][w] * static_cast<double>(vertex[tetra[num].set[v]].coord.y);
+			J[2][w] += Differential_N[v][w] * static_cast<double>(vertex[tetra[num].set[v]].coord.z);
 		}
 
 	// Set determinant of J
-	detJ = jacobi.m[0][0] * jacobi.m[1][1] * jacobi.m[2][2] +
-		jacobi.m[1][0] * jacobi.m[2][1] * jacobi.m[0][2] +
-		jacobi.m[2][0] * jacobi.m[1][2] * jacobi.m[0][1] -
-		jacobi.m[2][0] * jacobi.m[1][1] * jacobi.m[0][2] -
-		jacobi.m[1][0] * jacobi.m[0][1] * jacobi.m[2][2] -
-		jacobi.m[0][0] * jacobi.m[1][2] * jacobi.m[2][1];
+	detJ = J[0][0] * J[1][1] * J[2][2] +
+		J[1][0] * J[2][1] * J[0][2] +
+		J[2][0] * J[1][2] * J[0][1] -
+		J[2][0] * J[1][1] * J[0][2] -
+		J[1][0] * J[0][1] * J[2][2] -
+		J[0][0] * J[1][2] * J[2][1];
 
-	// Compute Inv(jacobi)
-	jacobi.Inverse();
+	if (!std::isfinite(detJ) || detJ == 0.0)
+	{
+		// Mark the element degenerate; ComputeMatrixKe rejects detJ <= 0.
+		detJ = 0.0;
+		Free2Dim(Differential_N);
+		Free2Dim(Jacobian);
+		return;
+	}
 
-	//	Ni = Inv(jacobi) * N_grobal
+	// Inv(J) via the adjugate, in double.
+	double inv[3][3];
+	inv[0][0] = (J[1][1] * J[2][2] - J[1][2] * J[2][1]) / detJ;
+	inv[0][1] = (J[0][2] * J[2][1] - J[0][1] * J[2][2]) / detJ;
+	inv[0][2] = (J[0][1] * J[1][2] - J[0][2] * J[1][1]) / detJ;
+	inv[1][0] = (J[1][2] * J[2][0] - J[1][0] * J[2][2]) / detJ;
+	inv[1][1] = (J[0][0] * J[2][2] - J[0][2] * J[2][0]) / detJ;
+	inv[1][2] = (J[0][2] * J[1][0] - J[0][0] * J[1][2]) / detJ;
+	inv[2][0] = (J[1][0] * J[2][1] - J[1][1] * J[2][0]) / detJ;
+	inv[2][1] = (J[0][1] * J[2][0] - J[0][0] * J[2][1]) / detJ;
+	inv[2][2] = (J[0][0] * J[1][1] - J[0][1] * J[1][0]) / detJ;
+
+	//	Ni = Inv(J) * N_global
 	double **N;
 	N = Alloc2Dim(4, 3);
 
 	for (int i = 0; i<3; i++){
-		N[0][i] = jacobi.m[0][i];	N[1][i] = jacobi.m[1][i]; N[2][i] = jacobi.m[2][i]; N[3][i] = -N[0][i] - N[1][i] - N[2][i];
+		N[0][i] = inv[0][i];	N[1][i] = inv[1][i]; N[2][i] = inv[2][i]; N[3][i] = -N[0][i] - N[1][i] - N[2][i];
 	}
 
 	// Set B matrix
@@ -584,85 +643,10 @@ void Object::ComputeMatrixT(Matrix4x4 &T, int num)
 }
 
 
-void Object::Force()
+bool Object::Deform()
 {
-
-	// Register vertices marked as application points.
-	int nTrans = 0;
-	int *trans = new int[nNode];
-	for (int i = 0; i < nNode; i++){
-		if (vertex[i].isSelect) {
-			trans[nTrans] = i;
-			nTrans++;
-		}
-	}
-
-	double *uc = new double[nTrans * 3];	// Prescribed displacement at each application point
-	double *fc = new double[nTrans * 3];	// Solved external force at each application point
-	int *mtrans = new int[nTrans];			// Indices in the stiffness matrix
-
-	for (int i = 0; i < nNode; i++){
-		// Initialize external forces.
-		vertex[i].force.Init();
-	}
-
-	for (int i = 0; i < nTrans; i++){
-		// Assign prescribed displacements to the selected vertices.
-		uc[i * 3 + 0] = (double)vertex[trans[i]].new_coord.x - (double)vertex[trans[i]].coord.x;
-		uc[i * 3 + 1] = (double)vertex[trans[i]].new_coord.y - (double)vertex[trans[i]].coord.y;
-		uc[i * 3 + 2] = (double)vertex[trans[i]].new_coord.z - (double)vertex[trans[i]].coord.z;
-		mtrans[i] = checkList[trans[i]];
-	}
-
-	// Build the submatrix.
-	int	nInc = 1;
-	int	nOrder = nTrans * 3;
-	int	three = 3;
-	int *ipiv;
-	int flag;
-	ipiv = new int[nOrder];
-	double **Lcc = (double **)Alloc2Dim(nOrder, nOrder);;
-
-	for (int i = 0; i < 3; i++){
-		for (int j = 0; j < nTrans; j++){
-			for (int k = 0; k < nTrans; k++){
-				// Extract submatrix Lcc from the global inverse stiffness matrix L.
-				DCOPY(&three, &L[mtrans[j] * 3 + i][mtrans[k] * 3], &nInc, &Lcc[i + j * 3][k * 3], &nInc);
-			}
-		}
-	}
-
-	double dAlpha = 1.0;
-	double dBeta = 0.0;
-	char cTrans = 'N';
-
-	memcpy(fc, uc, sizeof(double)*nTrans * 3);
-
-	// LU factorization
-	DGETRF(&nOrder, &nOrder, &Lcc[0][0], &nOrder, &ipiv[0], &flag);
-
-	// Solve the linear system.
-	DGETRS(&cTrans, &nOrder, &nInc, &Lcc[0][0], &nOrder, &ipiv[0], &fc[0], &nOrder, &flag);
-
-	// Store the solved external forces.
-	for (int i = 0; i < nTrans; i++){
-		vertex[trans[i]].force.SetVector((float)fc[i * 3], (float)fc[i * 3 + 1], (float)fc[i * 3 + 2]);
-	}
-
-	delete[] ipiv;
-	delete[] uc;
-	delete[] fc;
-	delete[] mtrans;
-	delete[] trans;
-	Free2Dim(Lcc);
-
-}
-
-
-void Object::Deform()
-{
-	if (nMatrixNode <= 0 || !matrixNode || !f || !u || !L) return;
-	if (useDirectSolver && g_useSolverLU && !luPivot) { useDirectSolver = false; }
+	if (nMatrixNode <= 0 || !matrixNode || !f || !u || !L) return false;
+	if (!useDirectSolver || !luPivot) return false;
 
 	// Set force vector (freezed vertex is removed in matrix calculation)
 	for (int i = 0; i<nMatrixNode; i++)
@@ -675,33 +659,16 @@ void Object::Deform()
 	int	nOrder = nMatrixNode * 3;
 	int nInc = 1;
 	char cTrans = 'N';
-	double	dAlpha = 1.0;
-	double	dBeta = 0.0;
 
-	if (useDirectSolver && g_useSolverLU)
+	// Single solver path: solve with the shared LU factors. DGETRS reads L
+	// and luPivot only, so concurrent workers can share one factorization.
+	memcpy(u, f, sizeof(double) * static_cast<size_t>(nOrder));
+	int info = 0;
+	DGETRS(&cTrans, &nOrder, &nInc, &L[0][0], &nOrder, &luPivot[0], &u[0], &nOrder, &info);
+	if (info != 0)
 	{
-		memcpy(u, f, sizeof(double) * static_cast<size_t>(nOrder));
-		int info = 0;
-		DGETRS(&cTrans, &nOrder, &nInc, &L[0][0], &nOrder, &luPivot[0], &u[0], &nOrder, &info);
-		if (info != 0)
-		{
-			printf("Warning: SIM2LEARN_SOLVER_USE_LU solve failed (info=%d), falling back to inverse path\n", info);
-			int nWork = nMatrixNode * 64;
-			double *work = new double[nWork];
-			int *ipiv = new int[nOrder];
-			info = 0;
-			memcpy(L[0], K[0], sizeof(double) * static_cast<size_t>(nOrder) * static_cast<size_t>(nOrder));
-			DGETRF(&nOrder, &nOrder, &L[0][0], &nOrder, &ipiv[0], &info);
-			DGETRI(&nOrder, &L[0][0], &nOrder, &ipiv[0], &work[0], &nWork, &info);
-			DGEMV(&cTrans, &nOrder, &nOrder, &dAlpha, &L[0][0], &nOrder, &f[0], &nInc, &dBeta, &u[0], &nInc);
-			delete[] ipiv;
-			delete[] work;
-			useDirectSolver = false;
-		}
-	}
-	else
-	{
-		DGEMV(&cTrans, &nOrder, &nOrder, &dAlpha, &L[0][0], &nOrder, &f[0], &nInc, &dBeta, &u[0], &nInc);
+		printf("Error: LU solve failed (info=%d), sample cannot be deformed\n", info);
+		return false;
 	}
 
 	// Update coordinates
@@ -712,6 +679,7 @@ void Object::Deform()
 		vertex[matrixNode[i]].new_coord.z = vertex[matrixNode[i]].coord.z + (float)u[i * 3 + 2];
 	}
 
+	return true;
 }
 bool Object::ReadObject(const std::string& filepath)
 {
@@ -909,9 +877,12 @@ bool Object::WritePLY(const std::string& filepath)
 		fprintf(fout, "3 %d %d %d\n", triangle[i].set[0], triangle[i].set[1], triangle[i].set[2]);
 	}
 
-	fclose(fout);
+	// Report disk-full/IO truncation to the caller instead of returning
+	// success for a partial file.
+	const bool ok = (ferror(fout) == 0);
+	if (fclose(fout) != 0) return false;
 
-	return true;
+	return ok;
 }
 
 
@@ -960,7 +931,10 @@ void Object::ComputeQualityTetrahedralMesh(char str[])
 	// Create tetraheda in silence mode
 	char quietStr[10];
 	sprintf(quietStr, "%sQ", str);
-	tetrahedralize(quietStr, &in, &out);
+	{
+		std::lock_guard<std::mutex> tetgen_lock(g_tetgenMutex);
+		tetrahedralize(quietStr, &in, &out);
+	}
 	
 	// temporary output files by tetgen
 	//	out.save_nodes("temp");
@@ -1122,7 +1096,10 @@ void Object::ComputeTetrahedralMesh()
 	}
 
 	// Create tetraheda
-	tetrahedralize("", &in, &out);
+	{
+		std::lock_guard<std::mutex> tetgen_lock(g_tetgenMutex);
+		tetrahedralize("", &in, &out);
+	}
 
 	InitTetrahedron(out.numberoftetrahedra);
 
@@ -1432,7 +1409,10 @@ bool Object::CheckSelfIntersection()
 
 
 	// Create tetraheda
-	tetrahedralize("d", &in, &out);
+	{
+		std::lock_guard<std::mutex> tetgen_lock(g_tetgenMutex);
+		tetrahedralize("d", &in, &out);
+	}
 
 	if (out.numberoftrifaces > 0) return true;  // intersect!
 	else return false;

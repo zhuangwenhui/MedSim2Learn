@@ -23,33 +23,6 @@ constexpr std::size_t kLineCapacityPerNode = 32;
 constexpr std::size_t kDenseMatrixCount = 2;
 constexpr std::size_t kElementScratchDoubles = 12 * 12 + 6 * 12;
 
-std::string json_escape(const std::string& value) {
-    std::ostringstream out;
-    for (char ch : value) {
-        switch (ch) {
-        case '\\':
-            out << "\\\\";
-            break;
-        case '"':
-            out << "\\\"";
-            break;
-        case '\n':
-            out << "\\n";
-            break;
-        case '\r':
-            out << "\\r";
-            break;
-        case '\t':
-            out << "\\t";
-            break;
-        default:
-            out << ch;
-            break;
-        }
-    }
-    return out.str();
-}
-
 std::size_t saturating_multiply(std::size_t lhs, std::size_t rhs) {
     if (lhs != 0 && rhs > std::numeric_limits<std::size_t>::max() / lhs) {
         return std::numeric_limits<std::size_t>::max();
@@ -219,6 +192,12 @@ void fill_input_facets(
 ) {
     input.numberoffacets = static_cast<int>(faces.size());
     input.facetlist = new tetgenio::facet[static_cast<std::size_t>(input.numberoffacets)];
+    // Zero-initialize every facet before anything below can throw: the index
+    // validation in the fill loop may exit mid-way, and tetgenio's destructor
+    // would otherwise delete the garbage pointers of the not-yet-filled facets.
+    for (std::size_t i = 0; i < faces.size(); ++i) {
+        tetgenio::init(&input.facetlist[i]);
+    }
     input.trifacemarkerlist = new int[static_cast<std::size_t>(input.numberoffacets)];
 
     for (std::size_t i = 0; i < faces.size(); ++i) {
@@ -228,7 +207,6 @@ void fill_input_facets(
         validate_face_index(vertices, face[2]);
 
         tetgenio::facet& facet = input.facetlist[i];
-        tetgenio::init(&facet);
         facet.numberofpolygons = 1;
         facet.polygonlist = new tetgenio::polygon[1];
         facet.numberofholes = 0;

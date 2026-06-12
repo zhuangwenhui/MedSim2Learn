@@ -2,12 +2,43 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "mvrmesh/core/types.h"
 
 namespace mvrmesh {
+
+// Escape a string for embedding inside a JSON string literal. Shared by every
+// writer that emits JSON by hand (pressure evaluator and pressure metrics);
+// Windows backslash paths in particular must not leak through unescaped.
+inline std::string json_escape(const std::string& value) {
+    std::ostringstream out;
+    for (char ch : value) {
+        switch (ch) {
+        case '\\':
+            out << "\\\\";
+            break;
+        case '"':
+            out << "\\\"";
+            break;
+        case '\n':
+            out << "\\n";
+            break;
+        case '\r':
+            out << "\\r";
+            break;
+        case '\t':
+            out << "\\t";
+            break;
+        default:
+            out << ch;
+            break;
+        }
+    }
+    return out.str();
+}
 
 struct DeformSimPressureOptions {
     std::string switches = "pYQ";

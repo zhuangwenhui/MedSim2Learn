@@ -68,11 +68,16 @@ bool Surface::ReadPLY(const std::string& filepath)
 
 	int property = 0;
 	int amira = 0;
+	bool ascii = false;
+	bool header_done = false;
 	Clear();
 
 	while(fin.getline(buf, sizeof(buf)))
 	{
 		// Reading headers
+		if (strstr(buf, "format ")) {
+			ascii = (strstr(buf, "format ascii") != NULL);
+		}
 		if (strstr(buf, "element vertex ")) {
 			if (sscanf(buf, "%s %s %d", &dummy, &dummy2, &num) == 3) {
 				nNode = num;
@@ -86,18 +91,41 @@ bool Surface::ReadPLY(const std::string& filepath)
 		if (strstr(buf, "property uchar red")){ property = 1; }
 		if (strstr(buf, "property uchar alpha")){ property = 2; }
 		if (strstr(buf, "Amira") || strstr(buf, "Avizo")){ amira = 1; }
-		if (strstr(buf, "end_header")) break;
+		if (strstr(buf, "end_header")) { header_done = true; break; }
 	}
-	
+
+	// A binary or truncated PLY must fail loudly here, not flow a silently
+	// degenerate mesh into tetrahedralization.
+	if (!header_done) {
+		fprintf(stderr, "Error: ReadPLY: missing end_header in %s\n", filepath.c_str());
+		return false;
+	}
+	if (!ascii) {
+		fprintf(stderr, "Error: ReadPLY: only 'format ascii 1.0' is supported: %s\n", filepath.c_str());
+		return false;
+	}
+	if (nNode <= 0 || nTriangle <= 0) {
+		fprintf(stderr, "Error: ReadPLY: invalid element counts (vertex=%d, face=%d) in %s\n",
+		        nNode, nTriangle, filepath.c_str());
+		return false;
+	}
+
 	Vertex v;
 	Triangle t;
 
-	if (nNode == 0) return false;
-
 	for(i=0; i< nNode; i++){
-		if (property == 1) fin >> v.new_coord.x >> v.new_coord.y >> v.new_coord.z >> num >> num >> num; 
+		if (property == 1) fin >> v.new_coord.x >> v.new_coord.y >> v.new_coord.z >> num >> num >> num;
 		else if (property == 2) fin >> v.new_coord.x >> v.new_coord.y >> v.new_coord.z >> num >> num >> num >> num;
 		else fin >> v.new_coord.x >> v.new_coord.y >> v.new_coord.z;
+		if (fin.fail()) {
+			fprintf(stderr, "Error: ReadPLY: truncated or non-numeric vertex data at vertex %d in %s\n",
+			        i, filepath.c_str());
+			return false;
+		}
+		if (!std::isfinite(v.new_coord.x) || !std::isfinite(v.new_coord.y) || !std::isfinite(v.new_coord.z)) {
+			fprintf(stderr, "Error: ReadPLY: non-finite coordinate at vertex %d in %s\n", i, filepath.c_str());
+			return false;
+		}
 		v.coord = v.new_coord;
 		v.cur_coord = v.new_coord;
 		v.isSurface = true;
@@ -105,8 +133,26 @@ bool Surface::ReadPLY(const std::string& filepath)
 	}
 
 	for(i=0; i< nTriangle; i++){
-		if (amira) fin >> num >> t.set[0] >> t.set[1] >> t.set[2] >> num;
-		else fin >> num >> t.set[0] >> t.set[1] >> t.set[2];
+		int face_count = 0;
+		if (amira) fin >> face_count >> t.set[0] >> t.set[1] >> t.set[2] >> num;
+		else fin >> face_count >> t.set[0] >> t.set[1] >> t.set[2];
+		if (fin.fail()) {
+			fprintf(stderr, "Error: ReadPLY: truncated or non-numeric face data at face %d in %s\n",
+			        i, filepath.c_str());
+			return false;
+		}
+		if (face_count != 3) {
+			fprintf(stderr, "Error: ReadPLY: face %d has %d vertices, only triangles are supported: %s\n",
+			        i, face_count, filepath.c_str());
+			return false;
+		}
+		for (int j = 0; j < 3; j++) {
+			if (t.set[j] < 0 || t.set[j] >= nNode) {
+				fprintf(stderr, "Error: ReadPLY: face %d references vertex %d outside [0, %d) in %s\n",
+				        i, t.set[j], nNode, filepath.c_str());
+				return false;
+			}
+		}
 		triangle.push_back(t);
 	}
 

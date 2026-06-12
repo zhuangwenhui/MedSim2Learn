@@ -11,7 +11,6 @@
 #include "object.h"
 #include "surface.h"
 
-bool g_useSolverLU = false;
 
 namespace {
 

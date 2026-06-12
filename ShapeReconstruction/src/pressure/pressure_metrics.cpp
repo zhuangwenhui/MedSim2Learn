@@ -63,7 +63,7 @@ void write_single_json(
     if (!out) throw std::runtime_error("cannot open output: " + output_path.string());
 
     out << "{\n";
-    out << "  \"input_ply\": \"" << input_ply.string() << "\",\n";
+    out << "  \"input_ply\": \"" << json_escape(input_ply.string()) << "\",\n";
     out << "  \"v_surface\": " << m.v_surface << ",\n";
     out << "  \"v_tet\": " << m.v_tet << ",\n";
     out << "  \"expansion_ratio\": " << m.expansion_ratio << ",\n";
@@ -76,7 +76,7 @@ void write_single_json(
     out << "  \"tetgen_success\": " << (m.tetgen_success ? "true" : "false") << ",\n";
     out << "  \"tetgen_switches\": \"" << m.tetgen_switches << "\"";
     if (!m.failure_reason.empty()) {
-        out << ",\n  \"failure_reason\": \"" << m.failure_reason << "\"";
+        out << ",\n  \"failure_reason\": \"" << json_escape(m.failure_reason) << "\"";
     }
     out << "\n}\n";
 }

@@ -1,5 +1,8 @@
 #include <exception>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -7,6 +10,7 @@
 #include "test_helpers.h"
 
 #include "mvrmesh/pressure/pressure_evaluator.h"
+#include "mvrmesh/pressure/pressure_metrics.h"
 #include "mvrmesh/core/types.h"
 
 namespace {
@@ -85,6 +89,44 @@ void test_deformsim_pressure_json_matches_diagnostic_shape() {
     require(json.find("\"estimated_dense_k_l_bytes\": 2304") != std::string::npos, "JSON should include dense matrix estimate");
 }
 
+void test_deformsim_pressure_json_escapes_backslash_path() {
+    mvrmesh::DeformSimPressureResult result;
+    result.input_ply = "D:\\tmp\\tiny.ply";
+
+    const std::string json = mvrmesh::deformsim_pressure_to_json(result);
+    require(
+        json.find("\"input_ply\": \"D:\\\\tmp\\\\tiny.ply\"") != std::string::npos,
+        "Pressure JSON should escape backslashes in the PLY path"
+    );
+}
+
+void test_write_single_json_escapes_backslash_paths() {
+    const std::filesystem::path out_path =
+        std::filesystem::temp_directory_path() / "mvrmesh_write_single_json_escape.json";
+
+    mvrmesh::PressureMetrics m;
+    m.tetgen_success = false;
+    m.failure_reason = "read_ply: cannot open D:\\data\\missing.ply";
+    mvrmesh::write_single_json(out_path, std::filesystem::path("D:\\data\\input.ply"), m);
+
+    std::ifstream in(out_path);
+    require(static_cast<bool>(in), "write_single_json output should be readable back");
+    std::ostringstream buffer;
+    buffer << in.rdbuf();
+    in.close();
+    const std::string json = buffer.str();
+    std::filesystem::remove(out_path);
+
+    require(
+        json.find("\"input_ply\": \"D:\\\\data\\\\input.ply\"") != std::string::npos,
+        "write_single_json should escape backslashes in input_ply"
+    );
+    require(
+        json.find("\"failure_reason\": \"read_ply: cannot open D:\\\\data\\\\missing.ply\"") != std::string::npos,
+        "write_single_json should escape backslashes in failure_reason"
+    );
+}
+
 void test_deformsim_pressure_json_rejects_out_of_range_boundary_face_index() {
     mvrmesh::DeformSimPressureResult result;
     result.success = true;
@@ -113,6 +155,8 @@ int main() {
     try {
         test_deformsim_pressure_tetrahedralizes_closed_surface();
         test_deformsim_pressure_json_matches_diagnostic_shape();
+        test_deformsim_pressure_json_escapes_backslash_path();
+        test_write_single_json_escapes_backslash_paths();
         test_deformsim_pressure_json_rejects_out_of_range_boundary_face_index();
     } catch (const std::exception& ex) {
         std::cerr << "[fail] " << ex.what() << "\n";

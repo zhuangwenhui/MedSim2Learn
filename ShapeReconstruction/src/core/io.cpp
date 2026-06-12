@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -48,61 +49,131 @@ bool is_section_marker(const std::string& line) {
     return std::all_of(line.begin() + 1, line.end(), [](char ch) { return std::isdigit(static_cast<unsigned char>(ch)) != 0; });
 }
 
-int parse_required_int(const std::vector<std::string>& parts, const std::string& label) {
-    if (parts.size() < 2) {
-        throw std::runtime_error("Missing numeric value for " + label);
-    }
+// A content line of an .mvr section together with its 1-based line number in
+// the source file, so parse errors can point back at the offending line.
+struct NumberedLine {
+    std::size_t line_number = 0;
+    std::string text;
+};
+
+[[noreturn]] void throw_field_error(
+    const std::string& token,
+    const std::filesystem::path& path,
+    std::size_t line_number,
+    const std::string& context,
+    const std::string& reason
+) {
+    std::ostringstream oss;
+    oss << "Failed to parse " << context << " in " << path.string()
+        << " at line " << line_number << ": " << reason << " '" << token << "'";
+    throw std::runtime_error(oss.str());
+}
+
+int parse_int_field(
+    const std::string& token,
+    const std::filesystem::path& path,
+    std::size_t line_number,
+    const std::string& context
+) {
     std::size_t consumed = 0;
-    const int value = std::stoi(parts[1], &consumed);
-    if (consumed != parts[1].size()) {
-        throw std::runtime_error("Invalid numeric value for " + label + ": " + parts[1]);
+    int value = 0;
+    try {
+        value = std::stoi(token, &consumed);
+    } catch (const std::exception&) {
+        throw_field_error(token, path, line_number, context, "invalid integer token");
+    }
+    if (consumed != token.size()) {
+        throw_field_error(token, path, line_number, context, "trailing characters in integer token");
     }
     return value;
 }
 
-std::vector<Vec3> parse_vertices(const std::vector<std::string>& lines) {
+double parse_double_field(
+    const std::string& token,
+    const std::filesystem::path& path,
+    std::size_t line_number,
+    const std::string& context
+) {
+    std::size_t consumed = 0;
+    double value = 0.0;
+    try {
+        value = std::stod(token, &consumed);
+    } catch (const std::exception&) {
+        throw_field_error(token, path, line_number, context, "invalid floating-point token");
+    }
+    if (consumed != token.size()) {
+        throw_field_error(token, path, line_number, context, "trailing characters in floating-point token");
+    }
+    if (!std::isfinite(value)) {
+        throw_field_error(token, path, line_number, context, "non-finite floating-point token");
+    }
+    return value;
+}
+
+int parse_required_int(
+    const std::vector<std::string>& parts,
+    const std::string& label,
+    const std::filesystem::path& path,
+    std::size_t line_number
+) {
+    if (parts.size() < 2) {
+        throw std::runtime_error("Missing numeric value for " + label);
+    }
+    return parse_int_field(parts[1], path, line_number, label);
+}
+
+std::vector<Vec3> parse_vertices(
+    const std::vector<NumberedLine>& lines,
+    const std::filesystem::path& path
+) {
     std::vector<Vec3> out;
     out.reserve(lines.size());
-    for (const std::string& line : lines) {
-        const std::vector<std::string> parts = split_ws(line);
+    for (const NumberedLine& line : lines) {
+        const std::vector<std::string> parts = split_ws(line.text);
         if (parts.size() >= 3) {
             out.push_back(Vec3{
-                std::stod(parts[0]),
-                std::stod(parts[1]),
-                std::stod(parts[2]),
+                parse_double_field(parts[0], path, line.line_number, "vertex section @1"),
+                parse_double_field(parts[1], path, line.line_number, "vertex section @1"),
+                parse_double_field(parts[2], path, line.line_number, "vertex section @1"),
             });
         }
     }
     return out;
 }
 
-std::vector<Face> parse_triangles(const std::vector<std::string>& lines) {
+std::vector<Face> parse_triangles(
+    const std::vector<NumberedLine>& lines,
+    const std::filesystem::path& path
+) {
     std::vector<Face> out;
     out.reserve(lines.size());
-    for (const std::string& line : lines) {
-        const std::vector<std::string> parts = split_ws(line);
+    for (const NumberedLine& line : lines) {
+        const std::vector<std::string> parts = split_ws(line.text);
         if (parts.size() >= 3) {
             out.push_back(Face{
-                std::stoi(parts[0]),
-                std::stoi(parts[1]),
-                std::stoi(parts[2]),
+                parse_int_field(parts[0], path, line.line_number, "triangle section @3"),
+                parse_int_field(parts[1], path, line.line_number, "triangle section @3"),
+                parse_int_field(parts[2], path, line.line_number, "triangle section @3"),
             });
         }
     }
     return out;
 }
 
-std::vector<Tet> parse_tetra(const std::vector<std::string>& lines) {
+std::vector<Tet> parse_tetra(
+    const std::vector<NumberedLine>& lines,
+    const std::filesystem::path& path
+) {
     std::vector<Tet> out;
     out.reserve(lines.size());
-    for (const std::string& line : lines) {
-        const std::vector<std::string> parts = split_ws(line);
+    for (const NumberedLine& line : lines) {
+        const std::vector<std::string> parts = split_ws(line.text);
         if (parts.size() >= 4) {
             out.push_back(Tet{
-                std::stoi(parts[0]),
-                std::stoi(parts[1]),
-                std::stoi(parts[2]),
-                std::stoi(parts[3]),
+                parse_int_field(parts[0], path, line.line_number, "tetrahedron section @4"),
+                parse_int_field(parts[1], path, line.line_number, "tetrahedron section @4"),
+                parse_int_field(parts[2], path, line.line_number, "tetrahedron section @4"),
+                parse_int_field(parts[3], path, line.line_number, "tetrahedron section @4"),
             });
         }
     }
@@ -117,7 +188,7 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
         throw std::runtime_error("Failed to open input file: " + path.string());
     }
 
-    std::map<int, std::vector<std::string>> sections;
+    std::map<int, std::vector<NumberedLine>> sections;
     bool has_active_section = false;
     int section_id = -1;
     std::optional<int> declared_vertices;
@@ -126,7 +197,9 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
     BoundingBox bounding_box;
 
     std::string raw;
+    std::size_t line_number = 0;
     while (std::getline(input, raw)) {
+        ++line_number;
         const std::string line = trim_copy(raw);
         if (line.empty() || line[0] == '#') {
             continue;
@@ -134,11 +207,11 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
 
         if (!has_active_section) {
             if (line.rfind("nVertex", 0) == 0) {
-                declared_vertices = parse_required_int(split_ws(line), "nVertex");
+                declared_vertices = parse_required_int(split_ws(line), "nVertex", path, line_number);
             } else if (line.rfind("nTriangle", 0) == 0) {
-                declared_triangles = parse_required_int(split_ws(line), "nTriangle");
+                declared_triangles = parse_required_int(split_ws(line), "nTriangle", path, line_number);
             } else if (line.rfind("nTetrahedron", 0) == 0) {
-                declared_tetra = parse_required_int(split_ws(line), "nTetrahedron");
+                declared_tetra = parse_required_int(split_ws(line), "nTetrahedron", path, line_number);
             } else if (line.rfind("Bounding Box", 0) == 0) {
                 const std::vector<std::string> bb_parts = split_ws(line);
                 if (bb_parts.size() >= 8) {
@@ -158,20 +231,20 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
         }
 
         if (is_section_marker(line)) {
-            section_id = std::stoi(line.substr(1));
+            section_id = parse_int_field(line.substr(1), path, line_number, "section marker");
             has_active_section = true;
             sections[section_id];
             continue;
         }
 
         if (has_active_section) {
-            sections[section_id].push_back(line);
+            sections[section_id].push_back(NumberedLine{line_number, line});
         }
     }
 
-    const std::vector<Vec3> vertices = parse_vertices(sections[1]);
-    const std::vector<Face> triangles_raw = parse_triangles(sections[3]);
-    const std::vector<Tet> tets_raw = parse_tetra(sections[4]);
+    const std::vector<Vec3> vertices = parse_vertices(sections[1], path);
+    const std::vector<Face> triangles_raw = parse_triangles(sections[3], path);
+    const std::vector<Tet> tets_raw = parse_tetra(sections[4], path);
 
     if (vertices.empty()) {
         throw std::runtime_error("No vertices were found in section @1.");

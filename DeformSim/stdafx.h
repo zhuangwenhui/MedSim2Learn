@@ -61,6 +61,7 @@
 // Standard C++ Libraries
 // =============================================================================
 
+#include <cmath>
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -77,8 +78,7 @@
 // Intel Math Kernel Library (MKL) - UPDATED FOR MODERN VERSIONS
 // =============================================================================
 
-// OpenMP and MKL Core
-#include "omp.h"
+// MKL Core (threading controlled via the MKL service API, not omp_set_*)
 #include "mkl.h"
 
 // Link oneAPI MKL through the project settings; pragma comments are not needed.

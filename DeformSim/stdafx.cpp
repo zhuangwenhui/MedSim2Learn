@@ -19,7 +19,6 @@ static atomic<bool> g_progressHeartbeatStop(false);
 
 static const unsigned long long kFnvOffset64 = 14695981039346656037ULL;
 static const unsigned long long kFnvPrime64 = 1099511628211ULL;
-bool g_useSolverLU = false;
 
 struct SimHyperParams
 {
@@ -122,6 +121,10 @@ struct MatrixCacheKey
 
 static std::vector<CsvRecord> g_csvRecords;
 static mutex g_csvRecordsMutex;
+// Write-through journal for force labels: PLYs are useless without their CSV
+// rows, and the sorted final CSV is only written at the end of the run.
+static FILE* g_csvPartialFp = NULL;
+static int g_csvPartialCount = 0;
 static mutex g_outputStatsMutex;
 static mutex g_diagFileMutex;
 
@@ -306,7 +309,8 @@ static bool ParseFloatStrict(const char* raw, float& value)
     if (raw == NULL || raw[0] == '\0') return false;
     char* endPtr = NULL;
     float parsed = strtof(raw, &endPtr);
-    if (endPtr != raw && *endPtr == '\0')
+    // Reject nan/inf: every range check downstream is NaN-transparent.
+    if (endPtr != raw && *endPtr == '\0' && std::isfinite(parsed))
     {
         value = parsed;
         return true;
@@ -425,71 +429,79 @@ static bool LoadAnnotationJSON(const std::string& path, int nNode, AnnotationDat
     }
 
     nlohmann::json doc;
-    try
-    {
-        fin >> doc;
-    }
-    catch (const nlohmann::json::parse_error& e)
-    {
-        printf("Error: JSON parse error in %s: %s\n", path.c_str(), e.what());
-        return false;
-    }
-
     out.freeze_vertices.clear();
     out.contacts.clear();
 
-    if (doc.contains("freeze") && doc["freeze"].is_object() && doc["freeze"].contains("vertices"))
+    // One guard for the whole load: parse_error, type_error and out_of_range
+    // all derive from json::exception; a typo'd key or wrong-typed field must
+    // produce a clean error, not terminate the process.
+    try
     {
-        for (const auto& v : doc["freeze"]["vertices"])
+        fin >> doc;
+
+        if (doc.contains("freeze") && doc["freeze"].is_object() && doc["freeze"].contains("vertices"))
         {
-            int idx = v.get<int>();
-            if (idx < 0 || idx >= nNode)
+            if (!doc["freeze"]["vertices"].is_array())
             {
-                printf("Error: freeze vertex index %d out of range [0, %d)\n", idx, nNode);
+                printf("Error: 'freeze.vertices' must be an array in %s\n", path.c_str());
                 return false;
             }
-            out.freeze_vertices.push_back(idx);
+            for (const auto& v : doc["freeze"]["vertices"])
+            {
+                int idx = v.get<int>();
+                if (idx < 0 || idx >= nNode)
+                {
+                    printf("Error: freeze vertex index %d out of range [0, %d)\n", idx, nNode);
+                    return false;
+                }
+                out.freeze_vertices.push_back(idx);
+            }
+        }
+
+        std::unordered_set<int> freeze_set(out.freeze_vertices.begin(), out.freeze_vertices.end());
+        std::unordered_set<int> seed_set;
+
+        if (!doc.contains("contacts") || !doc["contacts"].is_array() || doc["contacts"].empty())
+        {
+            printf("Error: annotation file must contain a non-empty 'contacts' array\n");
+            return false;
+        }
+
+        for (const auto& c : doc["contacts"])
+        {
+            ContactSeed cs;
+            cs.vertex_index = c.at("seed").get<int>();
+            cs.k_ring = c.at("k_ring").get<int>();
+
+            if (cs.vertex_index < 0 || cs.vertex_index >= nNode)
+            {
+                printf("Error: contact seed index %d out of range [0, %d)\n", cs.vertex_index, nNode);
+                return false;
+            }
+            if (freeze_set.count(cs.vertex_index))
+            {
+                printf("Error: contact seed %d is also in freeze list\n", cs.vertex_index);
+                return false;
+            }
+            if (seed_set.count(cs.vertex_index))
+            {
+                printf("Error: duplicate contact seed index %d\n", cs.vertex_index);
+                return false;
+            }
+            if (cs.k_ring < 1)
+            {
+                printf("Error: k_ring must be >= 1, got %d for seed %d\n", cs.k_ring, cs.vertex_index);
+                return false;
+            }
+
+            seed_set.insert(cs.vertex_index);
+            out.contacts.push_back(cs);
         }
     }
-
-    std::unordered_set<int> freeze_set(out.freeze_vertices.begin(), out.freeze_vertices.end());
-    std::unordered_set<int> seed_set;
-
-    if (!doc.contains("contacts") || !doc["contacts"].is_array() || doc["contacts"].empty())
+    catch (const nlohmann::json::exception& e)
     {
-        printf("Error: annotation file must contain a non-empty 'contacts' array\n");
+        printf("Error: invalid annotation JSON in %s: %s\n", path.c_str(), e.what());
         return false;
-    }
-
-    for (const auto& c : doc["contacts"])
-    {
-        ContactSeed cs;
-        cs.vertex_index = c.at("seed").get<int>();
-        cs.k_ring = c.at("k_ring").get<int>();
-
-        if (cs.vertex_index < 0 || cs.vertex_index >= nNode)
-        {
-            printf("Error: contact seed index %d out of range [0, %d)\n", cs.vertex_index, nNode);
-            return false;
-        }
-        if (freeze_set.count(cs.vertex_index))
-        {
-            printf("Error: contact seed %d is also in freeze list\n", cs.vertex_index);
-            return false;
-        }
-        if (seed_set.count(cs.vertex_index))
-        {
-            printf("Error: duplicate contact seed index %d\n", cs.vertex_index);
-            return false;
-        }
-        if (cs.k_ring < 1)
-        {
-            printf("Error: k_ring must be >= 1, got %d for seed %d\n", cs.k_ring, cs.vertex_index);
-            return false;
-        }
-
-        seed_set.insert(cs.vertex_index);
-        out.contacts.push_back(cs);
     }
 
     printf("Annotation loaded: %zu freeze vertices, %zu contact seeds\n",
@@ -581,6 +593,11 @@ static SimHyperParams LoadSimHyperParams()
 
     LoadBoolParam(params.use_reuse_tetra_template, "SIM2LEARN_PARAM_USE_REUSE_TETRA_TEMPLATE", "SIM2LEARN_REUSE_TETRA_TEMPLATE");
     LoadBoolParam(params.use_solver_lu, "SIM2LEARN_PARAM_USE_SOLVER_LU", "SIM2LEARN_SOLVER_USE_LU");
+    if (!params.use_solver_lu)
+    {
+        printf("Warning: SIM2LEARN_PARAM_USE_SOLVER_LU=0 is no longer supported; the LU direct solver is the only path\n");
+        params.use_solver_lu = true;
+    }
     LoadBoolParam(params.use_matrix_solver_cache, "SIM2LEARN_PARAM_USE_MATRIX_SOLVER_CACHE", "SIM2LEARN_CACHE_MATRIX_SOLVER");
     LoadBoolParam(params.use_skip_normal_area, "SIM2LEARN_PARAM_SKIP_NORMAL_AREA", "SIM2LEARN_SKIP_NORMAL_AREA");
     LoadBoolParam(params.use_diag_contact_hash, "SIM2LEARN_PARAM_USE_DIAG_CONTACT_HASH", "SIM2LEARN_DIAG_CONTACT_HASH");
@@ -658,8 +675,15 @@ static unsigned int ConfigureMklThreads(const SimHyperParams& params, unsigned i
     if (derived > hardware_threads) derived = hardware_threads;
     if (derived == 0) derived = 1u;
 
-    omp_set_dynamic(0);
-    omp_set_num_threads(static_cast<int>(derived));
+    if (!auto_derived && app_threads * derived > hardware_threads)
+    {
+        printf("Warning: thread oversubscription: %u app threads x %u MKL threads exceeds %u hardware threads\n",
+               app_threads, derived, hardware_threads);
+    }
+
+    // Control MKL through its own service API only: the previous omp_set_*
+    // calls bound to the compiler's OpenMP runtime (vcomp), not to MKL's
+    // libiomp5md, and linking both runtimes is an Intel-documented hazard.
     mkl_set_dynamic(0);
     mkl_set_num_threads(static_cast<int>(derived));
     return derived;
@@ -682,6 +706,14 @@ static bool AppendCsvRecord(const std::string& sample_id, float fx, float fy, fl
     {
         return false;
     }
+    if (g_csvPartialFp != NULL)
+    {
+        fprintf(g_csvPartialFp, "%s,%.9g,%.9g,%.9g,%.9g\n", sample_id.c_str(), fx, fy, fz, norm);
+        if ((++g_csvPartialCount % 32) == 0)
+        {
+            fflush(g_csvPartialFp);
+        }
+    }
     return true;
 }
 
@@ -702,11 +734,18 @@ static std::vector<CsvRecord> BuildSortedCsvRecordsSnapshot()
 static bool WritePlyAndVerify(Object* object, const std::string& ply_path)
 {
     if (object == NULL) return false;
-    object->WritePLY(ply_path);
 
-    DWORD attrs = GetFileAttributesA(ply_path.c_str());
-    if (attrs == INVALID_FILE_ATTRIBUTES || (attrs & FILE_ATTRIBUTE_DIRECTORY))
+    // Write to a temp file and rename into place: a stale PLY from a prior
+    // run or a disk-full truncation must never pass as this sample's output.
+    const std::string tmp_path = ply_path + ".tmp";
+    if (!object->WritePLY(tmp_path))
     {
+        DeleteFileA(tmp_path.c_str());
+        return false;
+    }
+    if (!MoveFileExA(tmp_path.c_str(), ply_path.c_str(), MOVEFILE_REPLACE_EXISTING))
+    {
+        DeleteFileA(tmp_path.c_str());
         return false;
     }
 
@@ -715,6 +754,7 @@ static bool WritePlyAndVerify(Object* object, const std::string& ply_path)
     {
         return false;
     }
+    if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) return false;
     ULONGLONG size = (static_cast<ULONGLONG>(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
     return size > 0;
 }
@@ -1092,17 +1132,22 @@ void Generate_run_string(char *run_str, int max_len)
 
 	// transfer the time to local time
 	struct tm *local_time = localtime(&current_time);
+	const unsigned long pid = static_cast<unsigned long>(GetCurrentProcessId());
 	if (local_time == NULL)
 	{
-		snprintf(run_str, max_len, "run_unknown");
+		snprintf(run_str, max_len, "run_unknown_p%lu", pid);
 		return;
 	}
 
-	// format run timestamp as YY_MM_DD_HHMMSS
-	if (strftime(run_str, max_len, "%y_%m_%d_%H%M%S", local_time) == 0)
+	// Format run timestamp as YY_MM_DD_HHMMSS plus the PID: two runs started
+	// within the same second must not share an output directory.
+	char ts[32] = { 0 };
+	if (strftime(ts, sizeof(ts), "%y_%m_%d_%H%M%S", local_time) == 0)
 	{
-		snprintf(run_str, max_len, "run_unknown");
+		snprintf(run_str, max_len, "run_unknown_p%lu", pid);
+		return;
 	}
+	snprintf(run_str, max_len, "%s_p%lu", ts, pid);
 }
 static void BuildEtaString(char* eta_str, size_t eta_len, int completed, int total, double rate_samples_per_sec)
 {
@@ -1288,6 +1333,14 @@ static std::unique_ptr<std::vector<std::array<float, 4>>> generateVectorsFromCsv
 			        params.force_list_csv.c_str(), line_no, line.c_str());
 			return nullptr;
 		}
+		// Real sensor exports contain nan dropouts; one non-finite frame
+		// silently poisons the whole displacement field of its sample.
+		if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+		{
+			fprintf(stderr, "Error: non-finite force at %s:%d: '%s'\n",
+			        params.force_list_csv.c_str(), line_no, line.c_str());
+			return nullptr;
+		}
 
 		float norm = ComputeForceEuclidean(x, y, z);
 		array<float, 4> temp = {x, y, z, norm};
@@ -1300,7 +1353,13 @@ static std::unique_ptr<std::vector<std::array<float, 4>>> generateVectorsFromCsv
 		return nullptr;
 	}
 
-	params.num_vector = static_cast<int>(vectors->size());
+	const int csv_count = static_cast<int>(vectors->size());
+	if (getenv("SIM2LEARN_PARAM_NUM_VECTOR") != NULL && params.num_vector != csv_count)
+	{
+		printf("Warning: SIM2LEARN_PARAM_NUM_VECTOR=%d ignored, force list CSV provides %d rows\n",
+		       params.num_vector, csv_count);
+	}
+	params.num_vector = csv_count;
 	printf("Force list CSV: %s (%d explicit vectors; random+cone sampling bypassed)\n",
 	       params.force_list_csv.c_str(), params.num_vector);
 	return vectors;
@@ -1323,8 +1382,20 @@ std::unique_ptr<std::vector<std::array<float, 4>>> generateVectors(SimHyperParam
 	vectors->reserve(params.num_vector);
 
 	int count = 0;
+	// Rejection sampling must be bounded: an angle window that does not
+	// intersect the force box would otherwise spin forever before any output.
+	long long attempts = 0;
+	const long long max_attempts = 10000LL * static_cast<long long>(params.num_vector);
 	while (count < params.num_vector)
 	{
+		if (++attempts > max_attempts)
+		{
+			fprintf(stderr, "Error: force sampling rejected %lld candidates for %d accepted; "
+			        "angle window [%.1f, %.1f] deg likely incompatible with the force ranges\n",
+			        attempts, count, params.min_angle_deg, params.max_angle_deg);
+			return nullptr;
+		}
+
 		float x = RandomFloat(params.force_x_min, params.force_x_max);
 		float y = RandomFloat(params.force_y_min, params.force_y_max);
 		float z = RandomFloat(params.force_z_min, params.force_z_max); // make sure the z component is negative
@@ -1409,13 +1480,22 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
                 }
             }
         }
+        bool solve_ok = true;
         if (!used_matrix_cache)
         {
-            object->ComputeMatrixK();
+            solve_ok = object->ComputeMatrixK();
             object->ReleaseAssemblyScratch();
+            if (!solve_ok)
+            {
+                printf("Error: stiffness build failed for %s, sample skipped\n", sampleID);
+            }
         }
 
-        object->Deform();
+        if (solve_ok && !object->Deform())
+        {
+            solve_ok = false;
+            printf("Error: deformation solve failed for %s, sample skipped\n", sampleID);
+        }
         object->ReleaseSolverState();
         if (used_matrix_cache)
         {
@@ -1436,7 +1516,16 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
         task.selected_hash = selected_hash;
         g_computedTasks.fetch_add(1);
         g_inflightTasks.fetch_add(1);
-        WriteSampleOutput(task, dir_path, diag_fp, params, output_stats);
+        if (solve_ok)
+        {
+            WriteSampleOutput(task, dir_path, diag_fp, params, output_stats);
+        }
+        else
+        {
+            // A failed solve must never produce a PLY/CSV pair; count it as
+            // a failure so the final consistency check reports it.
+            RecordOutputFailure(output_stats);
+        }
         g_inflightTasks.fetch_sub(1);
     }
 }
@@ -1444,7 +1533,6 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
 int main(int argc, char* argv[])
 {
 	SimHyperParams params = LoadSimHyperParams();
-	g_useSolverLU = params.use_solver_lu;
 
 	printf("\nPLY path: %s\n", params.ply_path.c_str());
 	printf("Annotation path: %s\n", params.annotation_path.c_str());
@@ -1453,7 +1541,7 @@ int main(int argc, char* argv[])
 	printf("Random seed: %u\n", params.seed);
 	printf("Contact hash diagnostics: %s\n", params.use_diag_contact_hash ? "ON" : "OFF");
 	printf("Tetra template reuse: %s\n", params.use_reuse_tetra_template ? "ON" : "OFF");
-	printf("Solver LU: %s\n", params.use_solver_lu ? "ON" : "OFF");
+	printf("Solver: LU direct (factor + DGETRS)\n");
 	printf("Matrix solver cache: %s\n", params.use_matrix_solver_cache ? "ON" : "OFF");
 	printf("Skip normal/area: %s\n", params.use_skip_normal_area ? "ON" : "OFF");
 	printf("Output isolation: %s\n", params.isolate_output ? "ON" : "OFF");
@@ -1503,7 +1591,18 @@ int main(int argc, char* argv[])
 	{
 		printf("Directory created: %s\n", dir_path);
 	}
-	else if (errno != EEXIST)
+	else if (errno == EEXIST)
+	{
+		if (params.isolate_output)
+		{
+			// The isolated directory name embeds timestamp+PID; if it already
+			// exists something is reusing this run's identity. Refuse to mix.
+			printf("Error: isolated output directory already exists: %s\n", dir_path);
+			return 1;
+		}
+		printf("Warning: reusing existing directory %s; stale *.ply from earlier runs may mix into this dataset\n", dir_path);
+	}
+	else
 	{
 		printf("Error creating directory: %s\n", dir_path);
 		return 1;
@@ -1511,6 +1610,16 @@ int main(int argc, char* argv[])
 
 	char csv_filename[200];
 	sprintf(csv_filename, "%s/SampleID_log%s.csv", dir_path, run_str);
+
+	// Open the label journal: it preserves every force row a crash would
+	// otherwise lose, and is removed once the sorted final CSV is on disk.
+	char csv_partial_filename[220];
+	snprintf(csv_partial_filename, sizeof(csv_partial_filename), "%s.partial", csv_filename);
+	g_csvPartialFp = fopen(csv_partial_filename, "w");
+	if (g_csvPartialFp == NULL)
+	{
+		printf("Warning: cannot open CSV journal %s; labels stay in memory until the end of the run\n", csv_partial_filename);
+	}
 
 	FILE* diag_fp = NULL;
 	char diag_filename[200];
@@ -1570,8 +1679,15 @@ int main(int argc, char* argv[])
 			ApplyFreezeFromAnnotation(matrix_template.get(), annotation.freeze_vertices);
 			unsigned long long matrix_mesh_hash = ComputeMeshHash(matrix_template.get());
 			matrix_cache_key = BuildMatrixCacheKey(matrix_template.get(), params, matrix_mesh_hash);
-			matrix_template->ComputeMatrixK();
+			bool matrix_ok = matrix_template->ComputeMatrixK();
 			matrix_template->ReleaseAssemblyScratch();
+			if (!matrix_ok)
+			{
+				// Same mesh and material for every sample: if the template
+				// factorization fails, every per-sample solve fails too.
+				printf("Error: stiffness factorization failed on the template mesh, aborting run\n");
+				return 1;
+			}
 			matrix_cache_ready = true;
 			printf("Matrix solver cache ready: YES\n");
 		}
@@ -1663,9 +1779,26 @@ int main(int argc, char* argv[])
 		diag_fp = NULL;
 	}
 	PrintFinalizingCsvLine(g_computedTasks.load());
-	if (!WriteFinalSortedCsv(csv_filename, &output_stats))
+	bool final_csv_ok = WriteFinalSortedCsv(csv_filename, &output_stats);
+	if (!final_csv_ok)
 	{
 		++output_stats.write_failures;
+	}
+	{
+		lock_guard<mutex> lock(g_csvRecordsMutex);
+		if (g_csvPartialFp != NULL)
+		{
+			fclose(g_csvPartialFp);
+			g_csvPartialFp = NULL;
+		}
+	}
+	if (final_csv_ok)
+	{
+		DeleteFileA(csv_partial_filename);
+	}
+	else
+	{
+		printf("Note: CSV journal kept at %s\n", csv_partial_filename);
 	}
 
 	bool output_ok = ValidateOutputConsistency(output_stats, params.use_diag_contact_hash, numObjects, g_computedTasks.load());

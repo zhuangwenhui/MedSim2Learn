@@ -77,9 +77,8 @@ public:
 	void ComputeVolume();
 
 
-	void ComputeMatrixK(void);
-	void Force();
-	void Deform();
+	bool ComputeMatrixK(void);
+	bool Deform();
 	bool CloneMatrixStateFrom(const Object& source);
 	void ReleaseAssemblyScratch();
 	void ReleaseSolverState();
@@ -94,6 +93,7 @@ private:
 	int *matrixNode;		// vertex index list in matrix
 	int *checkList;			// fransfer table from vertex index to matrix element index
 	int *luPivot;			// pivot array for LU direct solve
+	bool solverStateShared;	// L/luPivot borrowed from the matrix template (not owned)
 	double **K;				// stiffness matrix
 	double **L;				// inverse K matrix
 
@@ -111,7 +111,7 @@ private:
 	void ComputeMatrixD(double **D, double E, double v);
 	void ComputeMatrixB(double **B, double &detJ, int num);
 	void ComputeMatrixT(Matrix4x4 &T, int num);
-	void ComputeMatrixKe(int num);
+	bool ComputeMatrixKe(int num);
 
 };
 
