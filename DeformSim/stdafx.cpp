@@ -702,8 +702,7 @@ static std::vector<CsvRecord> BuildSortedCsvRecordsSnapshot()
 static bool WritePlyAndVerify(Object* object, const std::string& ply_path)
 {
     if (object == NULL) return false;
-    CString path(ply_path.c_str());
-    object->WritePLY(path);
+    object->WritePLY(ply_path);
 
     DWORD attrs = GetFileAttributesA(ply_path.c_str());
     if (attrs == INVALID_FILE_ATTRIBUTES || (attrs & FILE_ATTRIBUTE_DIRECTORY))
@@ -1442,7 +1441,7 @@ void processObjects(int total_objects, const std::string& dir_path, FILE* diag_f
     }
 }
 
-int main(int argc, TCHAR *argv[], TCHAR *envp[])
+int main(int argc, char* argv[])
 {
 	SimHyperParams params = LoadSimHyperParams();
 	g_useSolverLU = params.use_solver_lu;
@@ -1468,7 +1467,7 @@ int main(int argc, TCHAR *argv[], TCHAR *envp[])
 	}
 
 	auto s = std::make_unique<Surface>();
-	s->ReadPLY(CString(params.ply_path.c_str()));
+	s->ReadPLY(params.ply_path);
 	if (s->nNode == 0 || s->nTriangle == 0)
 	{
 		printf("Error: Cannot read PLY file: %s\n", params.ply_path.c_str());

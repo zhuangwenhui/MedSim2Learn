@@ -45,8 +45,8 @@ public:
 	Surface();
 	~Surface();
 
-	bool ReadPLY(CString filepath);
-	bool WritePLY(CString filepath);
+	bool ReadPLY(const std::string& filepath);
+	bool WritePLY(const std::string& filepath);
 	void Clear();
 
 	void ComputeBoundingBox();
@@ -54,23 +54,9 @@ public:
 	void ComputeNormal();
 	void ComputeArea();
 
-	void ComputeLaplacian();
-	void ComputeLeastSquareMesh();
 	void SmoothSurface(float r);
 	void ResampleVertex(float r);
 
-	void RenderVertex();
-	void RenderLine();
-	void RenderNormal();
-	void RenderLaplacian();
-	void RenderTriangle();
-	void RenderSurface();
-	void RenderColorMap(float min_d, float max_d);
-	void RenderDeform(float min_d, float max_d);
-	void RenderVector(float d, float s);
-
-	Vector3f GetColorValue(float min, float max, int step, int num);
-	Vector3f ChangeHSVToColor(float hue, float saturation, float value);
 
 	double **Alloc2Dim(int nRows, int nColumns);
 	void Free2Dim(double **x){ if (NULL == x){ return; } free(x[0]); free(x); x = NULL; }

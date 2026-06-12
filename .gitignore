@@ -98,7 +98,6 @@ Testing/
 /DeformSim/**/*.VC.db
 /DeformSim/**/*.VC.VC.opendb
 /DeformSim/**/__mkl_*.tmp
-/DeformSim/res/
 /DeformSim/**/*.ply
 /DeformSim/**/*.csv
 /DeformSim/**/debug.log

@@ -595,7 +595,6 @@ MatrixMxN &MatrixMxN::operator/=(double a)
 }
 
 
-
 bool MatrixMxN::operator!=(MatrixMxN mat)
 {
 	for (int j = 0; j < nColumns; j++){
@@ -683,15 +682,6 @@ void MatrixMxN::Transpose()
 
 }
 
-void MatrixMxN::Indentity()
-{
-	for (int j = 0; j < nColumns; j++){
-		for (int i = 0; i < nRows; i++){
-			if (i == j) SetValue(i, j, 1);
-			else SetValue(i, j, 0);
-		}
-	}
-}
 
 void MatrixMxN::Inverse()
 {

@@ -593,7 +593,7 @@ int main(int argc, char** argv) {
         }
 
         stage = "read_ply";
-        if (!surface.ReadPLY(CString(input_path.string().c_str()))) {
+        if (!surface.ReadPLY(input_path.string())) {
             diagnostic = "Surface::ReadPLY failed";
             write_json_result(
                 output_path, input_path, surface, object, DiagnosticBoundingBox{},

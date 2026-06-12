@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         }
 
         Surface surface;
-        if (!surface.ReadPLY(CString(input_path.string().c_str()))) {
+        if (!surface.ReadPLY(input_path.string())) {
             throw std::runtime_error("Surface::ReadPLY failed for: " + input_path.string());
         }
         if (surface.nNode <= 0 || surface.nTriangle <= 0) {

@@ -62,9 +62,9 @@ public:
 	void InitTriangle(int a){ if (triangle) delete[] triangle; nTriangle = a; triangle = new Triangle[nTriangle]; }
 	void InitTetrahedron(int a){ if (tetra) delete[] tetra; nTetra = a; tetra = new Tetrahedron[nTetra]; }
 
-	bool ReadObject(CString filepath);
-	bool WriteObject(CString filepath);
-	bool WritePLY(CString filepath);
+	bool ReadObject(const std::string& filepath);
+	bool WriteObject(const std::string& filepath);
+	bool WritePLY(const std::string& filepath);
 	void Clear();
 
 	void ComputeTetrahedralMesh();
@@ -76,9 +76,6 @@ public:
 	void ComputeArea();
 	void ComputeVolume();
 
-	void ComputeLaplacian();
-	void ComputeDisplacementLaplacian();
-	void ComputeLeastSquareMesh();
 
 	void ComputeMatrixK(void);
 	void Force();
@@ -87,22 +84,7 @@ public:
 	void ReleaseAssemblyScratch();
 	void ReleaseSolverState();
 
-	void RenderVertex();
-	void RenderLine();
-	void RenderTriangle();
-	void RenderSurface(Vector4f color);
-	void RenderStress(float max_stress);
-	void RenderColorMap();
-	void RenderColorMap(float min_d, float max_d);
-	void RenderDeform(float min_d, float max_d);
-	void RenderNormal();
-	void RenderLaplacian();
-	void RenderVector(float d, float s);
-	Vector3f GetColorValue(float min, float max, int step, int num);
-	Vector3f ChangeHSVToColor(float hue, float saturation, float value);
 
-	void MapObject(Object *o);
-	void UpdateObject(Object *o);
 	bool CheckSelfIntersection();
 	bool CheckInOutSurface(Vector3f pos);
 	void Smooth(float r);

@@ -133,7 +133,6 @@ public:
 	VectorNf GetRowVector(int i);			// Return row i as a vector.
 	VectorNf GetColumnVector(int j);		// Return column j as a vector.
 
-	void Indentity();						// Set to the identity matrix.
 	void Transpose();						// Transpose the matrix.
 	void Inverse();							// Invert the matrix.
 

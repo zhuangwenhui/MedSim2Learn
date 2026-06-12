@@ -97,21 +97,4 @@ public:
 };
 
 
-class BoundingBox
-{
-public:
-
-	Vector3f axisX, axisY, axisZ;
-	Vector3f center;
-
-	void Rotate(float angle, Vector3f axis);
-	void Scale(Vector3f scale);
-	void Translate(Vector3f trans);
-	void Transform(Matrix4x4 mat);
-
-	void RenderBoundingBox(Vector3f eye);
-
-};
-
-
 #endif

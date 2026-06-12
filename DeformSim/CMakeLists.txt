@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(DeformSim LANGUAGES CXX RC)
+project(DeformSim LANGUAGES CXX)
 
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/FindLocalDeps.cmake)
 
