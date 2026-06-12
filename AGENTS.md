@@ -20,11 +20,17 @@ This `AGENTS.md` file provides instructions for OpenAI Codex and other AI agents
 
 5. All code comments must be written in English.
 
-6. Git operations are controlled by the user. Do not stage, commit, push, merge, or roll back user changes without explicit user approval. If the user asks for a commit but has not authorized the action, provide only a suggested commit message.
+6. Git operations are controlled by the user; see **Git Commit Policy** below for signature, commit cadence, and approach-racing rules. Do not push, merge, rebase, or roll back without explicit user approval.
 
 7. The Main Agent normally delegates command execution, tests, and heavy inspection to sub-agents. Lightweight local reads for coordination are allowed only when needed to plan or delegate, and must be kept minimal.
 
 8. Verification artifacts must be tracked in a Markdown roster before or while tests run. Record the artifact path, purpose, owner, and cleanup expectation. After the task, reconcile the roster against actual logs/results, then clean up temporary artifacts unless the user asks to preserve them.
+
+### Git Commit Policy
+
+- **Signature (absolute):** every commit's author and committer is ONLY `WENHUIZ <84453228+zhuangwenhui@users.noreply.github.com>`. No `Co-Authored-By`, no "Generated with Claude Code", no AI/tool footer. Messages are human-style Conventional Commits, not AI-prompt prose or a spec/plan changelog.
+- **Cadence:** let small / incremental changes accumulate and wait for the user's commit decision (their office hours). Auto-commit to the current branch is authorized only for overnight, handed-off exploratory tasks, so the working branch does not race far ahead of master.
+- **Racing approaches:** see Branch Management below — race each rival approach in its own worktree and merge only the winner.
 
 ---
 
@@ -111,6 +117,7 @@ When optimizing existing code:
 - Branch worktrees must be created only in a sibling directory of the repository root, not on another drive or under user config/cache directories.
 - Do not create branch worktrees on a different disk from the main project checkout. Cross-disk worktrees can leak absolute build, dependency, or validation paths into generated configuration and later make merge or handoff validation ambiguous.
 - Before deleting a branch worktree, compare it with the main checkout, preserve any required local-only files, then remove the worktree and branch only after the user explicitly approves the git operation.
+- When racing rival technical approaches (赛马), give each approach its own worktree (sibling dir, same disk) and commit only inside it; never accumulate competing approaches on one shared branch — it bloats trunk with dead-end code that must later be surgically deleted. After the race, delete the losing worktrees, absorb only the winner's useful bits into one clean change, then merge that to master, so trunk records the winner rather than every loser (cf. the ShapeReconstruction robust-pipeline -> realignment deletion churn: whole features authored into master then removed).
 
 ### Code Reuse
 

@@ -1,76 +1,52 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Top-level rules for the `MedSim2Learn` workspace. They apply across **all** sub-projects. Where this file and a sub-project's `CLAUDE.md` agree, follow both; where they conflict, the user's explicit instructions in the current conversation win. The full authoritative ruleset is `AGENTS.md`; this is the Claude-Code-oriented distillation.
 
-## Workspace layout
+`MedSim2Learn` is a multi-module workspace — each top-level folder is an independent project with its own build system. Do not restate the file/folder architecture here: it is covered by the graphify knowledge graphs (below) and each sub-project's own `CLAUDE.md`.
 
-`MedSim2Learn` is a multi-module workspace. Each top-level folder is an independent project with its own build system, dependencies, and (optionally) its own `CLAUDE.md` for module-specific guidance:
+## Knowledge graphs (use before scanning)
 
-| Folder | Role |
-|--------|------|
-| `ShapeReconstruction/` | C++20 surface reconstruction (`.mvr` -> PLY) and DeformSim pre-flight diagnostics. |
-| `DeformSim/` | Deformation simulation solver. |
-| `Deform_post/` | Post-processing of DeformSim outputs. |
-| `KiDKNet/` | Learning-based component. |
-| `build/` | Out-of-tree CMake build artefacts (sibling per project, e.g. `build/ShapeReconstruction/...`). |
-| `docs/`, `plans/`, `specs/` | Cross-project documentation and planning. |
-
-When working inside a sub-project, always read that sub-project's `CLAUDE.md` (if present) for build commands, architecture, and module-specific conventions. The rules in this top-level file apply across **all** sub-projects.
-
-## Knowledge graphs
-
-Some sub-projects have graphify-generated knowledge graphs. **Read the matching `GRAPH_REPORT.md` before grep'ing or scanning source files in that sub-project** — the report lists god nodes, community structure, and cross-cutting bridges that orient a session in unfamiliar code far faster than raw search. This index is workspace-wide, so it works regardless of which sub-project the current session's `cwd` happens to be in.
+**Read the matching `GRAPH_REPORT.md` before grep'ing or scanning source files in a sub-project** — it lists god nodes, community structure, and bridges that orient a session far faster than raw search, regardless of the session `cwd`.
 
 | Sub-project | Report | Raw graph |
 |---|---|---|
 | ShapeReconstruction | `ShapeReconstruction/graphify-out/GRAPH_REPORT.md` | `ShapeReconstruction/graphify-out/graph.json` |
 | DeformSim | `DeformSim/graphify-out/GRAPH_REPORT.md` | `DeformSim/graphify-out/graph.json` |
 
-Maintain with `python -m graphify update <sub-project-path>` after non-trivial code changes; add a row above when a new sub-project's graph is built, and remove the row if a graph is retired.
+Maintain with `python -m graphify update <sub-project-path>` after non-trivial code changes; update the table when a graph is added or retired.
 
 ## Global rules (apply to every sub-project)
 
-These are the binding constraints distilled from `AGENTS.md`. Where this file and a sub-project's `CLAUDE.md` agree, follow both; where they conflict, the user's explicit instructions in the current conversation win.
-
 ### Communication
-
-- All user-facing responses must be written in Chinese.
-- All code comments, identifiers, and commit messages must be in English.
-- Do not output emoji in chat or in code/files.
+- All user-facing responses in Chinese. All code comments, identifiers, and commit messages in English. No emoji anywhere.
 
 ### Host and tooling
-
 - The host has **no `sudo`**. Do not invent commands that require it.
-- Git is controlled by the user. Do not stage, commit, push, merge, rebase, or roll back without explicit user approval. If asked for a commit, propose a Conventional Commits message and let the user run it.
 - When the user pushes back on an action, stop and re-plan instead of retrying the same tool call.
 
-### Change discipline
+### Git: signature, commit cadence, racing
+- **Signature (absolute).** Every commit's author and committer is ONLY `WENHUIZ <84453228+zhuangwenhui@users.noreply.github.com>`. No `Co-Authored-By`, no "Generated with Claude Code", no AI/tool footer. Messages are human-style Conventional Commits — not AI-prompt prose or a spec/plan changelog.
+- **Commit cadence.** Default to letting small / incremental changes accumulate and waiting for the user's commit decision (their office hours). Auto-commit to the current branch is authorized only for overnight, handed-off exploratory tasks. This keeps the working branch from racing far ahead of master and bloating.
+- **Race in isolated worktrees; merge only the winner.** When racing rival technical approaches (赛马), give each approach its own worktree (sibling dir, same disk) and commit only inside it. Never pile competing approaches onto one shared branch — it bloats trunk with dead-end code that must later be surgically deleted (cf. ShapeReconstruction's robust-pipeline -> realignment churn: whole features authored into master then removed, ~13 of 36 commits pure deletions). After the race: delete the losing worktrees, absorb only the winner's useful bits into one clean change, then merge that to master.
 
-- No unbounded refactors. Prefer minimal, scoped, behavior-preserving changes layered on the existing structure. Separate refactors from feature work and bug fixes unless the refactor is strictly required.
-- Reuse and extend existing classes, methods, and utilities before introducing new ones. Avoid duplicating logic across modules.
+### Change discipline
+- No unbounded refactors. Prefer minimal, scoped, behavior-preserving changes. Separate refactors from feature work and bug fixes unless strictly required.
+- Reuse and extend existing classes, methods, and utilities before adding new ones. Avoid duplicating logic across modules.
 - Resource-sensitive changes (GPU memory, RAM, I/O, throughput, concurrency) must be tested for the resource concern itself, with results recorded, before being declared safe. Guard against OOM, data loss, and performance regression first.
-- For performance optimization, isolate one variable at a time, validate independently, and combine only proven-beneficial changes. Never apply multiple untested optimizations together.
+- For performance optimization, isolate one variable at a time, validate independently, and combine only proven-beneficial changes.
 
 ### Verification (first-hand evidence only)
+- Never claim "validation successful", "tests pass", or "fix verified" without running the command and observing output. If verification was not performed or was inconclusive, say so.
+- Do not suppress negative results; report failures with stderr and non-zero exit codes.
+- Track verification artefacts (logs, generated JSON, scratch builds) in a Markdown roster: path, purpose, owner, cleanup expectation. Reconcile and clean up after the task unless asked to keep them.
 
-- Never claim "validation successful", "tests pass", "fix verified", or similar without actually running the command and observing the output. If verification was not performed or was inconclusive, say so explicitly.
-- Do not suppress negative results. Report failures truthfully, including stderr and non-zero exit codes.
-- Track verification artefacts (log files, generated JSON, scratch builds) in a Markdown roster while or before tests run, recording path, purpose, owner, and cleanup expectation. Reconcile and clean up after the task unless the user asks to keep them.
-
-### Sub-agent delegation (Main/Review/Improve/Test pattern)
-
-- The Main Agent decomposes work and delegates command execution, heavy inspection, and large reads to sub-agents. Lightweight local reads for coordination are allowed.
-- Re-brief sub-agents at every handoff: scope, allowed files, git restrictions, validation expectations, user-specific constraints. Report material drift to the user.
-- Keep the sub-agent pool bounded. Closing long-running sub-agents requires user approval so their state remains traceable.
-- Use the Review Agent (with the relevant `superpowers` skills, e.g. `requesting-code-review`, `verification-before-completion`) before declaring substantial work ready.
+### Sub-agent delegation (Main/Review/Improve/Test)
+- The Main Agent decomposes work and delegates command execution, heavy inspection, and large reads to sub-agents; lightweight local reads for coordination are fine.
+- Re-brief sub-agents at every handoff: scope, allowed files, git restrictions, validation expectations, user constraints. Report material drift.
+- Keep the sub-agent pool bounded; closing long-running sub-agents needs user approval.
+- Use the Review Agent (relevant `superpowers` skills) before declaring substantial work ready.
 
 ### Branch and worktree hygiene
-
-- Optimization work goes on a dedicated branch; remind the user to create one if missing. Edit existing classes/functions in place on that branch — do not create `_optimized` variants.
-- Branch worktrees must live in a sibling directory of the repo root, on the **same disk**. Cross-disk worktrees leak absolute paths into generated configs.
-- Before deleting a worktree, diff against the main checkout, preserve any local-only files, and only remove after explicit user approval of the git operation.
-
-## Where to find more
-
-- `AGENTS.md` — the full, authoritative ruleset (this file is a Claude-Code-oriented summary, not a replacement).
-- `<sub-project>/CLAUDE.md` — module-specific build/test commands and architecture (added per project as needed).
+- Optimization work goes on a dedicated branch; remind the user to create one if missing. Edit existing classes/functions in place — no `_optimized` variants.
+- Worktrees live in a sibling directory of the repo root, on the **same disk** (cross-disk worktrees leak absolute paths into generated configs).
+- Before deleting a worktree, diff against the main checkout, preserve local-only files, and remove only after explicit user approval.
