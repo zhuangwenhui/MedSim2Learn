@@ -18,10 +18,12 @@ import time
 
 
 def expand_seq_list(spec):
-    """Expand 'NN' tokens and inclusive 'NN..MM' ranges, preserving zero-padding.
+    """Expand seq tokens and inclusive 'NN..MM' ranges, preserving zero-padding.
 
-    Comma list ('05,06,07') and/or ranges ('05..31'); forms may be mixed
-    ('02,05..07,12'). Duplicates are dropped, first occurrence wins.
+    Comma list ('05,06,07') and/or numeric ranges ('05..31'); forms may be
+    mixed ('02,05..07,12'). Non-numeric tokens (e.g. synthetic sequence names
+    like '01_r3') are accepted verbatim. Duplicates are dropped, first
+    occurrence wins.
     """
     out = []
     seen = set()
@@ -33,7 +35,7 @@ def expand_seq_list(spec):
             a_str, _, b_str = t.partition("..")
             a_str, b_str = a_str.strip(), b_str.strip()
             if not (a_str.isdigit() and b_str.isdigit()):
-                raise ValueError(f"unrecognized seq token: '{t}' (expected NN or NN..MM)")
+                raise ValueError(f"unrecognized seq range: '{t}' (expected NN..MM)")
             a, b = int(a_str), int(b_str)
             width = max(len(a_str), len(b_str))
             step = 1 if a <= b else -1
@@ -42,12 +44,11 @@ def expand_seq_list(spec):
                 if s not in seen:
                     seen.add(s)
                     out.append(s)
-        elif t.isdigit():
+        else:
+            # Plain token: numeric ('05') or a synthetic sequence name ('01_r3').
             if t not in seen:
                 seen.add(t)
                 out.append(t)
-        else:
-            raise ValueError(f"unrecognized seq token: '{t}' (expected NN or NN..MM)")
     if not out:
         raise ValueError(f"seq list expanded to zero sequences: '{spec}'")
     return out
@@ -212,7 +213,8 @@ def _self_test():
     assert expand_seq_list("9..11") == ["09", "10", "11"], "width from widest endpoint"
     assert expand_seq_list("03..01") == ["03", "02", "01"], "descending range"
     assert expand_seq_list("05,05,05") == ["05"], "duplicates dropped"
-    for bad in ("", "a,b", "1..x"):
+    assert expand_seq_list("01_r1,01_r2") == ["01_r1", "01_r2"], "synthetic names"
+    for bad in ("", "1..x", "a..b"):
         try:
             expand_seq_list(bad)
             raise AssertionError(f"expand_seq_list accepted invalid spec {bad!r}")

@@ -144,6 +144,23 @@ def _build_parser():
     pb.add_argument("--keep-intermediate", action="store_true")
     pb.add_argument("--subsample", type=int, default=None)
 
+    # --- forcegen -------------------------------------------------------
+    pn = sub.add_parser("forcegen",
+                        help="Synthesize force trajectories anchored to a real recording")
+    add_config(pn)
+    pn.add_argument("--source", required=True,
+                    help="Source sequence id (resolved in real_data_root) or a CSV path")
+    pn.add_argument("--out-dir", required=True,
+                    help="Directory for the generated <stem>_rK.csv + .gen.json files")
+    pn.add_argument("--count", type=int, default=1, help="Number of variants")
+    pn.add_argument("--seed", type=int, default=20260613)
+    pn.add_argument("--scale-range", type=str, default="0.8,1.2",
+                    help='Amplitude scale range "a,b"')
+    pn.add_argument("--warp-range", type=str, default="0.9,1.1",
+                    help='Time warp range "a,b" (new length = N * w)')
+    pn.add_argument("--jitter-deg", type=float, default=5.0,
+                    help="Max rigid rotation of the whole trajectory (degrees)")
+
     # --- camera ---------------------------------------------------------
     pc = sub.add_parser("camera",
                         help="Pick, list or inspect saved sequence cameras")
@@ -310,6 +327,39 @@ def _cmd_batch(args):
         raise SystemExit(1)
 
 
+def _parse_range(spec, flag):
+    parts = str(spec).split(",")
+    if len(parts) != 2:
+        raise SystemExit(f'{flag} expects "a,b", got {spec!r}')
+    a, b = float(parts[0]), float(parts[1])
+    if not (0.0 < a <= b):
+        raise SystemExit(f"{flag} needs 0 < a <= b, got {spec!r}")
+    return (a, b)
+
+
+def _cmd_forcegen(args):
+    from dpost.forces import generate_variants
+
+    recipe = _recipe_from(args)
+    source = args.source
+    if not os.path.isfile(source):
+        candidate = os.path.join(recipe.resolved("real_data_root"),
+                                 f"{args.source}.csv")
+        if not os.path.isfile(candidate):
+            raise SystemExit(
+                f"--source is neither a file nor a sequence id: {args.source!r} "
+                f"(tried {candidate})")
+        source = candidate
+    if args.count < 1:
+        raise SystemExit("--count must be >= 1")
+    written = generate_variants(
+        source, args.out_dir, args.count, seed=args.seed,
+        scale_range=_parse_range(args.scale_range, "--scale-range"),
+        warp_range=_parse_range(args.warp_range, "--warp-range"),
+        jitter_deg=args.jitter_deg)
+    print(f"forcegen: {len(written)} variant(s) -> {args.out_dir}")
+
+
 def _cmd_camera(args):
     import json
 
@@ -401,10 +451,12 @@ def _cmd_selftest(_args):
     from dpost.camera import profile as profile_mod
     from dpost.dataset import assemble as assemble_mod
     from dpost.dataset import serialize as serialize_mod
+    from dpost.forces import gen as forcegen_mod
     from dpost.forces import real as forces_mod
     from dpost.simrun import batch as batch_mod
 
     forces_mod._self_test()
+    forcegen_mod._self_test()
     profile_mod._self_test()
     serialize_mod._self_test()
     batch_mod._self_test()
@@ -433,6 +485,7 @@ def main(argv=None):
         "artifacts": _cmd_artifacts,
         "run": _cmd_run,
         "batch": _cmd_batch,
+        "forcegen": _cmd_forcegen,
         "camera": _cmd_camera,
         "assemble": _cmd_assemble,
         "selftest": _cmd_selftest,

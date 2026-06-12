@@ -23,6 +23,12 @@ def test_dataset_serialize():
     serialize._self_test()
 
 
+def test_forces_gen():
+    from dpost.forces import gen
+
+    gen._self_test()
+
+
 def test_camera_profile():
     from dpost.camera import profile
 
