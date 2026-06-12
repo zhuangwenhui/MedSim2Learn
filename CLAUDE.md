@@ -8,12 +8,12 @@ Top-level rules for the `MedSim2Learn` workspace. They apply across **all** sub-
 
 **Read the matching `GRAPH_REPORT.md` before grep'ing or scanning source files in a sub-project** — it lists god nodes, community structure, and bridges that orient a session far faster than raw search, regardless of the session `cwd`.
 
-| Sub-project | Report | Raw graph |
+| Sub-project | Report (tracked) | Raw graph (local-only) |
 |---|---|---|
 | ShapeReconstruction | `ShapeReconstruction/graphify-out/GRAPH_REPORT.md` | `ShapeReconstruction/graphify-out/graph.json` |
 | DeformSim | `DeformSim/graphify-out/GRAPH_REPORT.md` | `DeformSim/graphify-out/graph.json` |
 
-Maintain with `python -m graphify update <sub-project-path>` after non-trivial code changes; update the table when a graph is added or retired.
+Maintain with `python -m graphify update <sub-project-path>` after non-trivial code changes; update the table when a graph is added or retired. Only `GRAPH_REPORT.md` is tracked in git: `graph.json` and the root-level `graphify-out/` update cache are machine-local (the cache even embeds absolute paths) and regenerate in seconds at zero token cost — run the update command whenever `graph.json` is missing or stale.
 
 ## Data flow
 

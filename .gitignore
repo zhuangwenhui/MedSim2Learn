@@ -47,10 +47,14 @@ Testing/
 /ShapeReconstruction/originalData/
 /ShapeReconstruction/outPut/
 
+# graphify - workspace-root update cache (machine-local, absolute paths)
+/graphify-out/
+
 # ShapeReconstruction - graphify knowledge graph tooling
 /ShapeReconstruction/.graphify_python
 /ShapeReconstruction/graphify-out/manifest.json
 /ShapeReconstruction/graphify-out/cost.json
+/ShapeReconstruction/graphify-out/graph.json
 /ShapeReconstruction/graphify-out/graph.html
 /ShapeReconstruction/graphify-out/cache/
 /ShapeReconstruction/graphify-out/.graphify_chunk_*.json
@@ -104,6 +108,7 @@ Testing/
 /DeformSim/.graphify_python
 /DeformSim/graphify-out/manifest.json
 /DeformSim/graphify-out/cost.json
+/DeformSim/graphify-out/graph.json
 /DeformSim/graphify-out/graph.html
 /DeformSim/graphify-out/cache/
 /DeformSim/graphify-out/.graphify_chunk_*.json
