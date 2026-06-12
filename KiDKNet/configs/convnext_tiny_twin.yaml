@@ -7,7 +7,7 @@
 #   python main.py --mode evaluate --config configs/convnext_tiny_twin.yaml   # reads best_model.pth
 #
 # NOTE: do NOT run `--mode split` with this config -- the split is authored
-# by-sequence (assemble_twin_dataset.py) to avoid temporal leakage; the built-in
+# by-sequence (Deform_post/main.py assemble) to avoid temporal leakage; the built-in
 # splitter would overwrite it with a leaky random holdout.
 # NOTE: KiDKNet has no resume; a crash/sleep mid-run loses progress. Keep the
 # machine awake for the full run (e.g. powercfg, or run while attended).
@@ -21,14 +21,14 @@ general:
 
 data:
   # Absolute path to the assembled merged dataset (must match the data_dir baked
-  # into dataset_split.json by assemble_twin_dataset.py).
+  # into dataset_split.json by Deform_post/main.py assemble).
   data_dir: "D:/MedSim2Learn-ComplexObject/DataFlow/Deform_post/twin_merged"
   enable_dataset_selection: false
   split_ratios:
     train: 0.7
     val: 0.15
     test: 0.15
-  # By-sequence split written under DataFlow/KiDKNet/splits/ by assemble_twin_dataset.py.
+  # By-sequence split written under DataFlow/KiDKNet/splits/ by Deform_post/main.py assemble.
   split_file: "D:/MedSim2Learn-ComplexObject/DataFlow/KiDKNet/splits/dataset_split.json"
 
   augmentation:

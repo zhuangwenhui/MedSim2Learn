@@ -59,6 +59,15 @@ Testing/
 /ShapeReconstruction/graphify-out/cache/
 /ShapeReconstruction/graphify-out/.graphify_chunk_*.json
 
+# Deform_post - graphify knowledge graph tooling
+/Deform_post/.graphify_python
+/Deform_post/graphify-out/manifest.json
+/Deform_post/graphify-out/cost.json
+/Deform_post/graphify-out/graph.json
+/Deform_post/graphify-out/graph.html
+/Deform_post/graphify-out/cache/
+/Deform_post/graphify-out/.graphify_chunk_*.json
+
 
 # DeformSim local build/runtime artifacts
 /DeformSim/**/[Dd]ebug/

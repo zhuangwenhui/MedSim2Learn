@@ -1,7 +1,7 @@
 """Data loader module.
 ======================
 Provides unified data loader interfaces for .pt batches produced by
-Deform_post/sim2vfp.py.
+the Deform_post pipeline (main.py serialize).
 """
 
 import os

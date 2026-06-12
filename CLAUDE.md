@@ -12,6 +12,7 @@ Top-level rules for the `MedSim2Learn` workspace. They apply across **all** sub-
 |---|---|---|
 | ShapeReconstruction | `ShapeReconstruction/graphify-out/GRAPH_REPORT.md` | `ShapeReconstruction/graphify-out/graph.json` |
 | DeformSim | `DeformSim/graphify-out/GRAPH_REPORT.md` | `DeformSim/graphify-out/graph.json` |
+| Deform_post | `Deform_post/graphify-out/GRAPH_REPORT.md` | `Deform_post/graphify-out/graph.json` |
 
 Maintain with `python -m graphify update <sub-project-path>` after non-trivial code changes; update the table when a graph is added or retired. Only `GRAPH_REPORT.md` is tracked in git: `graph.json` and the root-level `graphify-out/` update cache are machine-local (the cache even embeds absolute paths) and regenerate in seconds at zero token cost — run the update command whenever `graph.json` is missing or stale.
 

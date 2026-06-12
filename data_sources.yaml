@@ -9,7 +9,7 @@ real_visual_force_dataset:
     Real surgical (video, force) corpus: NN.csv force waveforms (30 fps, Newtons),
     NN.mp4 video, NN.txt tool boxes. Source of the digital-twin force replay
     (consumed as SIM2LEARN_PARAM_FORCE_LIST_CSV after sensor->model rotation).
-  used_by: "Deform_post/run_replay.ps1 (-RealDataRoot)"
+  used_by: "Deform_post/configs/kidney_twin.yaml (real_data_root)"
   access: read-only
 
 toolchain:

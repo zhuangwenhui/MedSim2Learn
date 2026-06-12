@@ -1,6 +1,6 @@
 """Dataset module.
 ===================
-Provides utilities to load image-force pairs produced by Deform_post/sim2vfp.py.
+Provides utilities to load image-force pairs produced by the Deform_post pipeline (main.py serialize).
 """
 
 import os
@@ -165,7 +165,7 @@ class ForceDataset(Dataset):
         if not os.path.exists(metadata_path):
             raise FileNotFoundError(
                 f"Required metadata file not found: {metadata_path}. "
-                "Please ensure Deform_post/sim2vfp.py produced metadata.yaml."
+                "Please ensure the Deform_post pipeline (main.py serialize) produced metadata.yaml."
             )
         # Load metadata
         try:
@@ -183,7 +183,7 @@ class ForceDataset(Dataset):
         if missing:
             raise ValueError(
                 f"Metadata file is incomplete, missing fields: {missing}. "
-                "Please regenerate the dataset using Deform_post/sim2vfp.py."
+                "Please regenerate the dataset using the Deform_post pipeline (main.py serialize)."
             )
 
     # =========================================================================
