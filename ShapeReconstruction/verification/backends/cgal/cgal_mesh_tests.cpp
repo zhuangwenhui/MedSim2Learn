@@ -1,3 +1,5 @@
+// Tests for the CGAL backend in mvrmesh/backends/cgal/cgal_mesh.h: soup repair, remesh, pipeline.
+
 #include <cmath>
 #include <exception>
 #include <iostream>

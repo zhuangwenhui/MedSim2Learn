@@ -1,3 +1,6 @@
+// TetGen pre-flight for DeformSim pressure runs: tetrahedralize a surface and
+// estimate the solver footprint without invoking DeformSim itself.
+
 #include "mvrmesh/pressure/pressure_evaluator.h"
 
 #include <algorithm>
@@ -12,18 +15,25 @@
 #include <utility>
 #include <vector>
 
+#include "tetgen.h"
+
 #include "mvrmesh/core/geometry.h"
 #include "mvrmesh/core/topology.h"
-#include "tetgen.h"
 
 namespace mvrmesh {
 
 namespace {
 
+// DeformSim solver dimensions mirrored for the footprint estimates: its edge
+// ("line") table holds 32 slots per node, it allocates two dense matrices
+// (K and L), and each tetrahedron needs a 12x12 element stiffness block plus
+// a 6x12 strain-displacement block of doubles as scratch.
 constexpr std::size_t kLineCapacityPerNode = 32;
 constexpr std::size_t kDenseMatrixCount = 2;
 constexpr std::size_t kElementScratchDoubles = 12 * 12 + 6 * 12;
 
+// Multiplies with clamping to SIZE_MAX so oversized footprint estimates
+// report saturation instead of wrapping around.
 std::size_t saturating_multiply(std::size_t lhs, std::size_t rhs) {
     if (lhs != 0 && rhs > std::numeric_limits<std::size_t>::max() / lhs) {
         return std::numeric_limits<std::size_t>::max();
@@ -37,6 +47,7 @@ DeformSimIndexStats empty_index_stats() {
 
 void update_index_stats(DeformSimIndexStats& stats, int index, int lower, int upper_exclusive) {
     if (stats.max_index < stats.min_index) {
+        // First sample: replace the empty-range sentinel (max < min).
         stats.min_index = index;
         stats.max_index = index;
     } else {
@@ -157,6 +168,8 @@ void validate_tetgen_input_size(
 }
 
 void fill_input_points(tetgenio& input, const std::vector<Vec3>& vertices) {
+    // DeformSim feeds TetGen 1-based indices, so the pre-flight does the same;
+    // fill_input_facets shifts the 0-based Face indices accordingly.
     input.firstnumber = 1;
     input.numberofpoints = static_cast<int>(vertices.size());
     input.pointlist = new REAL[static_cast<std::size_t>(input.numberofpoints) * 3];
@@ -209,6 +222,8 @@ void require_output_array(const void* data, std::size_t count, const std::string
     }
 }
 
+// Converts a TetGen index (offset by firstnumber) to 0-based; throws
+// std::runtime_error when it falls outside [0, vertex_count).
 int to_checked_zero_based_index(
     int value,
     int first_number,
@@ -267,6 +282,9 @@ void copy_tetgen_output(tetgenio& output, DeformSimPressureResult& result) {
         });
     }
 
+    // TetGen writes numberofcorners entries per tet (10 in second-order mode)
+    // but only the first 4 are corner nodes; clamp the stride to at least 4 in
+    // case the header carries a nonsensical value.
     const int corners = output.numberofcorners >= 4 ? output.numberofcorners : 4;
     result.output_tetrahedra.reserve(result.tetgen_output_tetra_count);
     for (std::size_t i = 0; i < result.tetgen_output_tetra_count; ++i) {
@@ -324,6 +342,9 @@ void copy_tetgen_output(tetgenio& output, DeformSimPressureResult& result) {
 
     result.tetgen_tetra_indices = tet_index_stats(result.output_tetrahedra, result.output_vertices.size());
     result.tetgen_triface_indices = face_index_stats(result.output_boundary_faces, result.output_vertices.size());
+
+    // Footprint estimates mirror DeformSim's allocations; saturating arithmetic
+    // makes huge meshes report SIZE_MAX rather than a wrapped value.
     result.estimated_unique_line_count = count_unique_lines_from_tets(result.output_tetrahedra);
     result.line_capacity_nnode_times_32 =
         saturating_multiply(result.tetgen_output_vertex_count, kLineCapacityPerNode);
@@ -384,6 +405,7 @@ DeformSimPressureResult evaluate_deformsim_pressure(
         fill_input_facets(input, surface_vertices, surface_faces);
 
         result.stage = "tetgen_call";
+        // tetrahedralize() takes a mutable char*, so hand it a writable copy.
         std::vector<char> switches(result.switches.begin(), result.switches.end());
         switches.push_back('\0');
         tetrahedralize(switches.data(), &input, &output);
@@ -394,6 +416,7 @@ DeformSimPressureResult evaluate_deformsim_pressure(
         result.stage = "tetgen_output_validated";
         result.diagnostic = "TetGen completed; diagnostic did not run DeformSim post-processing.";
     } catch (int code) {
+        // TetGen reports fatal errors by throwing a plain int.
         result.success = false;
         result.tetgen_completed = false;
         std::ostringstream oss;

@@ -1,3 +1,5 @@
+// Smoke tests for the core pipeline: topology, subdivision, smoothing, surface metrics, PLY I/O.
+
 #include <cmath>
 #include <exception>
 #include <filesystem>

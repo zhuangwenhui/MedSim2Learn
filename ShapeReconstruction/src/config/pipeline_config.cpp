@@ -1,5 +1,3 @@
-// src/config/pipeline_config.cpp
-
 #include "mvrmesh/config/pipeline_config.h"
 
 #include <cmath>

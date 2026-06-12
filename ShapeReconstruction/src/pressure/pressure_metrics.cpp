@@ -1,5 +1,3 @@
-// src/pressure/pressure_metrics.cpp
-
 #include "mvrmesh/pressure/pressure_metrics.h"
 
 #include <cstdio>
@@ -22,8 +20,7 @@ PressureMetrics compute_metrics(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces,
     std::size_t n_samples,
-    const std::string& switches)
-{
+    const std::string& switches) {
     PressureMetrics m;
     m.v_surface = vertices.size();
     m.n_samples = n_samples;
@@ -45,9 +42,13 @@ PressureMetrics compute_metrics(
         ? static_cast<double>(m.v_tet) / static_cast<double>(m.v_surface) : 0.0;
     m.matrix_order_3v_tet = static_cast<std::size_t>(m.v_tet) * 3u;
     m.memory_peak_bytes_kl = r.estimated_dense_k_l_bytes;
+    // LAPACK cost models: DGETRI inversion is ~2 * order^3 flops once; each
+    // pressure sample is one DGEMV at ~2 * order^2 flops.
     const double order_d = static_cast<double>(m.matrix_order_3v_tet);
     m.dgetri_flops = order_d * order_d * order_d * 2.0;
     m.dgemv_total_flops = order_d * order_d * 2.0 * static_cast<double>(n_samples);
+    // Per-sample output: one PLY at ~64 bytes per surface vertex plus a fixed
+    // header allowance.
     m.estimated_disk_per_run_bytes = n_samples * (m.v_surface * 64u + 256u);
     m.tetgen_success = true;
     return m;
@@ -56,8 +57,7 @@ PressureMetrics compute_metrics(
 void write_single_json(
     const std::filesystem::path& output_path,
     const std::filesystem::path& input_ply,
-    const PressureMetrics& m)
-{
+    const PressureMetrics& m) {
     std::filesystem::create_directories(output_path.parent_path());
     std::ofstream out(output_path);
     if (!out) throw std::runtime_error("cannot open output: " + output_path.string());
@@ -82,16 +82,16 @@ void write_single_json(
 }
 
 std::string format_bytes_human(std::size_t bytes) {
-    constexpr double KIB = 1024.0;
-    constexpr double MIB = KIB * 1024.0;
-    constexpr double GIB = MIB * 1024.0;
+    constexpr double kKiB = 1024.0;
+    constexpr double kMiB = kKiB * 1024.0;
+    constexpr double kGiB = kMiB * 1024.0;
     char buf[64];
-    if (bytes >= static_cast<std::size_t>(GIB)) {
-        std::snprintf(buf, sizeof(buf), "%.2f GiB", static_cast<double>(bytes) / GIB);
-    } else if (bytes >= static_cast<std::size_t>(MIB)) {
-        std::snprintf(buf, sizeof(buf), "%.2f MiB", static_cast<double>(bytes) / MIB);
-    } else if (bytes >= static_cast<std::size_t>(KIB)) {
-        std::snprintf(buf, sizeof(buf), "%.2f KiB", static_cast<double>(bytes) / KIB);
+    if (bytes >= static_cast<std::size_t>(kGiB)) {
+        std::snprintf(buf, sizeof(buf), "%.2f GiB", static_cast<double>(bytes) / kGiB);
+    } else if (bytes >= static_cast<std::size_t>(kMiB)) {
+        std::snprintf(buf, sizeof(buf), "%.2f MiB", static_cast<double>(bytes) / kMiB);
+    } else if (bytes >= static_cast<std::size_t>(kKiB)) {
+        std::snprintf(buf, sizeof(buf), "%.2f KiB", static_cast<double>(bytes) / kKiB);
     } else {
         std::snprintf(buf, sizeof(buf), "%zu B", bytes);
     }
@@ -109,8 +109,7 @@ void write_matrix_md(
     const std::filesystem::path& input_mvr_hint,
     const std::vector<MatrixRow>& rows,
     std::size_t n_samples,
-    const std::string& switches)
-{
+    const std::string& switches) {
     std::filesystem::create_directories(output_path.parent_path());
     std::ofstream out(output_path);
     if (!out) throw std::runtime_error("cannot open: " + output_path.string());
@@ -118,6 +117,7 @@ void write_matrix_md(
     auto t = std::time(nullptr);
     char timestr[64];
     std::tm tm_local{};
+    // MSVC flags std::localtime as unsafe; use its localtime_s there.
 #if defined(_MSC_VER)
     localtime_s(&tm_local, &t);
 #else
@@ -193,6 +193,8 @@ int run_pressure_single(const PressureConfig& config) {
 int run_pressure_matrix(const PressureConfig& config) {
     std::vector<MatrixRow> rows;
 
+    // Prefer the user-supplied label whose path resolves to the same file;
+    // otherwise fall back to the bare filename.
     auto resolve_label = [&](const std::filesystem::path& p) -> std::string {
         for (const auto& kv : config.labels) {
             std::error_code ec;

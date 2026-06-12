@@ -55,6 +55,8 @@ BuildResult build_surface(
             config.taubin.lambda,
             config.taubin.mu,
             config.taubin.preserve_boundary);
+        // Taubin smoothing only moves vertices, so the subdivided connectivity
+        // is reused as-is.
         return BuildResult{
             std::move(smoothed),
             std::move(subdivided.second),

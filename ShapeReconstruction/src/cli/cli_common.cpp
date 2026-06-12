@@ -1,5 +1,3 @@
-// src/cli/cli_common.cpp
-
 #include "mvrmesh/cli/cli_common.h"
 
 #include <iostream>
@@ -11,8 +9,12 @@
 #include "mvrmesh/core/pipeline.h"
 #include "mvrmesh/core/types.h"
 
+namespace mvrmesh {
+
 namespace {
 
+// ASCII-only lowering; the directory names compared below are plain ASCII
+// and std::tolower would be locale-dependent.
 std::string to_lower_ascii(std::string text) {
     for (char& ch : text) {
         if (ch >= 'A' && ch <= 'Z') {
@@ -22,6 +24,8 @@ std::string to_lower_ascii(std::string text) {
     return text;
 }
 
+// An input under <root>/originalData/MVR/ identifies <root>; any other input
+// falls back to its own parent directory.
 std::filesystem::path infer_project_root_from_input(
     const std::filesystem::path& in_path) {
     const std::filesystem::path parent = in_path.parent_path();
@@ -64,6 +68,7 @@ std::filesystem::path find_project_root_upward(std::filesystem::path start) {
             return current;
         }
         const std::filesystem::path parent = current.parent_path();
+        // At a filesystem root parent_path() returns the path unchanged.
         if (parent == current) {
             break;
         }
@@ -72,6 +77,9 @@ std::filesystem::path find_project_root_upward(std::filesystem::path start) {
     return {};
 }
 
+// Candidate order for a relative input: cwd-relative, <root>/<input>, then
+// <root>/originalData/<input>; the first existing candidate wins, otherwise
+// the cwd-relative guess is returned for the caller's existence check.
 std::filesystem::path resolve_input_path(
     const std::filesystem::path& input,
     const std::filesystem::path& project_root) {
@@ -116,8 +124,6 @@ std::vector<std::filesystem::path> default_outputs_for_input(
 }
 
 }  // namespace
-
-namespace mvrmesh {
 
 std::filesystem::path find_project_root(const char* argv0) {
     std::filesystem::path root =

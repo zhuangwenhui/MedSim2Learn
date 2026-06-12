@@ -22,6 +22,8 @@ std::pair<std::vector<Vec3>, std::vector<Face>> compact_mesh_to_referenced_verti
     std::vector<Face> compact_faces;
     compact_faces.reserve(faces.size());
 
+    // The first reference of a vertex assigns it the next compact slot, so the
+    // output keeps first-reference order; later references reuse the mapping.
     auto map_index = [&](int idx) -> int {
         if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
             std::ostringstream oss;

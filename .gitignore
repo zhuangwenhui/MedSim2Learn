@@ -23,9 +23,6 @@ __pycache__/
 # All pipeline data + run artifacts live under DataFlow/ (single source-vs-data boundary).
 /DataFlow/
 /ShapeReconstruction/build/
-/ShapeReconstruction/build-tetgen/
-/ShapeReconstruction/build-cgal/
-/ShapeReconstruction/build-required/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -49,8 +46,6 @@ Testing/
 /ShapeReconstruction/legacy/
 /ShapeReconstruction/originalData/
 /ShapeReconstruction/outPut/
-/ShapeReconstruction/evaluations/
-/ShapeReconstruction/tests/
 
 # ShapeReconstruction - graphify knowledge graph tooling
 /ShapeReconstruction/.graphify_python

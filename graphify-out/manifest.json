@@ -4,220 +4,220 @@
     "hash": "99b2406465c8d1a570eeb4d506bc99b8"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\mvr_to_mesh_cli.cpp": {
-    "mtime": 1780059703.22649,
-    "hash": "2341849f09e59a3907a62d0ce0871737"
+    "mtime": 1781257526.5637505,
+    "hash": "ed6273064935613bb4fa9d01ba579393"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\backends\\cgal\\cgal_mesh.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "7a153f299d6c8fd2b80ac2ac5cd653ee"
+    "mtime": 1781258605.3872242,
+    "hash": "d09df87f1bf19a7039c487f199b222de"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\cli\\cli_common.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "351b5e8d2ed2a8c9e6a5fd6206a0a3d7"
+    "mtime": 1781258641.6909413,
+    "hash": "3d5a1d880ef9684f69d7851d75b11baf"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\config\\config_loader.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "c9545dfa93dae1a948b1cc7ba8e409d6"
+    "mtime": 1781257375.3634448,
+    "hash": "1724c68f4ac8273178d1204531fdd0ce"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\config\\pipeline_config.h": {
-    "mtime": 1780059677.8938036,
-    "hash": "f38c9a6ac9df1bd57bd7a0d1a484a393"
+    "mtime": 1781258639.7193725,
+    "hash": "6314bbeb37e3b9b2e825bc14d0a64ac0"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\config\\pressure_config.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "db58a7d4a8b7ba0f99d830b2fc063876"
+    "mtime": 1781257675.839842,
+    "hash": "a1ff29c7062ab02a525db39d1d4efa5c"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\compaction.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "f9c6c3f9bc0f5d522e033e0a62d59477"
+    "mtime": 1781258683.137637,
+    "hash": "a6a5f438a4d544bc311595b6b9777980"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\curvature.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "769403cdda9c546b280f9cd358af8767"
+    "mtime": 1781258685.5182333,
+    "hash": "24b75bc586687ab10438b42dd9482d50"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\geometry.h": {
-    "mtime": 1778394938.8108366,
-    "hash": "024d52a8aee7b44c4b72dbe3abe9340b"
+    "mtime": 1781258681.75773,
+    "hash": "3a5b2211f44adfc2a95be998735a7890"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\io.h": {
-    "mtime": 1778060930.5492256,
-    "hash": "3862cfad20ad3776b649d5f15cc54f6e"
+    "mtime": 1781258666.7326515,
+    "hash": "f9db45126d76ac8e29811e54f8ee003e"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\mesh_postprocess.h": {
-    "mtime": 1780059654.9603517,
-    "hash": "1ecb3a2e72cf3cc1268be4a6d28e7c5d"
+    "mtime": 1781257581.7729826,
+    "hash": "dac668df45c00c6781043b0ae6b11882"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\metrics.h": {
-    "mtime": 1781252167.120584,
-    "hash": "20f7ab88c6a5f31234bbafc548948d9b"
+    "mtime": 1781258777.3219533,
+    "hash": "b72fc7b3873accd5b6b01b9cf3f0f7eb"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\pipeline.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "3f8dd7d401f6be5352db36d10a30730e"
+    "mtime": 1781258738.6010609,
+    "hash": "d8b490a69e2fc53dfb44a7229468d57d"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\quality_metrics.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "c990f534abbe64191a3c9d7fa10f7064"
+    "mtime": 1781258782.2593105,
+    "hash": "00d77a72fc0902a6772fc833dfa1f17a"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\reconstruction.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "1fd98c54509687780b562b9c277d9b2c"
+    "mtime": 1781258784.7387886,
+    "hash": "6f67e2543f2eb34c6c14d5a0745dea70"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\reconstruction_pipeline.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "bdc494d8dfccdb809c002c6e1a2d499b"
+    "mtime": 1781258722.9745173,
+    "hash": "a3b48af7d33352a1488da7660d4c99ee"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\smoothing.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "cc6af887b21bff73bc0da3155e654b04"
+    "mtime": 1781258699.7134705,
+    "hash": "8b1ab00bbb262a04bda715c16b07b4ae"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\subdivision.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "1fb97a0ad61a9ba3708c4e1ccd959713"
+    "mtime": 1781258701.4315095,
+    "hash": "35218f79f4d4b957f0f98410c70651f8"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\surface_acceptance.h": {
-    "mtime": 1778394938.8142037,
-    "hash": "f9ec5a0b6c8758b8fb888b610919e4f4"
+    "mtime": 1781257572.8245654,
+    "hash": "74e654fd551931709da6fda9d7c44378"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\topology.h": {
-    "mtime": 1781252177.7470286,
-    "hash": "c1d76d0f1e0bfa39c834a65e58ca490e"
+    "mtime": 1781258680.3573475,
+    "hash": "5949c87093e0a9c486166cd309c65699"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\core\\types.h": {
-    "mtime": 1781252134.8752732,
-    "hash": "40ad90824bbe7a7b10e6d3b9c583907d"
+    "mtime": 1781258938.2575624,
+    "hash": "a82e964566c973e9fda5031b1e7e014a"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\pressure\\pressure_evaluator.h": {
-    "mtime": 1781250077.3533204,
-    "hash": "c30cb6bd395ad44e9bf6b2610f5a2486"
+    "mtime": 1781258619.9767897,
+    "hash": "b2e98fb71655ea997432ca1747d902d7"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\include\\mvrmesh\\pressure\\pressure_metrics.h": {
-    "mtime": 1778394938.8159482,
-    "hash": "4960693c0c6ea23fe15b6298ca5bdffb"
+    "mtime": 1781258626.040984,
+    "hash": "858c3fc3b3d7dc75e6c767c9908d508d"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\scripts\\run_pressure_matrix.ps1": {
     "mtime": 1778060930.5516326,
     "hash": "dd060f43e2436d9d8604c1f4584bf1ba"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\backends\\cgal\\cgal_mesh.cpp": {
-    "mtime": 1781252460.851217,
-    "hash": "70343c66393a1f6d357cdaeffbf75f8c"
+    "mtime": 1781257283.4095454,
+    "hash": "b796e1d4296951e59a722e77f2a39e9e"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\cli\\cli_common.cpp": {
-    "mtime": 1778394938.8159482,
-    "hash": "d8cd91baa665efd8d7f8417b2d9e7b03"
+    "mtime": 1781257517.3560915,
+    "hash": "d52bd11d77d51c1935e10eb6360be005"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\config\\config_loader.cpp": {
-    "mtime": 1781252596.2994797,
-    "hash": "7a88472a45c5db4492f84dd55c7386f6"
+    "mtime": 1781257435.1243076,
+    "hash": "70f108ada25fb82840aaea32a458f612"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\config\\pipeline_config.cpp": {
-    "mtime": 1778394938.8182735,
-    "hash": "02080b659eb4c4660f2fb4484d10c9a2"
+    "mtime": 1781257426.0118263,
+    "hash": "fecb8c3e0d159a5325d2bf7a108da561"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\config\\pressure_config.cpp": {
-    "mtime": 1778394938.8182735,
-    "hash": "66efc668e57e7ea1ba10f2ecd12a5e7c"
+    "mtime": 1781257464.4157703,
+    "hash": "81fa2c10024a45326e6e910c5ac17042"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\compaction.cpp": {
-    "mtime": 1778394938.8188083,
-    "hash": "2dab443d595d2c31d805b00ec6b224ae"
+    "mtime": 1781257371.400277,
+    "hash": "8f884fa02b1eebd889156d9dda2fcd47"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\curvature.cpp": {
-    "mtime": 1778394938.8188083,
-    "hash": "8ec97eb7ab079815e86c9dc0d14e7891"
+    "mtime": 1781257380.324414,
+    "hash": "1f32a5cf7f051f5b39ab0e55fd62399a"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\geometry.cpp": {
-    "mtime": 1778394938.8188083,
-    "hash": "fd7821ec75d4def0a25143ffba4bfaee"
+    "mtime": 1781257326.4155025,
+    "hash": "c8682190327c0beec0f8ddf98a8ea7a0"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\io.cpp": {
-    "mtime": 1781250183.7651587,
-    "hash": "dc476953ab8e6ff4e2b24a0ea1d7ebfa"
+    "mtime": 1781257411.9816113,
+    "hash": "a227fae19d64af5a94cc8e58a2cc386f"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\mesh_postprocess.cpp": {
-    "mtime": 1781252491.1342714,
-    "hash": "7321ae9d2aaca76f4045ccbf27d37652"
+    "mtime": 1781257853.4762886,
+    "hash": "daa93f2efbfc875df7543e1859672485"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\metrics.cpp": {
-    "mtime": 1781252260.0006218,
-    "hash": "8dde9aeda488215665eeed66e315c0a6"
+    "mtime": 1781257393.1558392,
+    "hash": "7dfb907d0d094fc610dc50838720dc85"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\pipeline.cpp": {
-    "mtime": 1778394938.8188083,
-    "hash": "389401416fff2a410de8256a316be0f4"
+    "mtime": 1781257424.466039,
+    "hash": "e93ea99020ffdf2ecb7e242853888d5e"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\quality_metrics.cpp": {
-    "mtime": 1781252226.0597305,
-    "hash": "993d6a739c990343c3d3c90bdd24f708"
+    "mtime": 1781257449.6265416,
+    "hash": "e73c52e561c34f2f81821ea5f1416b08"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\reconstruction.cpp": {
-    "mtime": 1781252398.5017486,
-    "hash": "ad98fed754e5a2261fa96a457d55822d"
+    "mtime": 1781258845.0106246,
+    "hash": "85636fcb7280f707f2bddd68253641db"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\reconstruction_pipeline.cpp": {
-    "mtime": 1778394938.820816,
-    "hash": "600216cf4a311edc7c6c97dab48a94a9"
+    "mtime": 1781257439.5019436,
+    "hash": "742e3bd5b0098569cc5d4892232e48e8"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\smoothing.cpp": {
-    "mtime": 1781252300.4134018,
-    "hash": "f0f76b3579409e29e3b9aec96da80e98"
+    "mtime": 1781257394.987228,
+    "hash": "cb87ad247e68b91c4e726195c264edc8"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\subdivision.cpp": {
-    "mtime": 1778394938.820816,
-    "hash": "c94403f36d1c95bbce7a1868ce81b10c"
+    "mtime": 1781257407.9210641,
+    "hash": "ac7a40bd65398f35f64471b5c558081a"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\surface_acceptance.cpp": {
-    "mtime": 1778394938.820816,
-    "hash": "2d7ee603d7a4457eab6ced1e379acf22"
+    "mtime": 1781257521.0113575,
+    "hash": "2ddec34c59d35d734978056bd9971945"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\core\\topology.cpp": {
-    "mtime": 1781252191.8503006,
-    "hash": "778662f26324454f8fd251233abc41a7"
+    "mtime": 1781257362.854838,
+    "hash": "19110621ef5609133de31ca119d3fced"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\pressure\\pressure_evaluator.cpp": {
-    "mtime": 1781252340.7365994,
-    "hash": "d08a45898f2ccb91aeddd891f14ba471"
+    "mtime": 1781257422.5740728,
+    "hash": "9811506b7e2ba8e58508d1f33e433518"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\src\\pressure\\pressure_metrics.cpp": {
-    "mtime": 1781250130.0806353,
-    "hash": "314d2f4604a2ca07b433983bfa0e5aae"
+    "mtime": 1781257473.7690768,
+    "hash": "ff78f3ab841efee300f2b4acc2a202c2"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\test_helpers.h": {
-    "mtime": 1778394938.82282,
-    "hash": "ec312660aa1975bd71d79fe8426372bf"
+    "mtime": 1781257220.816792,
+    "hash": "cea5b54f9d114ad5fcb28cc58415da58"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\backends\\cgal\\cgal_mesh_tests.cpp": {
-    "mtime": 1778394938.820816,
-    "hash": "52dc8bbf30bcf065c2ef3cc2144bce35"
+    "mtime": 1781257236.4187658,
+    "hash": "84109db47c1110fb55d70cf96876adb3"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\config\\config_loader_tests.cpp": {
-    "mtime": 1780045832.4208307,
-    "hash": "e703b3a69eddec92ff4fe71d49bd0a3f"
+    "mtime": 1781257232.2050912,
+    "hash": "34810c5a28f56270edbc59c963ff6844"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\config\\config_tests.cpp": {
-    "mtime": 1778394938.82282,
-    "hash": "dba67e11e09a694c2f380f7465bb92d7"
+    "mtime": 1781257234.9931157,
+    "hash": "57c77c2005d265d316891627e6e67f30"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\core\\canonicalize_pose_tests.cpp": {
-    "mtime": 1780059745.476671,
-    "hash": "a03d0cc7c97b82f8ce11234cfaf3d3a0"
+    "mtime": 1781257238.0599556,
+    "hash": "c0d3fe39d04591c95b374aa2e02091a1"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\core\\mesh_postprocess_tests.cpp": {
-    "mtime": 1778491495.3527007,
-    "hash": "69d2826d5c0fcf896173169aba3a1327"
+    "mtime": 1781257247.584916,
+    "hash": "f12c99e5b279030afd16ce1a378cb4f6"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\core\\quality_smoothing_tests.cpp": {
-    "mtime": 1778394938.82282,
-    "hash": "8e3a33c1658653c212f3b4f01ed11d0c"
+    "mtime": 1781257250.4414284,
+    "hash": "92871db7afa32a6f3f1389608fe94038"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\core\\smoke_tests.cpp": {
-    "mtime": 1778394938.82282,
-    "hash": "4cc869432ad79d3efabc3fe13b0ac847"
+    "mtime": 1781257252.7530396,
+    "hash": "db96e0fe3f4b6cde5812a829d3fe46be"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\verification\\pressure\\pressure_evaluator_tests.cpp": {
-    "mtime": 1781250224.611645,
-    "hash": "6ebab3097ef4fb857dca9277dc05bf44"
+    "mtime": 1781257255.424613,
+    "hash": "f84c2f83e703fca7562d872182723ae9"
   },
   "D:\\MedSim2Learn-ComplexObject\\ShapeReconstruction\\CLAUDE.md": {
     "mtime": 1781233867.5145495,

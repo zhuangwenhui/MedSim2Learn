@@ -1,13 +1,14 @@
-// src/config/pressure_config.cpp
-
 #include "mvrmesh/config/pressure_config.h"
 
 #include <iostream>
 #include <stdexcept>
 #include <string>
 
+namespace mvrmesh {
+
 namespace {
 
+// Prints CLI usage to stderr; callers still throw to abort the run.
 void usage(const char* argv0) {
     std::cerr << "Usage:\n"
               << "  " << argv0 << " <input.ply> -o <output.json>\n"
@@ -20,8 +21,6 @@ void usage(const char* argv0) {
 }
 
 }  // namespace
-
-namespace mvrmesh {
 
 void PressureConfig::validate() const {
     if (n_samples == 0) {
@@ -55,6 +54,7 @@ PressureConfig load_pressure_config(int argc, char** argv) {
             config.output = argv[++i];
         } else if (arg == "--matrix") {
             config.matrix_mode = true;
+            // Greedily consume every following non-flag token as an input.
             while (i + 1 < argc && argv[i + 1][0] != '-') {
                 config.inputs.push_back(argv[++i]);
             }

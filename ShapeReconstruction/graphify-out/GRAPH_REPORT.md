@@ -1,7 +1,7 @@
 # Graph Report - ShapeReconstruction  (2026-06-12)
 
 ## Corpus Check
-- 55 files · ~37,183 words
+- 55 files · ~41,850 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

@@ -82,6 +82,7 @@ std::vector<Face> normalize_faces_indices(const std::vector<Face>& faces, int n_
     if (min_idx >= 0 && max_idx < n_vertices) {
         return faces;
     }
+    // The whole range fits [1, n_vertices]: treat the input as 1-based and shift down.
     if (min_idx >= 1 && max_idx <= n_vertices) {
         std::vector<Face> normalized;
         normalized.reserve(faces.size());
@@ -114,6 +115,7 @@ std::vector<Tet> normalize_tet_indices(const std::vector<Tet>& tets, int n_verti
     if (min_idx >= 0 && max_idx < n_vertices) {
         return tets;
     }
+    // The whole range fits [1, n_vertices]: treat the input as 1-based and shift down.
     if (min_idx >= 1 && max_idx <= n_vertices) {
         std::vector<Tet> normalized;
         normalized.reserve(tets.size());
@@ -148,7 +150,8 @@ Face oriented_face_outward(const std::vector<Vec3>& vertices, const Face& face, 
     return face;
 }
 
-// Boundary face = face referenced by exactly one tetrahedron. Track by sorted-index key; count==1 means boundary.
+// Boundary face = face referenced by exactly one tetrahedron. Track by
+// sorted-index key; count==1 means boundary.
 std::vector<Face> boundary_faces_from_tets(const std::vector<Vec3>& vertices, const std::vector<Tet>& tets) {
     std::map<std::array<int, 3>, std::pair<int, Face>> face_usage;
 
@@ -158,6 +161,7 @@ std::vector<Face> boundary_faces_from_tets(const std::vector<Vec3>& vertices, co
         const int c = tet[2];
         const int d = tet[3];
 
+        // The four faces of tet (a, b, c, d), each paired with its opposite vertex.
         const std::array<std::pair<Face, int>, 4> local_faces{
             std::make_pair(Face{a, b, c}, d),
             std::make_pair(Face{a, d, b}, c),

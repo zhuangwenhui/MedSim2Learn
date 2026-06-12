@@ -10,14 +10,17 @@
 
 namespace mvrmesh::test {
 
+// Basic test assertion: throws std::runtime_error(msg) when cond is false.
 inline void require(bool cond, const std::string& msg) {
     if (!cond) throw std::runtime_error(msg);
 }
 
+// Absolute-difference comparison: true when |a - b| < tol.
 inline bool near(double a, double b, double tol = 1e-9) {
     return std::abs(a - b) < tol;
 }
 
+// Compares two Vec3 component-wise with near(); on mismatch throws naming the label and axis.
 inline void require_vec3_near(const Vec3& actual, const Vec3& expected,
                                const std::string& label, double tol = 1e-9) {
     require(near(actual.x, expected.x, tol), label + " x mismatch");
@@ -25,6 +28,7 @@ inline void require_vec3_near(const Vec3& actual, const Vec3& expected,
     require(near(actual.z, expected.z, tol), label + " z mismatch");
 }
 
+// Runs each (test, name) pair, prints a pass/fail summary, and returns 1 if any test failed.
 inline int run_tests(std::initializer_list<std::pair<std::function<void()>, const char*>> tests) {
     int passed = 0, failed = 0;
     for (const auto& [fn, name] : tests) {

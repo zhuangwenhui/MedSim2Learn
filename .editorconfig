@@ -1,0 +1,27 @@
+# MedSim2Learn editor configuration. Indentation conventions only; line
+# endings are intentionally not pinned to avoid churn on existing files.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{h,hpp,c,cpp}]
+indent_style = space
+indent_size = 4
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[{CMakeLists.txt,*.cmake}]
+indent_style = space
+indent_size = 4
+
+[*.json]
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false

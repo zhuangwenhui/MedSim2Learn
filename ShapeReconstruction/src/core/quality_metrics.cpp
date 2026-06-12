@@ -67,6 +67,7 @@ double triangle_min_angle_degrees(
     const double bc2 = l_bc * l_bc;
     const double ca2 = l_ca * l_ca;
 
+    // Law of cosines at each corner.
     // Clamp for acos stability -- floating-point rounding can push dot products slightly outside [-1, 1].
     const double cos_alpha = clamp_minus_one_to_one((ab2 + ca2 - bc2) / (2.0 * l_ab * l_ca));
     const double cos_beta = clamp_minus_one_to_one((ab2 + bc2 - ca2) / (2.0 * l_ab * l_bc));
@@ -79,6 +80,7 @@ double triangle_min_angle_degrees(
     return std::min({alpha, beta, gamma});
 }
 
+// Longest edge over shortest altitude; degenerate triangles map to +infinity.
 double triangle_aspect_ratio(
     double l_ab,
     double l_bc,
@@ -146,6 +148,8 @@ ScalarStats compute_scalar_stats(const std::vector<double>& values) {
         sumsq += value * value;
     }
 
+    // A NaN sample poisons every derived value; infinities leave min/max
+    // meaningful but force the moments to +infinity.
     if (has_nan) {
         stats.min = std::numeric_limits<double>::quiet_NaN();
         stats.mean = std::numeric_limits<double>::quiet_NaN();
@@ -182,6 +186,9 @@ ScalarStats compute_scalar_stats(const std::vector<double>& values) {
     return stats;
 }
 
+// Nearest distance from each source vertex to the target triangle surface,
+// brute force over all target faces. With no target geometry the result is one
+// +infinity entry per source vertex.
 std::vector<double> nearest_vertex_distances(
     const std::vector<Vec3>& source_vertices,
     const std::vector<Vec3>& target_vertices,
@@ -251,7 +258,7 @@ MeshQualityMetrics compute_mesh_quality_metrics(
     std::vector<double> min_angles;
     std::vector<double> aspect_ratios;
     std::map<Edge, std::vector<int>> edge_faces;
-    std::map<Edge, double> unique_edges;
+    std::map<Edge, double> unique_edges;  // length per undirected edge, recorded once
     std::vector<Vec3> face_normals;
     face_normals.reserve(faces.size());
 
@@ -301,6 +308,8 @@ MeshQualityMetrics compute_mesh_quality_metrics(
     metrics.min_angle_degrees = compute_scalar_stats(min_angles);
     metrics.aspect_ratio = compute_scalar_stats(aspect_ratios);
 
+    // Dihedral angles are measured only across interior manifold edges (exactly
+    // two incident faces); edges with degenerate face normals are skipped.
     std::vector<double> dihedral_angles;
     dihedral_angles.reserve(edge_faces.size());
     for (const auto& entry : edge_faces) {

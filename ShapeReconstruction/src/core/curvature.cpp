@@ -11,7 +11,6 @@
 
 namespace mvrmesh {
 
-
 std::vector<double> estimate_vertex_curvature(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
     std::map<int, std::vector<int>> incident;
     std::vector<Vec3> face_normals;
@@ -43,6 +42,8 @@ std::vector<double> estimate_vertex_curvature(const std::vector<Vec3>& vertices,
         }
         const Vec3 v_n = normalize(avg);
 
+        // Proxy: mean of 1 - |cos| between the averaged vertex normal and each incident
+        // face normal. abs() makes it orientation-independent; the clamp absorbs FP drift.
         double c_sum = 0.0;
         for (int fidx : found->second) {
             const Vec3& n = face_normals[static_cast<std::size_t>(fidx)];
@@ -73,6 +74,8 @@ std::set<Edge> select_split_edges_by_curvature(
         face_scores.emplace_back(score, fidx);
     }
 
+    // Descending by score; equal scores fall back to descending face index so the
+    // selection is deterministic across platforms.
     std::sort(face_scores.begin(), face_scores.end(), [](const auto& lhs, const auto& rhs) {
         if (lhs.first == rhs.first) {
             return lhs.second > rhs.second;

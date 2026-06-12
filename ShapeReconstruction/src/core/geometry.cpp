@@ -58,12 +58,15 @@ double triangle_area(const Vec3& a, const Vec3& b, const Vec3& c) {
 
 namespace {
 
+// Degeneracy guard for squared lengths and squared areas.
 constexpr double kEpsilon = 1e-12;
 
 double clamp01(double v) {
     return std::clamp(v, 0.0, 1.0);
 }
 
+// Clamped projection parameter num/den; a near-zero denominator (degenerate
+// segment) maps to the start point (t = 0).
 double segment_param(double num, double den) {
     if (std::abs(den) <= kEpsilon) return 0.0;
     return clamp01(num / den);
@@ -77,7 +80,9 @@ Vec3 closest_on_segment(const Vec3& p, const Vec3& a, const Vec3& b) {
 
 }  // namespace
 
-// Closest point on triangle using Voronoi region test.
+// Closest point on triangle using Voronoi region test (the classic case
+// analysis from Ericson, Real-Time Collision Detection: classify P against the
+// three vertex regions, three edge regions, then the interior).
 // Returns the point on triangle ABC nearest to P.
 Vec3 closest_point_on_triangle(const Vec3& p, const Vec3& a, const Vec3& b, const Vec3& c) {
     const Vec3 ab = vsub(b, a);

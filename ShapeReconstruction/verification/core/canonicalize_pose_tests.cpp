@@ -1,3 +1,5 @@
+// Tests for canonicalize_pose in mvrmesh/core/mesh_postprocess.h.
+
 #include <array>
 #include <cmath>
 #include <vector>

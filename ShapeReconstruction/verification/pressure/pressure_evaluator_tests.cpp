@@ -1,3 +1,5 @@
+// Tests for the DeformSim pressure evaluator and its JSON diagnostics output.
+
 #include <exception>
 #include <filesystem>
 #include <fstream>

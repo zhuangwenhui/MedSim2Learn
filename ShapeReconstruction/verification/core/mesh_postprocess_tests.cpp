@@ -1,3 +1,5 @@
+// Tests for MVR bounding-box parsing and mesh post-processing (quality fix, coordinate restore).
+
 #include <cmath>
 #include <filesystem>
 #include <iostream>

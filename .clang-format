@@ -1,0 +1,57 @@
+# MedSim2Learn C++ formatting configuration.
+# Codifies the established ShapeReconstruction (mvrmesh) house style; the
+# detailed prose rules live in the cpp-code-format skill. Editor-integration
+# config only: no bulk reformat has been run against history, so format
+# edited hunks (git clang-format), not whole files wholesale.
+BasedOnStyle: LLVM
+Standard: c++20
+
+# Layout
+ColumnLimit: 100
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: None
+FixNamespaceComments: true
+IndentCaseLabels: false
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# Braces: attached (K&R) everywhere, short guards may stay on one line
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+InsertBraces: false
+
+# Pointers and qualifiers: type-attached, west const (existing code already complies)
+PointerAlignment: Left
+DerivePointerAlignment: false
+ReferenceAlignment: Pointer
+QualifierAlignment: Leave
+
+# No decorative alignment
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: None
+AlignTrailingComments: false
+SpacesBeforeTrailingComments: 2
+AlignAfterOpenBracket: Align
+
+# Includes: own header first (priority 0 via main-header detection),
+# then std, then third-party, then project headers
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"mvrmesh/'
+    Priority: 4
+  - Regex: '^"tetgen'
+    Priority: 3
+  - Regex: '^<(CGAL|yaml-cpp|boost|nlohmann)/'
+    Priority: 3
+  - Regex: '^<[^/]+>'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3

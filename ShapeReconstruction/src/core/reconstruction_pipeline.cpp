@@ -71,6 +71,8 @@ SdfRemeshResult reconstruct_and_remesh_surface(
         cgal_options
     );
 
+    // The CGAL conversion copies every vertex of the surface mesh, including
+    // ones no face references, so the output needs its own compaction pass.
     std::pair<std::vector<Vec3>, std::vector<Face>> compact_output =
         compact_mesh_to_referenced_vertices(remeshed.vertices, remeshed.faces);
     if (compact_output.first.empty() || compact_output.second.empty()) {

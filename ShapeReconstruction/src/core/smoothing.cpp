@@ -35,6 +35,7 @@ void validate_face_geometry(const std::vector<Vec3>& vertices, const std::vector
         const Vec3& b = vertices[static_cast<std::size_t>(face[1])];
         const Vec3& c = vertices[static_cast<std::size_t>(face[2])];
         const Vec3 cross_prod = cross(vsub(b, a), vsub(c, a));
+        // Compare squared cross-product magnitudes to avoid a sqrt.
         const double area_sq = dot(cross_prod, cross_prod);
         if (area_sq <= kDegenerateTriangleEpsilon * kDegenerateTriangleEpsilon) {
             std::ostringstream oss;
@@ -78,6 +79,7 @@ void build_vertex_adjacency(
         add_unique_neighbor(adjacency[v0], v2);
     }
 
+    // An edge used by exactly one face lies on the surface boundary; mark both endpoints.
     for (const auto& entry : edge_count) {
         if (entry.second == 1) {
             is_boundary[entry.first.first] = true;
@@ -167,7 +169,8 @@ std::vector<Vec3> taubin_smooth(
     build_vertex_adjacency(vertices, faces, adjacency, is_boundary);
 
     std::vector<Vec3> current = vertices;
-    // Taubin smoothing: alternating shrink (lambda) and inflate (mu) passes suppress high-frequency noise while preserving overall shape.
+    // Taubin smoothing: alternating shrink (lambda) and inflate (mu) passes suppress
+    // high-frequency noise while preserving overall shape.
     for (int iteration = 0; iteration < iterations; ++iteration) {
         std::vector<Vec3> laplacian_pass;
         apply_laplacian_pass(current, adjacency, lambda, laplacian_pass);

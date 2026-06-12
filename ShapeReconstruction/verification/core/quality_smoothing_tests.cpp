@@ -1,3 +1,5 @@
+// Tests for quality metrics, smoothing, SDF reconstruction, surface acceptance, and compaction.
+
 #include <cmath>
 #include <iostream>
 #include <algorithm>

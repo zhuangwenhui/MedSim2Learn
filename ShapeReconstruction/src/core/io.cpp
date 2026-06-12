@@ -42,6 +42,7 @@ std::vector<std::string> split_ws(const std::string& line) {
     return parts;
 }
 
+// Section markers look like "@1": an '@' followed by digits only.
 bool is_section_marker(const std::string& line) {
     if (line.size() < 2 || line[0] != '@') {
         return false;
@@ -205,6 +206,7 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
             continue;
         }
 
+        // Header fields are only recognized before the first section marker.
         if (!has_active_section) {
             if (line.rfind("nVertex", 0) == 0) {
                 declared_vertices = parse_required_int(split_ws(line), "nVertex", path, line_number);
@@ -233,6 +235,7 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
         if (is_section_marker(line)) {
             section_id = parse_int_field(line.substr(1), path, line_number, "section marker");
             has_active_section = true;
+            // Touch the map entry so a section with no content lines still exists.
             sections[section_id];
             continue;
         }
@@ -255,16 +258,17 @@ ParsedMvr parse_mvr(const std::filesystem::path& path) {
     parsed.triangles = normalize_faces_indices(triangles_raw, static_cast<int>(vertices.size()));
     parsed.tetrahedra = normalize_tet_indices(tets_raw, static_cast<int>(vertices.size()));
 
+    // Header counts are advisory: a mismatch warns but does not fail the parse.
     if (declared_vertices.has_value() && *declared_vertices != static_cast<int>(vertices.size())) {
-        std::cout << "[warn] header nVertex=" << *declared_vertices
+        std::cerr << "[warn] header nVertex=" << *declared_vertices
                   << ", parsed=" << vertices.size() << "\n";
     }
     if (declared_triangles.has_value() && *declared_triangles != static_cast<int>(triangles_raw.size())) {
-        std::cout << "[warn] header nTriangle=" << *declared_triangles
+        std::cerr << "[warn] header nTriangle=" << *declared_triangles
                   << ", parsed=" << triangles_raw.size() << "\n";
     }
     if (declared_tetra.has_value() && *declared_tetra != static_cast<int>(tets_raw.size())) {
-        std::cout << "[warn] header nTetrahedron=" << *declared_tetra
+        std::cerr << "[warn] header nTetrahedron=" << *declared_tetra
                   << ", parsed=" << tets_raw.size() << "\n";
     }
 
@@ -291,6 +295,8 @@ void write_ply(
     output << "element face " << faces.size() << "\n";
     output << "property list uchar int vertex_indices\n";
     output << "end_header\n";
+    // 9 significant digits: enough to round-trip the float-typed properties
+    // declared in the header.
     output << std::setprecision(9) << std::defaultfloat;
     for (const Vec3& v : vertices) {
         output << v.x << " " << v.y << " " << v.z << "\n";
@@ -302,11 +308,11 @@ void write_ply(
 
 void read_ply(
     const std::filesystem::path& path,
-    std::vector<Vec3>& out_vertices,
-    std::vector<Face>& out_faces
+    std::vector<Vec3>& vertices_out,
+    std::vector<Face>& faces_out
 ) {
-    out_vertices.clear();
-    out_faces.clear();
+    vertices_out.clear();
+    faces_out.clear();
 
     std::ifstream in(path);
     if (!in) {
@@ -345,7 +351,7 @@ void read_ply(
     }
     if (!ascii) throw std::runtime_error("read_ply: missing format directive");
 
-    out_vertices.reserve(v_count);
+    vertices_out.reserve(v_count);
     for (std::size_t i = 0; i < v_count; ++i) {
         if (!std::getline(in, line)) {
             throw std::runtime_error("read_ply: unexpected EOF reading vertex " + std::to_string(i));
@@ -355,10 +361,10 @@ void read_ply(
         if (!(vs >> x >> y >> z)) {
             throw std::runtime_error("read_ply: bad vertex line " + std::to_string(i));
         }
-        out_vertices.push_back({x, y, z});
+        vertices_out.push_back({x, y, z});
     }
 
-    out_faces.reserve(f_count);
+    faces_out.reserve(f_count);
     for (std::size_t i = 0; i < f_count; ++i) {
         if (!std::getline(in, line)) {
             throw std::runtime_error("read_ply: unexpected EOF reading face " + std::to_string(i));
@@ -372,7 +378,7 @@ void read_ply(
         if (!(fs >> f[0] >> f[1] >> f[2])) {
             throw std::runtime_error("read_ply: bad face indices on face " + std::to_string(i));
         }
-        out_faces.push_back(f);
+        faces_out.push_back(f);
     }
 }
 

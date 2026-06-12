@@ -80,6 +80,8 @@ std::string fem_budget_classification_to_string(FemBudgetClassification classifi
         case FemBudgetClassification::Review:          return "review";
         case FemBudgetClassification::OverBudget:      return "over_budget";
     }
+    // Unreachable for in-range enum values; satisfies compilers that require a
+    // return on every path.
     return "pressure_failed";
 }
 

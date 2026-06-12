@@ -1,4 +1,4 @@
-// verification/config/config_tests.cpp
+// Tests for config validation and surface-mode parsing in mvrmesh/config/pipeline_config.h.
 
 #include <iostream>
 #include <stdexcept>

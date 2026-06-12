@@ -9,12 +9,12 @@
 #include <unordered_set>
 #include <vector>
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/convex_hull_3.h>
+
 #include "mvrmesh/core/geometry.h"
 #include "mvrmesh/core/topology.h"
-
-#include <CGAL/Simple_cartesian.h>
-#include <CGAL/convex_hull_3.h>
-#include <CGAL/Surface_mesh.h>
 
 namespace mvrmesh {
 
@@ -49,6 +49,8 @@ void jacobi_eigen_3x3(const double in[3][3], double eval[3], double evec[3][3]) 
             a[i][j] = in[i][j];
             evec[i][j] = (i == j) ? 1.0 : 0.0;
         }
+    // Each sweep annihilates the largest off-diagonal entry with one Givens
+    // rotation; 3x3 symmetric input converges long before the iteration cap.
     for (int iter = 0; iter < 100; ++iter) {
         int p = 0, q = 1;
         double off = std::abs(a[0][1]);
@@ -77,8 +79,12 @@ void jacobi_eigen_3x3(const double in[3][3], double eval[3], double evec[3][3]) 
     for (int i = 0; i < 3; ++i) eval[i] = a[i][i];
 }
 
+// Principal-axes pose frame: orthonormal basis cx/cy/cz and its origin.
 struct Frame { Vec3 cx, cy, cz, center; };
 
+// Area-weighted PCA over face centroids. Axes are sorted by decreasing
+// covariance: cx spans the longest extent, cz the thinnest. Degenerate input
+// (zero total area) falls back to the identity frame at the origin.
 Frame compute_principal_frame(const std::vector<Vec3>& v,
                               const std::vector<Face>& faces) {
     Vec3 center{0,0,0};
@@ -119,6 +125,8 @@ Frame compute_principal_frame(const std::vector<Vec3>& v,
     return fr;
 }
 
+// Rigid world-to-frame transform: translate each vertex by -center, then
+// project onto the cx/cy/cz axes.
 void apply_frame(std::vector<Vec3>& v, const Frame& fr) {
     for (auto& p : v) {
         Vec3 d{p.x - fr.center.x, p.y - fr.center.y, p.z - fr.center.z};
@@ -181,6 +189,8 @@ int mesh_quality_fix(std::vector<Vec3>& vertices, std::vector<Face>& faces) {
     }
 
     // -- Step 1: Vertex perturbation (always runs) --
+    // Jitter amplitude is 1e-6 of the shortest edge: enough to break exact
+    // coincidences, negligible against the mesh resolution.
     const double min_edge = compute_min_edge_length(vertices, faces);
     const double epsilon = min_edge * 1e-6;
 
@@ -197,6 +207,8 @@ int mesh_quality_fix(std::vector<Vec3>& vertices, std::vector<Face>& faces) {
               << " vertices, epsilon=" << epsilon << "\n";
 
     // -- Step 2: Degenerate triangle detection and removal --
+    // The area threshold scales with the squared minimum edge so the test is
+    // independent of mesh resolution.
     const double area_threshold = min_edge * min_edge * 1e-8;
     int fixed_count = 0;
 
@@ -212,6 +224,7 @@ int mesh_quality_fix(std::vector<Vec3>& vertices, std::vector<Face>& faces) {
     }
 
     if (!degenerate_indices.empty()) {
+        // Erase back-to-front so earlier indices stay valid.
         for (auto it = degenerate_indices.rbegin();
              it != degenerate_indices.rend(); ++it) {
             faces.erase(faces.begin() + static_cast<std::ptrdiff_t>(*it));
@@ -228,6 +241,7 @@ int mesh_quality_fix(std::vector<Vec3>& vertices, std::vector<Face>& faces) {
         return sorted;
     };
 
+    // Hash for sorted index triples (boost::hash_combine-style mixing).
     struct ArrayHash {
         std::size_t operator()(const std::array<int, 3>& a) const {
             std::size_t h = 0;
@@ -264,7 +278,7 @@ void restore_physical_coordinates(
     const BoundingBox& bounding_box,
     double voxel_spacing_mm) {
     if (!bounding_box.valid) {
-        std::cout << "[warn] restore_physical_coordinates: "
+        std::cerr << "[warn] restore_physical_coordinates: "
                      "no valid bounding box, skipping\n";
         return;
     }
@@ -290,6 +304,9 @@ void restore_physical_coordinates(
               << "] x [" << v_y_min << ".." << v_y_max
               << "] x [" << v_z_min << ".." << v_z_max << "]\n";
 
+    // Per axis: affine-map the current span onto the MVR header bounding box
+    // (voxel units), then scale by the voxel spacing into mm. A zero-span
+    // (flat) axis is translated only.
     for (auto& v : vertices) {
         if (v_x_span > 0.0 && bb_x_span > 0.0) {
             v.x = (bounding_box.x_min +

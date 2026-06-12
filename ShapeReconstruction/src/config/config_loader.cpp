@@ -1,5 +1,3 @@
-// src/config/config_loader.cpp
-
 #include "mvrmesh/config/config_loader.h"
 
 #include <cmath>
@@ -14,6 +12,7 @@
 
 // -- YAML::convert specialization for std::filesystem::path ------------------
 
+// yaml-cpp has no built-in decoder for std::filesystem::path; go via string.
 namespace YAML {
 template<>
 struct convert<std::filesystem::path> {

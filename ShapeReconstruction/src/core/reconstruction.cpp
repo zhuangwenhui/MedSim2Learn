@@ -6,24 +6,24 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <string>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "mvrmesh/core/compaction.h"
-#include "mvrmesh/core/geometry.h"
-#include "mvrmesh/core/topology.h"
-
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
-#include <CGAL/AABB_tree.h>
 #include <CGAL/AABB_traits_3.h>
+#include <CGAL/AABB_tree.h>
 #include <CGAL/Side_of_triangle_mesh.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/squared_distance_3.h>
+
+#include "mvrmesh/core/compaction.h"
+#include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 
@@ -37,12 +37,14 @@ using CgalAabbTraits = CGAL::AABB_traits_3<CgalKernel, CgalTrianglePrimitive>;
 using CgalAabbTree = CGAL::AABB_tree<CgalAabbTraits>;
 using CgalSideOfMesh = CGAL::Side_of_triangle_mesh<CgalSurfaceMesh, CgalKernel>;
 
-constexpr double k_zero_tolerance = 1e-12;
-constexpr double k_degenerate_area_tolerance = 1e-12;
-constexpr std::size_t k_default_face_reserve_cap = 1'000'000;
-constexpr std::size_t k_default_edge_reserve_cap = 1'000'000;
-constexpr std::size_t k_default_node_vertex_reserve_cap = 500'000;
+constexpr double kZeroTolerance = 1e-12;
+constexpr double kDegenerateAreaTolerance = 1e-12;
+constexpr std::size_t kDefaultFaceReserveCap = 1'000'000;
+constexpr std::size_t kDefaultEdgeReserveCap = 1'000'000;
+constexpr std::size_t kDefaultNodeVertexReserveCap = 500'000;
 
+// Overflow-checked std::size_t arithmetic: throws (naming `context`) instead of
+// silently wrapping.
 std::size_t checked_size_t_mul(std::size_t lhs, std::size_t rhs, const char* context) {
     if (lhs == 0 || rhs == 0) {
         return 0;
@@ -69,6 +71,9 @@ std::size_t checked_size_t_add(std::size_t lhs, std::size_t rhs, const char* con
     return lhs + rhs;
 }
 
+// Regular SDF sample grid: `span` = resolution + 1 nodes per axis; `sdf` holds one
+// signed distance per node, flattened as (i * span + j) * span + k, negative inside
+// the mesh.
 struct SampledGrid {
     int resolution = 0;
     int span = 0;
@@ -77,6 +82,8 @@ struct SampledGrid {
     std::vector<double> sdf;
 };
 
+// Hash for a sorted node-id pair: packs the two non-negative 32-bit ids into one
+// 64-bit value.
 struct EdgeCacheHash {
     std::size_t operator()(const std::pair<int, int>& key) const noexcept {
         return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(key.first)) << 32)
@@ -149,6 +156,8 @@ void setup_grid(
     );
 }
 
+// Flattens grid node (i, j, k) into its sdf array index; throws if the index would
+// overflow std::size_t or int.
 int node_index(const SampledGrid& grid, int i, int j, int k) {
     const std::size_t span = static_cast<std::size_t>(grid.span);
     const std::size_t first = checked_size_t_mul(
@@ -176,6 +185,7 @@ Vec3 node_position(const SampledGrid& grid, int i, int j, int k) {
     };
 }
 
+// Inverse of node_index: recovers the (i, j, k) grid coordinates of a node id.
 void decode_node(int node_id, const SampledGrid& grid, int& i_out, int& j_out, int& k_out) {
     const int plane = grid.span * grid.span;
     i_out = node_id / plane;
@@ -189,7 +199,8 @@ void fill_signed_distance(
     const CgalSideOfMesh& side_of_mesh,
     SampledGrid& grid
 ) {
-    // Compute signed distance at every grid node using CGAL containment query. Negative = inside mesh.
+    // Compute signed distance at every grid node using CGAL containment query.
+    // Negative = inside mesh.
     const int span = grid.span;
     for (int i = 0; i < span; ++i) {
         for (int j = 0; j < span; ++j) {
@@ -224,6 +235,9 @@ std::pair<int, int> sorted_node_pair(int a, int b) {
     return std::make_pair(b, a);
 }
 
+// Returns the vertex index where the zero level set crosses edge (node_a, node_b),
+// creating the vertex on first use. Caching by node id (surface passes through a
+// grid node) or by edge key keeps coincident crossings shared between tetrahedra.
 int get_or_add_intersection(
     int node_a,
     int node_b,
@@ -234,7 +248,8 @@ int get_or_add_intersection(
     std::unordered_map<int, int>& node_vertex_cache,
     std::unordered_map<std::pair<int, int>, int, EdgeCacheHash>& edge_cache
 ) {
-    if (std::fabs(sdf_a) <= k_zero_tolerance) {
+    // A node lying (numerically) on the surface becomes the vertex itself.
+    if (std::fabs(sdf_a) <= kZeroTolerance) {
         if (const auto found = node_vertex_cache.find(node_a); found != node_vertex_cache.end()) {
             return found->second;
         }
@@ -248,7 +263,7 @@ int get_or_add_intersection(
         node_vertex_cache.emplace(node_a, out_idx);
         return out_idx;
     }
-    if (std::fabs(sdf_b) <= k_zero_tolerance) {
+    if (std::fabs(sdf_b) <= kZeroTolerance) {
         if (const auto found = node_vertex_cache.find(node_b); found != node_vertex_cache.end()) {
             return found->second;
         }
@@ -268,7 +283,9 @@ int get_or_add_intersection(
         return found->second;
     }
 
-    if (std::fabs(sdf_b - sdf_a) < k_zero_tolerance) {
+    // Nearly equal SDF values would make the interpolation factor blow up; fall
+    // back to the edge midpoint.
+    if (std::fabs(sdf_b - sdf_a) < kZeroTolerance) {
         const double t = 0.5;
         int ai = 0;
         int aj = 0;
@@ -292,8 +309,10 @@ int get_or_add_intersection(
         return out_idx;
     }
 
+    // General case: linear zero crossing along the edge. t outside [0, 1] beyond
+    // tolerance means the caller passed a non-crossing edge.
     double t = (-sdf_a) / (sdf_b - sdf_a);
-    if (t < 0.0 - k_zero_tolerance || t > 1.0 + k_zero_tolerance) {
+    if (t < 0.0 - kZeroTolerance || t > 1.0 + kZeroTolerance) {
         throw std::runtime_error("reconstruct_surface_sdf: invalid interpolation factor while extracting surface");
     }
     t = std::clamp(t, 0.0, 1.0);
@@ -329,7 +348,7 @@ bool face_is_degenerate(const Face& face, const std::vector<Vec3>& vertices) {
     const Vec3 a = vertices.at(static_cast<std::size_t>(face[0]));
     const Vec3 b = vertices.at(static_cast<std::size_t>(face[1]));
     const Vec3 c = vertices.at(static_cast<std::size_t>(face[2]));
-    return norm(cross(vsub(b, a), vsub(c, a))) <= k_degenerate_area_tolerance;
+    return norm(cross(vsub(b, a), vsub(c, a))) <= kDegenerateAreaTolerance;
 }
 
 void append_triangle(
@@ -343,6 +362,8 @@ void append_triangle(
     faces.push_back(face);
 }
 
+// Orients each face away from the global vertex centroid (a heuristic; exact for
+// shapes star-shaped about that centroid). Degenerate faces are left as-is.
 void orient_faces_outward(const std::vector<Vec3>& vertices, std::vector<Face>& faces) {
     if (faces.empty() || vertices.empty()) {
         return;
@@ -359,7 +380,7 @@ void orient_faces_outward(const std::vector<Vec3>& vertices, std::vector<Face>& 
         const Vec3& b = vertices[static_cast<std::size_t>(face[1])];
         const Vec3& c = vertices[static_cast<std::size_t>(face[2])];
         const Vec3 normal = cross(vsub(b, a), vsub(c, a));
-        if (norm(normal) <= k_degenerate_area_tolerance) {
+        if (norm(normal) <= kDegenerateAreaTolerance) {
             continue;
         }
 
@@ -380,6 +401,8 @@ int local_index(int node_id, const std::array<int, 4>& nodes) {
     throw std::runtime_error("reconstruct_surface_sdf: node not in tetrahedron");
 }
 
+// Emits the triangle patch (0 to 2 triangles) where the zero level set cuts one
+// tetrahedron; nodes with sdf <= 0 count as inside.
 void process_tetrahedron(
     const std::array<int, 4>& tet_nodes,
     const std::array<double, 4>& tet_sdf,
@@ -487,6 +510,8 @@ void process_tetrahedron(
     }
 }
 
+// Converts the compacted mesh into a CGAL Surface_mesh; throws if CGAL rejects
+// a face or the result has no faces.
 CgalSurfaceMesh to_surface_mesh(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
     CgalSurfaceMesh mesh;
     std::vector<CgalSurfaceMesh::Vertex_index> vmap;
@@ -555,22 +580,24 @@ ReconstructedMesh reconstruct_surface_sdf(
         );
     }
 
+    // Reserve from grid-derived upper bounds, capped so large grids cannot balloon
+    // memory before any geometry exists.
     std::vector<Vec3> reconstructed_vertices;
     std::vector<Face> reconstructed_faces;
     const std::size_t r = static_cast<std::size_t>(grid.resolution);
     const std::size_t s = static_cast<std::size_t>(grid.span);
     const std::size_t estimated_tetra_count = checked_size_t_mul3(r, r, r, "cube tetra count");
     const std::size_t estimated_face_count = checked_size_t_mul(estimated_tetra_count, 2u, "tetra face upper bound");
-    reconstructed_faces.reserve(std::min(estimated_face_count, k_default_face_reserve_cap));
+    reconstructed_faces.reserve(std::min(estimated_face_count, kDefaultFaceReserveCap));
     std::unordered_map<std::pair<int, int>, int, EdgeCacheHash> edge_cache;
     const std::size_t estimated_intersections = checked_size_t_mul3(r, r, r, "cube edge interpolation count");
     edge_cache.reserve(std::min(
         checked_size_t_mul(estimated_intersections, 24u, "edge interpolation reserve"),
-        k_default_edge_reserve_cap
+        kDefaultEdgeReserveCap
     ));
     std::unordered_map<int, int> node_vertex_cache;
     const std::size_t max_node_vertices = checked_size_t_mul3(s, s, s, "node vertex cache candidate count");
-    node_vertex_cache.reserve(std::min(max_node_vertices, k_default_node_vertex_reserve_cap));
+    node_vertex_cache.reserve(std::min(max_node_vertices, kDefaultNodeVertexReserveCap));
 
     // Decompose each cube into 6 tetrahedra sharing the main diagonal (nodes 0 and 6).
     const std::array<std::array<int, 4>, 6> tetrahedra = {{

@@ -17,6 +17,8 @@ namespace mvrmesh {
 
 namespace {
 
+// Returns the midpoint vertex of edge (i, j), creating and appending it on first use
+// so that adjacent faces share one midpoint per edge.
 int midpoint_index(std::vector<Vec3>& vertices, std::map<Edge, int>& cache, int i, int j) {
     const Edge key = make_edge_key(i, j);
     const auto found = cache.find(key);
@@ -99,6 +101,9 @@ std::pair<std::vector<Vec3>, std::vector<Face>> split_faces_with_edge_set(
             m2 = midpoint_index(out_vertices, edge_mid_cache, k, i);
         }
 
+        // Retriangulate by number of split edges: 0 keeps the face, 1 yields 2
+        // triangles, 2 yields 3 (the quad half is split along a fixed diagonal),
+        // 3 is the full 4-to-1 pattern. Children are re-oriented to match `base`.
         const int count = static_cast<int>(m0.has_value()) +
                           static_cast<int>(m1.has_value()) +
                           static_cast<int>(m2.has_value());

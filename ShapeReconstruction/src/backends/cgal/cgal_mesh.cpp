@@ -1,7 +1,5 @@
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 
-#include "mvrmesh/core/topology.h"
-
 #include <cstddef>
 #include <iostream>
 #include <set>
@@ -20,6 +18,8 @@
 #include <CGAL/Polygon_mesh_processing/triangulate_hole.h>
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
+
+#include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 
@@ -223,6 +223,8 @@ RepairStepIO repair_polygon_soup_step(
             "nothing remains after repair. Verify input .mvr is not corrupt.");
     }
 
+    // Repair should only ever shrink the soup; the guards keep the unsigned
+    // subtractions safe if CGAL ever grows it.
     io.report.removed_duplicate_vertices = (before_points > points.size())
                                                ? before_points - points.size()
                                                : 0;
@@ -308,6 +310,7 @@ ProtectedRemeshStepIO protected_remesh_step(
     CgalSurfaceMesh mesh;
     mvrmesh_to_surface_mesh(vertices, faces, mesh);
 
+    // A zero target means auto: derive it from the input's mean edge length.
     double resolved_target = target_edge_length;
     if (resolved_target == 0.0) {
         resolved_target = mean_edge_length(mesh);

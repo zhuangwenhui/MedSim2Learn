@@ -35,6 +35,8 @@ int main(int argc, char** argv) {
         }
 
         if (config.mesh_quality_fix) {
+            // Operates on normalized-space coordinates, so it must run
+            // before the physical (mm) restore below.
             mvrmesh::mesh_quality_fix(result.vertices, result.faces);
         }
 

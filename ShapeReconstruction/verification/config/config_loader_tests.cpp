@@ -1,4 +1,4 @@
-// verification/config/config_loader_tests.cpp
+// Tests for YAML and CLI config loading in mvrmesh/config/config_loader.h.
 
 #include <filesystem>
 #include <iostream>

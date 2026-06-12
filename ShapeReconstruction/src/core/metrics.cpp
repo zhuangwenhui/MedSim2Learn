@@ -17,12 +17,15 @@ namespace mvrmesh {
 
 namespace {
 
+// Winding-independent face identity: the sorted vertex index triple.
 std::array<int, 3> make_face_key(const Face& face) {
     std::array<int, 3> key{face[0], face[1], face[2]};
     std::sort(key.begin(), key.end());
     return key;
 }
 
+// Per undirected edge: how many incident half-edges run in the canonical (key)
+// direction versus the opposite one. Feeds the orientation-consistency check.
 struct EdgeDirectionCounts {
     int canonical = 0;
     int opposite = 0;
@@ -38,6 +41,8 @@ void add_half_edge_direction(std::map<Edge, EdgeDirectionCounts>& edge_direction
     }
 }
 
+// Union-find with path compression and union by rank; used to count
+// face-connected vertex components.
 class DisjointSet {
 public:
     explicit DisjointSet(std::size_t n) : parent_(n), rank_(n, 0) {
@@ -124,6 +129,8 @@ SurfaceMetrics compute_surface_metrics(
         } else if (entry.second > 2) {
             ++metrics.non_manifold_edge_count;
         } else {
+            // A consistently wound interior edge is traversed exactly once in
+            // each direction by its two faces; anything else is a mismatch.
             const EdgeDirectionCounts& counts = edge_directions[entry.first];
             if (counts.canonical != 1 || counts.opposite != 1) {
                 ++metrics.inconsistent_orientation_edge_count;
@@ -137,6 +144,8 @@ SurfaceMetrics compute_surface_metrics(
         }
     }
 
+    // Components are counted over vertices referenced by at least one face;
+    // isolated vertices do not contribute.
     std::set<std::size_t> roots;
     for (std::size_t i = 0; i < used_vertices.size(); ++i) {
         if (!used_vertices[i]) {
