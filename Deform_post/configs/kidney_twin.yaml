@@ -1,0 +1,43 @@
+# Kidney digital-twin replay recipe: the proven production decisions, on disk.
+# {workspace} expands to the repo root, {dataflow} to <workspace>/DataFlow.
+# CLI flags override individual values; see `python main.py --help`.
+
+real_data_root: "D:/Image2Force Data/Real Visual-force Paired Data"
+mesh: "{dataflow}/ShapeReconstruction/meshes/kidney_anat.ply"
+annotation: "{dataflow}/Deform_post/annotations/kidney_anat_contact_k1.json"
+out_root: "{dataflow}/Deform_post/twin_full"
+exe: "{workspace}/build/DeformSim/vs2022-x64/Release/LVBasicFramework.exe"
+mkl_bin: "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/bin"
+compiler_bin: "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
+
+# Real recordings are 30 fps; frame index <-> time mapping everywhere.
+fps: 30.0
+
+# Fixed oblique laparoscope: side-grazing close-up framing the contact region
+# so the indentation breaks the top silhouette. Up stays +z (a +y up would be
+# nearly parallel to the grazing view direction and degenerate the basis).
+camera:
+  width: 800
+  height: 800
+  fov_deg: 60.0
+  standoff_mm: 70.0
+  eye_dir: [-0.47, -0.81, 0.34]
+  up: [0.0, 0.0, 1.0]
+
+# Kidney material decision: E = 0.03 MPa (30 kPa), v = 0.49.
+material:
+  young_mpa: 0.03
+  poisson: 0.49
+
+sim:
+  num_threads: 1
+  mkl_threads: 1
+  seed: 20260530
+
+serialize:
+  # 224x224 keeps production .pt around 1 GB/seq (raw 800 px was ~13 GB/seq).
+  resize: [224, 224]
+
+batch:
+  max_parallel: 1
+  keep_intermediate: false
