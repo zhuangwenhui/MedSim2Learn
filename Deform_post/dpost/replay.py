@@ -16,7 +16,7 @@ import shutil
 import numpy as np
 import open3d as o3d
 
-from .camera import build_camera_params
+from .camera import resolve_camera
 from .config import DEFAULT_FPS, DEFAULT_POISSON, DEFAULT_YOUNG_MPA, CameraConfig
 from .forces import (
     load_real_forces,
@@ -30,7 +30,7 @@ from .meshio import contact_normal, load_mesh
 
 def prep(real_csv, mesh_path, annotation_path, out_dir, seed=None,
          subsample=None, young=DEFAULT_YOUNG_MPA, poisson=DEFAULT_POISSON,
-         cam_cfg=None, fps=DEFAULT_FPS):
+         cam_cfg=None, fps=DEFAULT_FPS, cameras_dir=None):
     """Build forces_model.csv / labels.csv / camera.json / replay_meta.json.
 
     If `subsample` is given, evenly sample that many frames; SampleID v-fields
@@ -74,9 +74,10 @@ def prep(real_csv, mesh_path, annotation_path, out_dir, seed=None,
         for i, (fx, fy, fz) in enumerate(F_sensor):
             w.writerow([sample_id(seed, i), f"{fx:.8g}", f"{fy:.8g}", f"{fz:.8g}"])
 
-    # camera.json: fixed oblique laparoscope, identical for every frame.
+    # camera.json: one fixed camera for every frame of this sequence; the
+    # source (auto / profile / absolute) is decided by the camera config.
     cfg = cam_cfg if cam_cfg is not None else CameraConfig()
-    cam, eye = build_camera_params(p_world, cfg)
+    cam, _eye, cam_info = resolve_camera(p_world, n_unit, cfg, cameras_dir)
     camera_path = os.path.join(out_dir, "camera.json")
     o3d.io.write_pinhole_camera_parameters(camera_path, cam)
 
@@ -97,13 +98,7 @@ def prep(real_csv, mesh_path, annotation_path, out_dir, seed=None,
         "young_mpa": float(young),
         "poisson": float(poisson),
         "fps": fps,
-        "camera": {
-            "width": cfg.width, "height": cfg.height, "fov_deg": cfg.fov_deg,
-            "standoff_mm": cfg.standoff_mm,
-            "eye": [float(x) for x in eye],
-            "center": [float(x) for x in p_world],
-            "up": [float(x) for x in cfg.up],
-        },
+        "camera": cam_info,
     }
     meta_path = os.path.join(out_dir, "replay_meta.json")
     with open(meta_path, "w") as fh:
@@ -164,7 +159,7 @@ def run_sequence(recipe, seq, out_dir, subsample=None, with_artifacts=True,
         meta = prep(real_csv, mesh_path, annotation_path, out_dir,
                     subsample=subsample, young=recipe.material.young_mpa,
                     poisson=recipe.material.poisson, cam_cfg=recipe.camera,
-                    fps=recipe.fps)
+                    fps=recipe.fps, cameras_dir=recipe.resolved("cameras_dir"))
 
         stage = "simulate"
         _write_status(out_dir, stage, "running")

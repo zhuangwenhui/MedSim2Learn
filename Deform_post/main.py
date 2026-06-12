@@ -144,6 +144,24 @@ def _build_parser():
     pb.add_argument("--keep-intermediate", action="store_true")
     pb.add_argument("--subsample", type=int, default=None)
 
+    # --- camera ---------------------------------------------------------
+    pc = sub.add_parser("camera",
+                        help="Pick, list or inspect saved sequence cameras")
+    add_config(pc)
+    pc.add_argument("action", choices=["pick", "list", "show"],
+                    help="pick: interactive viewpoint capture; list: saved "
+                         "cameras; show: print one")
+    pc.add_argument("--name", type=str, default=None,
+                    help="Camera name (required for pick/show)")
+    pc.add_argument("--mesh", type=str, default=None,
+                    help="Mesh PLY for pick (default: recipe mesh)")
+    pc.add_argument("--annotation", type=str, default=None,
+                    help="Annotation JSON for the contact seed (default: recipe)")
+    pc.add_argument("--seed", type=int, default=None,
+                    help="Contact seed override (default: annotation contact[0])")
+    pc.add_argument("--absolute", action="store_true",
+                    help="Also save the raw absolute camera JSON next to the profile")
+
     # --- assemble -------------------------------------------------------
     pg = sub.add_parser("assemble",
                         help="Per-sequence .pt outputs -> merged data_dir + splits "
@@ -292,6 +310,81 @@ def _cmd_batch(args):
         raise SystemExit(1)
 
 
+def _cmd_camera(args):
+    import json
+
+    from dpost.camera import (
+        build_camera_params,
+        decompose,
+        resolve_profile_path,
+        save_profile,
+    )
+    from dpost.camera.picker import pick_camera
+    from dpost.camera.profile import PROFILE_SUFFIX
+    from dpost.meshio import contact_normal, load_mesh
+
+    recipe = _recipe_from(args)
+    cameras_dir = recipe.resolved("cameras_dir")
+
+    if args.action == "list":
+        if not os.path.isdir(cameras_dir):
+            print(f"no cameras directory yet: {cameras_dir}")
+            return
+        entries = sorted(os.listdir(cameras_dir))
+        profiles = [e for e in entries if e.endswith(PROFILE_SUFFIX)]
+        absolutes = [e for e in entries
+                     if e.endswith(".camera.json") and not e.endswith(PROFILE_SUFFIX)]
+        print(f"cameras in {cameras_dir}:")
+        for e in profiles:
+            print(f"  profile   {e[:-len(PROFILE_SUFFIX)]}")
+        for e in absolutes:
+            print(f"  absolute  {e[:-len('.camera.json')]}")
+        if not profiles and not absolutes:
+            print("  (none)")
+        return
+
+    if not args.name:
+        raise SystemExit(f"camera {args.action} requires --name")
+
+    if args.action == "show":
+        path = resolve_profile_path(args.name, cameras_dir)
+        with open(path, "r") as fh:
+            print(fh.read())
+        return
+
+    # pick: interactive capture, decomposed into a contact-frame profile.
+    mesh_path = args.mesh or recipe.resolved("mesh")
+    annotation_path = args.annotation or recipe.resolved("annotation")
+    seed = args.seed
+    if seed is None:
+        with open(annotation_path, "r") as fh:
+            ann = json.load(fh)
+        if not ann.get("contacts"):
+            raise SystemExit("annotation has no contacts; pass --seed explicitly")
+        seed = int(ann["contacts"][0]["seed"])
+
+    mesh = load_mesh(mesh_path)
+    p_world, n_unit = contact_normal(mesh, seed)
+    init_cam, _eye = build_camera_params(p_world, recipe.camera)
+    cam = pick_camera(mesh_path, init_cam=init_cam,
+                      window_name=f"Camera picker (contact seed {seed})")
+    profile = decompose(cam, p_world, n_unit)
+
+    os.makedirs(cameras_dir, exist_ok=True)
+    profile_path = os.path.join(cameras_dir, args.name + PROFILE_SUFFIX)
+    save_profile(profile, profile_path)
+    print(f"saved contact-frame profile -> {profile_path}")
+    print(f"  standoff {profile['standoff_mm']:.1f} mm, fov {profile['fov_deg']:.1f} deg")
+    if args.absolute:
+        import open3d as o3d
+
+        abs_path = os.path.join(cameras_dir, args.name + ".camera.json")
+        o3d.io.write_pinhole_camera_parameters(abs_path, cam)
+        print(f"saved absolute camera     -> {abs_path}")
+    print("use it via configs camera.mode: profile / camera.profile: "
+          f"{args.name}")
+
+
 def _cmd_assemble(args):
     from dpost.dataset import assemble as asm
 
@@ -305,12 +398,14 @@ def _cmd_selftest(_args):
     from dpost import annotate as ann_mod
     from dpost import artifacts as artifacts_mod
     from dpost import replay as replay_mod
+    from dpost.camera import profile as profile_mod
     from dpost.dataset import assemble as assemble_mod
     from dpost.dataset import serialize as serialize_mod
     from dpost.forces import real as forces_mod
     from dpost.simrun import batch as batch_mod
 
     forces_mod._self_test()
+    profile_mod._self_test()
     serialize_mod._self_test()
     batch_mod._self_test()
     replay_mod._self_test()
@@ -338,6 +433,7 @@ def main(argv=None):
         "artifacts": _cmd_artifacts,
         "run": _cmd_run,
         "batch": _cmd_batch,
+        "camera": _cmd_camera,
         "assemble": _cmd_assemble,
         "selftest": _cmd_selftest,
     }

@@ -13,10 +13,23 @@ compiler_bin: "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
 # Real recordings are 30 fps; frame index <-> time mapping everywhere.
 fps: 30.0
 
-# Fixed oblique laparoscope: side-grazing close-up framing the contact region
-# so the indentation breaks the top silhouette. Up stays +z (a +y up would be
-# nearly parallel to the grazing view direction and degenerate the basis).
+# Camera source per sequence:
+#   mode: auto      - deterministic placement from the fields below, centered
+#                     on each sequence's contact point (the proven default)
+#   mode: profile   - a saved contact-frame view profile; pick one with
+#                     `python main.py camera pick --name myview`, then set
+#                     profile: myview. The chosen angle follows each
+#                     sequence's own contact point.
+#   mode: absolute  - a saved PinholeCameraParameters JSON applied verbatim
+#                     to every sequence (does NOT follow the contact);
+#                     absolute: path/to/x.camera.json
+# Auto defaults: side-grazing close-up framing the contact region so the
+# indentation breaks the top silhouette. Up stays +z (a +y up would be nearly
+# parallel to the grazing view direction and degenerate the basis).
 camera:
+  mode: auto
+  profile: ""
+  absolute: ""
   width: 800
   height: 800
   fov_deg: 60.0

@@ -26,15 +26,28 @@ DEFAULT_SIM_SEED = 20260530
 
 @dataclasses.dataclass
 class CameraConfig:
-    """Fixed laparoscope camera for every replay frame.
+    """Camera source for every replay frame (one fixed camera per sequence).
 
-    The eye direction grazes the contact region from the side (~70 deg from
-    +z, azimuth ~240 deg) so the indentation breaks the top silhouette; up
-    must stay +z because a +y up would be nearly parallel to the grazing view
-    direction and the camera basis would degenerate. The close standoff frames
-    the contact region, not the whole organ.
+    mode selects where the camera comes from:
+      auto      deterministic placement from the fields below, centered on the
+                sequence's contact point
+      profile   a saved contact-frame view profile (interactively picked once,
+                re-instantiated around each sequence's own contact); `profile`
+                names it (bare name resolved in cameras_dir, or a path)
+      absolute  a saved PinholeCameraParameters JSON applied verbatim to every
+                sequence (the viewpoint does NOT follow the contact);
+                `absolute` is its path
+
+    The auto defaults: the eye direction grazes the contact region from the
+    side (~70 deg from +z, azimuth ~240 deg) so the indentation breaks the top
+    silhouette; up must stay +z because a +y up would be nearly parallel to
+    the grazing view direction and the camera basis would degenerate. The
+    close standoff frames the contact region, not the whole organ.
     """
 
+    mode: str = "auto"
+    profile: str = ""
+    absolute: str = ""
     width: int = 800
     height: int = 800
     fov_deg: float = 60.0
@@ -79,6 +92,7 @@ class RecipeConfig:
     annotation: str = "{dataflow}/Deform_post/annotations/kidney_anat_contact_k1.json"
     out_root: str = "{dataflow}/Deform_post/twin_full"
     exe: str = "{workspace}/build/DeformSim/vs2022-x64/Release/LVBasicFramework.exe"
+    cameras_dir: str = "{dataflow}/Deform_post/cameras"
     mkl_bin: str = "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/bin"
     compiler_bin: str = "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
     fps: float = DEFAULT_FPS
@@ -131,6 +145,12 @@ def _validate(recipe):
     if recipe.fps <= 0.0:
         raise ValueError(f"fps {recipe.fps} must be > 0")
     cam = recipe.camera
+    if cam.mode not in ("auto", "profile", "absolute"):
+        raise ValueError(f"camera mode '{cam.mode}' not in auto/profile/absolute")
+    if cam.mode == "profile" and not cam.profile:
+        raise ValueError("camera mode 'profile' needs camera.profile (name or path)")
+    if cam.mode == "absolute" and not cam.absolute:
+        raise ValueError("camera mode 'absolute' needs camera.absolute (path)")
     if cam.width <= 0 or cam.height <= 0:
         raise ValueError("camera width/height must be positive")
     if not (0.0 < cam.fov_deg < 180.0):
