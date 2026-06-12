@@ -30,6 +30,41 @@ std::array<int, 3> sorted_face_key(const Face& face) {
 
 }  // namespace
 
+void validate_face_indices(const std::vector<Vec3>& vertices,
+                           const std::vector<Face>& faces,
+                           const char* context) {
+    const int upper = static_cast<int>(vertices.size());
+    for (const Face& face : faces) {
+        for (int idx : face) {
+            if (idx < 0 || idx >= upper) {
+                std::ostringstream oss;
+                oss << context << ": face index out of range: " << idx
+                    << ", n_vertices=" << vertices.size();
+                throw std::runtime_error(oss.str());
+            }
+        }
+    }
+}
+
+MeshBoundingBox compute_bbox(const std::vector<Vec3>& vertices) {
+    MeshBoundingBox box;
+    if (vertices.empty()) {
+        return box;
+    }
+    box.valid = true;
+    box.min = vertices.front();
+    box.max = vertices.front();
+    for (const Vec3& v : vertices) {
+        box.min.x = std::min(box.min.x, v.x);
+        box.min.y = std::min(box.min.y, v.y);
+        box.min.z = std::min(box.min.z, v.z);
+        box.max.x = std::max(box.max.x, v.x);
+        box.max.y = std::max(box.max.y, v.y);
+        box.max.z = std::max(box.max.z, v.z);
+    }
+    return box;
+}
+
 std::vector<Face> normalize_faces_indices(const std::vector<Face>& faces, int n_vertices) {
     if (faces.empty()) {
         return {};

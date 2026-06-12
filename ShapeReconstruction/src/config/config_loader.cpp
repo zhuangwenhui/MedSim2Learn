@@ -4,6 +4,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <initializer_list>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -31,6 +33,28 @@ namespace {
 template<typename T>
 void read_optional(const YAML::Node& node, const char* key, T& target) {
     if (node[key]) target = node[key].as<T>();
+}
+
+// Warn (non-fatal) about YAML keys that no loader reads, so typos like
+// 'remesh_iteration' do not silently fall back to defaults.
+void warn_unknown_keys(const YAML::Node& node,
+                       const char* section,
+                       std::initializer_list<const char*> known_keys) {
+    if (!node.IsMap()) return;
+    for (const auto& entry : node) {
+        const std::string key = entry.first.as<std::string>();
+        bool known = false;
+        for (const char* candidate : known_keys) {
+            if (key == candidate) {
+                known = true;
+                break;
+            }
+        }
+        if (!known) {
+            std::cerr << "[warn] config: unknown key '" << key
+                      << "' in section '" << section << "' is ignored\n";
+        }
+    }
 }
 
 [[noreturn]] void throw_usage_error(const std::string& message) {
@@ -78,16 +102,20 @@ double parse_double_value(const std::string& text, const std::string& flag_name)
 
 void load_adaptive_remesh_section(const YAML::Node& node,
                                   AdaptiveRemeshConfig& cfg) {
+    warn_unknown_keys(node, "adaptive_remesh", {"iterations", "split_ratio"});
     read_optional(node, "iterations", cfg.iterations);
     read_optional(node, "split_ratio", cfg.split_ratio);
 }
 
 void load_uniform_subdivide_section(const YAML::Node& node,
                                     UniformSubdivideConfig& cfg) {
+    warn_unknown_keys(node, "uniform_subdivide", {"iterations"});
     read_optional(node, "iterations", cfg.iterations);
 }
 
 void load_taubin_section(const YAML::Node& node, TaubinConfig& cfg) {
+    warn_unknown_keys(node, "taubin",
+                      {"iterations", "lambda", "mu", "preserve_boundary"});
     read_optional(node, "iterations", cfg.iterations);
     read_optional(node, "lambda", cfg.lambda);
     read_optional(node, "mu", cfg.mu);
@@ -96,6 +124,10 @@ void load_taubin_section(const YAML::Node& node, TaubinConfig& cfg) {
 
 void load_sdf_reconstruct_section(const YAML::Node& node,
                                   SdfReconstructConfig& cfg) {
+    warn_unknown_keys(node, "sdf_reconstruct",
+                      {"resolution", "padding_ratio",
+                       "sharp_edge_dihedral_degrees", "target_edge_length",
+                       "remesh_iterations"});
     read_optional(node, "resolution", cfg.resolution);
     read_optional(node, "padding_ratio", cfg.padding_ratio);
     read_optional(node, "sharp_edge_dihedral_degrees",
@@ -105,8 +137,24 @@ void load_sdf_reconstruct_section(const YAML::Node& node,
 }
 
 void load_cgal_mesh_section(const YAML::Node& node, CgalMeshConfig& cfg) {
+    warn_unknown_keys(node, "cgal_mesh",
+                      {"sharp_edge_dihedral_degrees", "sharp_edge_degrees",
+                       "target_edge_length", "remesh_iterations"});
+    // 'sharp_edge_dihedral_degrees' is the authoritative key; the alias
+    // 'sharp_edge_degrees' mirrors the --sharp-edge-degrees CLI flag.
     read_optional(node, "sharp_edge_dihedral_degrees",
                   cfg.sharp_edge_dihedral_degrees);
+    if (node["sharp_edge_degrees"]) {
+        if (node["sharp_edge_dihedral_degrees"]) {
+            std::cerr << "[warn] config: cgal_mesh sets both "
+                         "'sharp_edge_dihedral_degrees' and its alias "
+                         "'sharp_edge_degrees'; keeping "
+                         "'sharp_edge_dihedral_degrees'\n";
+        } else {
+            cfg.sharp_edge_dihedral_degrees =
+                node["sharp_edge_degrees"].as<double>();
+        }
+    }
     read_optional(node, "target_edge_length", cfg.target_edge_length);
     read_optional(node, "remesh_iterations", cfg.remesh_iterations);
 }
@@ -119,6 +167,13 @@ PipelineConfig load_config_from_yaml(const std::filesystem::path& yaml_path) {
     YAML::Node root = YAML::LoadFile(yaml_path.string());
 
     PipelineConfig config;
+
+    warn_unknown_keys(root, "(top-level)",
+                      {"input", "output", "mode", "cgal_mesh_post",
+                       "adaptive_remesh", "uniform_subdivide", "taubin",
+                       "sdf_reconstruct", "cgal_mesh", "voxel_spacing_mm",
+                       "restore_physical_coords", "mesh_quality_fix",
+                       "canonicalize_pose", "pose_flip"});
 
     read_optional(root, "input", config.input);
     read_optional(root, "output", config.output);
@@ -373,8 +428,10 @@ PipelineConfig load_config(int argc, char** argv) {
     }
 
     // ---- Legacy conflict detection (only for boolean mode flags) ----
-    // Skip when --mode or --config was used: the mode is already explicit.
-    if (!saw_mode && !has_yaml) {
+    // Skip when --mode was used: the mode is already explicit. With --config,
+    // legacy mode flags act as explicit CLI-layer mode overrides over the
+    // YAML layer (CLI wins), exactly like the scalar tuning flags.
+    if (!saw_mode) {
         if (saw_uniform && saw_adaptive)
             throw std::runtime_error(
                 "--uniform-subdivide conflicts with --adaptive-remesh");
@@ -393,28 +450,41 @@ PipelineConfig load_config(int argc, char** argv) {
         if (saw_cgal && saw_adaptive)
             throw std::runtime_error(
                 "--cgal-mesh conflicts with --adaptive-remesh");
-        if (saw_taubin && !saw_uniform)
-            throw std::runtime_error(
-                "--taubin-smooth requires --uniform-subdivide");
+        if (saw_taubin && !saw_uniform) {
+            // Without YAML the legacy contract requires the uniform base
+            // flag. With YAML, --taubin-smooth alone is a valid override
+            // (uniform+taubin mode), but it still conflicts with the other
+            // standalone mode flags.
+            if (!has_yaml)
+                throw std::runtime_error(
+                    "--taubin-smooth requires --uniform-subdivide");
+            if (saw_sdf || saw_adaptive)
+                throw std::runtime_error(
+                    "--taubin-smooth conflicts with --sdf-reconstruct "
+                    "and --adaptive-remesh");
+        }
 
-        // Orphan tuning flag checks.
-        if (has_sdf_tuning && !saw_sdf)
-            throw std::runtime_error(
-                "SDF tuning flags require --sdf-reconstruct");
-        if (has_cgal_tuning && !saw_cgal)
-            throw std::runtime_error(
-                "CGAL tuning flags require --cgal-mesh");
-        if (has_uniform_tuning && !saw_uniform)
-            throw std::runtime_error(
-                "--uniform-iterations requires --uniform-subdivide");
-        if (has_taubin_tuning && !saw_taubin && !saw_uniform)
-            throw std::runtime_error(
-                "Taubin tuning flags require --taubin-smooth");
+        // Orphan tuning flag checks. Only without YAML: a YAML config may
+        // already establish the mode that gives these flags meaning.
+        if (!has_yaml) {
+            if (has_sdf_tuning && !saw_sdf)
+                throw std::runtime_error(
+                    "SDF tuning flags require --sdf-reconstruct");
+            if (has_cgal_tuning && !saw_cgal)
+                throw std::runtime_error(
+                    "CGAL tuning flags require --cgal-mesh");
+            if (has_uniform_tuning && !saw_uniform)
+                throw std::runtime_error(
+                    "--uniform-iterations requires --uniform-subdivide");
+            if (has_taubin_tuning && !saw_taubin && !saw_uniform)
+                throw std::runtime_error(
+                    "Taubin tuning flags require --taubin-smooth");
+        }
 
-        // Resolve legacy flags to SurfaceMode.
+        // Resolve legacy flags to SurfaceMode (overrides any YAML mode).
         if (saw_sdf)
             config.mode = SurfaceMode::SdfReconstruct;
-        else if (saw_uniform && saw_taubin)
+        else if (saw_taubin)
             config.mode = SurfaceMode::UniformTaubin;
         else if (saw_uniform)
             config.mode = SurfaceMode::UniformSubdivide;

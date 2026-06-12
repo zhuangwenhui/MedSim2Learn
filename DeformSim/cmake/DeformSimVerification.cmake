@@ -10,6 +10,11 @@ deformsim_add_tetra_verification_tool(
     ${DEFORMSIM_PROJECT_ROOT}/verification/apps/ply_tetra_diagnostic.cpp
 )
 
+deformsim_add_tetra_verification_tool(
+    deformsim_fem_bar_bench
+    ${DEFORMSIM_PROJECT_ROOT}/verification/apps/fem_bar_bench.cpp
+)
+
 set(DEFORMSIM_SMOKE_PLY "" CACHE FILEPATH
     "Optional PLY path for the DeformSim PLY-to-tetra smoke CTest")
 

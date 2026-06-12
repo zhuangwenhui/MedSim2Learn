@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 #include "tetgen.h"
 
 namespace mvrmesh {
@@ -97,21 +98,11 @@ std::size_t count_degenerate_surface_triangles(
 }
 
 void fill_bounding_box(const std::vector<Vec3>& vertices, DeformSimPressureResult& result) {
-    if (vertices.empty()) {
-        result.bounding_box_valid = false;
-        return;
-    }
-
-    result.bounding_box_valid = true;
-    result.bounding_box_min = vertices.front();
-    result.bounding_box_max = vertices.front();
-    for (const Vec3& vertex : vertices) {
-        result.bounding_box_min.x = std::min(result.bounding_box_min.x, vertex.x);
-        result.bounding_box_min.y = std::min(result.bounding_box_min.y, vertex.y);
-        result.bounding_box_min.z = std::min(result.bounding_box_min.z, vertex.z);
-        result.bounding_box_max.x = std::max(result.bounding_box_max.x, vertex.x);
-        result.bounding_box_max.y = std::max(result.bounding_box_max.y, vertex.y);
-        result.bounding_box_max.z = std::max(result.bounding_box_max.z, vertex.z);
+    const MeshBoundingBox box = compute_bbox(vertices);
+    result.bounding_box_valid = box.valid;
+    if (box.valid) {
+        result.bounding_box_min = box.min;
+        result.bounding_box_max = box.max;
     }
 }
 
@@ -152,15 +143,6 @@ DeformSimPressureResult make_base_result(
     return result;
 }
 
-void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
-    if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
-        std::ostringstream oss;
-        oss << "Face index out of range for DeformSim pressure evaluation: " << idx
-            << ", n_vertices=" << vertices.size();
-        throw std::runtime_error(oss.str());
-    }
-}
-
 void validate_tetgen_input_size(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces
@@ -190,10 +172,12 @@ void fill_input_facets(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces
 ) {
+    validate_face_indices(vertices, faces, "DeformSim pressure evaluation");
+
     input.numberoffacets = static_cast<int>(faces.size());
     input.facetlist = new tetgenio::facet[static_cast<std::size_t>(input.numberoffacets)];
-    // Zero-initialize every facet before anything below can throw: the index
-    // validation in the fill loop may exit mid-way, and tetgenio's destructor
+    // Zero-initialize every facet before anything below can throw: an
+    // allocation in the fill loop may exit mid-way, and tetgenio's destructor
     // would otherwise delete the garbage pointers of the not-yet-filled facets.
     for (std::size_t i = 0; i < faces.size(); ++i) {
         tetgenio::init(&input.facetlist[i]);
@@ -202,10 +186,6 @@ void fill_input_facets(
 
     for (std::size_t i = 0; i < faces.size(); ++i) {
         const Face& face = faces[i];
-        validate_face_index(vertices, face[0]);
-        validate_face_index(vertices, face[1]);
-        validate_face_index(vertices, face[2]);
-
         tetgenio::facet& facet = input.facetlist[i];
         facet.numberofpolygons = 1;
         facet.polygonlist = new tetgenio::polygon[1];

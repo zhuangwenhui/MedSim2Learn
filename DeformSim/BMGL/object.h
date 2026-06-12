@@ -110,7 +110,6 @@ private:
 	void Free2Dim(double **x){ free(x[0]); free(x); }
 	void ComputeMatrixD(double **D, double E, double v);
 	void ComputeMatrixB(double **B, double &detJ, int num);
-	void ComputeMatrixT(Matrix4x4 &T, int num);
 	bool ComputeMatrixKe(int num);
 
 };

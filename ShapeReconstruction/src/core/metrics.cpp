@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 
@@ -70,15 +71,6 @@ private:
     std::vector<int> rank_;
 };
 
-void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
-    if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
-        std::ostringstream oss;
-        oss << "Face index out of range while computing metrics: " << idx
-            << ", n_vertices=" << vertices.size();
-        throw std::runtime_error(oss.str());
-    }
-}
-
 }  // namespace
 
 SurfaceMetrics compute_surface_metrics(
@@ -86,24 +78,13 @@ SurfaceMetrics compute_surface_metrics(
     const std::vector<Face>& faces,
     double degeneracy_epsilon
 ) {
+    validate_face_indices(vertices, faces, "compute_surface_metrics");
+
     SurfaceMetrics metrics;
     metrics.vertex_count = vertices.size();
     metrics.face_count = faces.size();
     metrics.degeneracy_epsilon = degeneracy_epsilon;
-
-    if (!vertices.empty()) {
-        metrics.bounding_box.valid = true;
-        metrics.bounding_box.min = vertices.front();
-        metrics.bounding_box.max = vertices.front();
-        for (const Vec3& vertex : vertices) {
-            metrics.bounding_box.min.x = std::min(metrics.bounding_box.min.x, vertex.x);
-            metrics.bounding_box.min.y = std::min(metrics.bounding_box.min.y, vertex.y);
-            metrics.bounding_box.min.z = std::min(metrics.bounding_box.min.z, vertex.z);
-            metrics.bounding_box.max.x = std::max(metrics.bounding_box.max.x, vertex.x);
-            metrics.bounding_box.max.y = std::max(metrics.bounding_box.max.y, vertex.y);
-            metrics.bounding_box.max.z = std::max(metrics.bounding_box.max.z, vertex.z);
-        }
-    }
+    metrics.bounding_box = compute_bbox(vertices);
 
     std::map<Edge, int> edge_counts;
     std::map<Edge, EdgeDirectionCounts> edge_directions;
@@ -112,10 +93,6 @@ SurfaceMetrics compute_surface_metrics(
     std::vector<bool> used_vertices(vertices.size(), false);
 
     for (const Face& face : faces) {
-        validate_face_index(vertices, face[0]);
-        validate_face_index(vertices, face[1]);
-        validate_face_index(vertices, face[2]);
-
         const Vec3& a = vertices[static_cast<std::size_t>(face[0])];
         const Vec3& b = vertices[static_cast<std::size_t>(face[1])];
         const Vec3& c = vertices[static_cast<std::size_t>(face[2])];

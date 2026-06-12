@@ -24,6 +24,14 @@ struct BoundingBox {
     bool valid = false;
 };
 
+// Axis-aligned bounding box over mesh vertices (Vec3 corners). Distinct from
+// BoundingBox above, which mirrors the scalar-field layout of the MVR header.
+struct MeshBoundingBox {
+    bool valid = false;
+    Vec3 min;
+    Vec3 max;
+};
+
 struct ParsedMvr {
     std::vector<Vec3> vertices;
     std::vector<Face> triangles;

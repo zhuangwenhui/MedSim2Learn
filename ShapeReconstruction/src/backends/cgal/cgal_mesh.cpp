@@ -1,5 +1,7 @@
 #include "mvrmesh/backends/cgal/cgal_mesh.h"
 
+#include "mvrmesh/core/topology.h"
+
 #include <cstddef>
 #include <iostream>
 #include <set>
@@ -37,16 +39,7 @@ void preflight_repair_input(const std::vector<Vec3>& vertices, const std::vector
         oss << "step 1: at least 3 vertices required, got " << vertices.size();
         throw std::runtime_error(oss.str());
     }
-    const int upper = static_cast<int>(vertices.size());
-    for (const Face& f : faces) {
-        for (int idx : f) {
-            if (idx < 0 || idx >= upper) {
-                std::ostringstream oss;
-                oss << "step 1: face index " << idx << " out of range [0, " << upper << ")";
-                throw std::runtime_error(oss.str());
-            }
-        }
-    }
+    validate_face_indices(vertices, faces, "step 1");
 }
 
 void mvrmesh_to_polygon_soup(
@@ -83,7 +76,13 @@ std::size_t triangulate_all_holes(CgalSurfaceMesh& mesh) {
         } while (current != h);
 
         std::vector<CgalFaceIndex> patch;
-        PMP::triangulate_hole(mesh, h, std::back_inserter(patch));
+        try {
+            PMP::triangulate_hole(mesh, h, std::back_inserter(patch));
+        } catch (const std::exception& ex) {
+            std::ostringstream oss;
+            oss << "step 1 (repair): triangulate_hole failed internally: " << ex.what();
+            throw std::runtime_error(oss.str());
+        }
         if (patch.empty()) {
             std::ostringstream oss;
             oss << "step 1 (repair): hole at halfedge " << h
@@ -211,7 +210,13 @@ RepairStepIO repair_polygon_soup_step(
 
     const std::size_t before_points   = points.size();
     const std::size_t before_polygons = polygons.size();
-    PMP::repair_polygon_soup(points, polygons);
+    try {
+        PMP::repair_polygon_soup(points, polygons);
+    } catch (const std::exception& ex) {
+        std::ostringstream oss;
+        oss << "step 1 (repair): repair_polygon_soup failed internally: " << ex.what();
+        throw std::runtime_error(oss.str());
+    }
     if (polygons.empty()) {
         throw std::runtime_error(
             "step 1 (repair): all input polygons were degenerate or duplicate; "
@@ -225,7 +230,14 @@ RepairStepIO repair_polygon_soup_step(
                                                ? before_polygons - polygons.size()
                                                : 0;
 
-    const bool oriented = PMP::orient_polygon_soup(points, polygons);
+    bool oriented = false;
+    try {
+        oriented = PMP::orient_polygon_soup(points, polygons);
+    } catch (const std::exception& ex) {
+        std::ostringstream oss;
+        oss << "step 1 (repair): orient_polygon_soup failed internally: " << ex.what();
+        throw std::runtime_error(oss.str());
+    }
     io.report.oriented_successfully = oriented;
     if (!oriented) {
         throw std::runtime_error(
@@ -235,7 +247,13 @@ RepairStepIO repair_polygon_soup_step(
     }
 
     CgalSurfaceMesh mesh;
-    PMP::polygon_soup_to_polygon_mesh(points, polygons, mesh);
+    try {
+        PMP::polygon_soup_to_polygon_mesh(points, polygons, mesh);
+    } catch (const std::exception& ex) {
+        std::ostringstream oss;
+        oss << "step 1 (repair): polygon_soup_to_polygon_mesh failed internally: " << ex.what();
+        throw std::runtime_error(oss.str());
+    }
     if (mesh.number_of_vertices() == 0) {
         throw std::runtime_error(
             "step 1 (repair): polygon soup could not be assembled into a valid surface mesh.");
@@ -304,7 +322,13 @@ ProtectedRemeshStepIO protected_remesh_step(
 
     auto eim = mesh.add_property_map<CgalSurfaceMesh::Edge_index, bool>(
                        "e:robust_constrained", false).first;
-    PMP::detect_sharp_edges(mesh, sharp_edge_dihedral_degrees, eim);
+    try {
+        PMP::detect_sharp_edges(mesh, sharp_edge_dihedral_degrees, eim);
+    } catch (const std::exception& ex) {
+        std::ostringstream oss;
+        oss << "step 2 (remesh): detect_sharp_edges failed internally: " << ex.what();
+        throw std::runtime_error(oss.str());
+    }
 
     std::size_t sharp_count = 0;
     for (auto e : mesh.edges()) {

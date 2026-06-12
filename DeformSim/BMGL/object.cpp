@@ -601,48 +601,6 @@ void Object::ComputeMatrixB(double **B, double &detJ, int num)
 }
 
 
-//========================================================================================================
-//	Function : ComputeMatrixT
-//	Class : Object
-//	Status : Private
-//	Parameter : Tetrahedral element id	
-//  Return : Transform matrix T
-//--------------------------------------------------------------------------------------------------------
-//      [q1x q2x q3x q4x]     [p1x p2x p3x p4x]
-//  T = [q1y q2y q3y q4y]* Inv[p1y p2y p3y p4y]
-//      [q1z q2z q3z q4z]     [p1z p2z p3z p4z]
-//      [ 1   1   1   1 ]     [ 1   1   1   1 ] 
-//========================================================================================================
-void Object::ComputeMatrixT(Matrix4x4 &T, int num)
-{
-
-	Matrix4x4 P, Q;
-
-	for (int i = 0; i<4; i++){
-		// P : initial position matrix
-		P.m[0][i] = vertex[tetra[num].set[i]].coord.x;
-		P.m[1][i] = vertex[tetra[num].set[i]].coord.y;
-		P.m[2][i] = vertex[tetra[num].set[i]].coord.z;
-	}
-
-	for (int i = 0; i<4; i++){
-		// Q : current position matrix
-		Q.m[0][i] = vertex[tetra[num].set[i]].new_coord.x;
-		Q.m[1][i] = vertex[tetra[num].set[i]].new_coord.y;
-		Q.m[2][i] = vertex[tetra[num].set[i]].new_coord.z;
-	}
-
-	for (int i = 0; i<4; i++){
-		P.m[3][i] = Q.m[3][i] = 1.0f;
-	}
-
-	// T = Q * Inv(P)
-	P.Inverse();
-	T = Q * P;
-
-}
-
-
 bool Object::Deform()
 {
 	if (nMatrixNode <= 0 || !matrixNode || !f || !u || !L) return false;

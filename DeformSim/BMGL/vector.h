@@ -116,44 +116,4 @@ public:
 };
 
 
-class VectorNf	// N dimensional vector class
-{
-public:
-	int nDims;		// dimension
-	double *m;		// elements
-
-	VectorNf(){ nDims = 0; m = 0; };
-	VectorNf(int n){ nDims = n; m = (double *)calloc(nDims, sizeof(double)); };
-	VectorNf(int n, double *a){ nDims = n; 	memcpy(m, a, nDims * sizeof(double)); };
-	VectorNf(const VectorNf &vec);
-	~VectorNf() { Clear(); };
-
-	VectorNf &operator=(VectorNf vec);		// vector substitution
-	VectorNf operator+(VectorNf vec);		// vector addition
-	VectorNf &operator+=(VectorNf vec);		// vector addition
-	VectorNf operator+(double a);			// scalar addition
-	VectorNf &operator+=(double a);			// scalar addition
-	VectorNf operator-(VectorNf vec);		// vector subtraction
-	VectorNf &operator-=(VectorNf vec);		// vector subtraction
-	VectorNf operator-(double a);			// scalar subtraction
-	VectorNf &operator-=(double a);			// scalar subtraction
-
-	double operator*(VectorNf vec);			// dot product
-	VectorNf operator*(double a);			// scalar multiplication
-	VectorNf &operator*=(double a);			// scalar multiplication
-	VectorNf operator/(double a);			// scalar division
-	VectorNf &operator/=(double a);			// scalar division
-
-	bool operator!=(VectorNf vec);
-	bool operator==(VectorNf vec);
-
-	void Init(int n);
-	void Init(int n, double *a);
-	void Clear();
-
-	double GetLength() const;
-	double GetLength2() const;
-
-};
-
 #endif

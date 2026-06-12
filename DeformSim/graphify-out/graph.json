@@ -26,466 +26,466 @@
       "source_file": "stdafx.cpp",
       "source_location": "L1",
       "id": "stdafx_cpp",
-      "community": 4,
+      "community": 5,
       "norm_label": "stdafx.cpp"
     },
     {
       "label": "GetConsoleWidth()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L134",
+      "source_location": "L147",
       "id": "deformsim_stdafx_getconsolewidth",
-      "community": 4,
+      "community": 5,
       "norm_label": "getconsolewidth()"
     },
     {
       "label": "BuildProgressBarString()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L152",
+      "source_location": "L165",
       "id": "deformsim_stdafx_buildprogressbarstring",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildprogressbarstring()"
     },
     {
       "label": "BuildProgressLine()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L174",
+      "source_location": "L187",
       "id": "deformsim_stdafx_buildprogressline",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildprogressline()"
     },
     {
       "label": "RenderProgressLineUnlocked()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L234",
+      "source_location": "L247",
       "id": "deformsim_stdafx_renderprogresslineunlocked",
-      "community": 4,
+      "community": 5,
       "norm_label": "renderprogresslineunlocked()"
     },
     {
       "label": "PrintFinalizingCsvLine()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L252",
+      "source_location": "L265",
       "id": "deformsim_stdafx_printfinalizingcsvline",
-      "community": 4,
+      "community": 5,
       "norm_label": "printfinalizingcsvline()"
     },
     {
       "label": "HashBytes64()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L269",
+      "source_location": "L282",
       "id": "deformsim_stdafx_hashbytes64",
-      "community": 4,
+      "community": 5,
       "norm_label": "hashbytes64()"
     },
     {
       "label": "ComputeMeshHash()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L279",
+      "source_location": "L292",
       "id": "deformsim_stdafx_computemeshhash",
-      "community": 4,
+      "community": 5,
       "norm_label": "computemeshhash()"
     },
     {
       "label": "ParseBoolStrict()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L291",
+      "source_location": "L304",
       "id": "deformsim_stdafx_parseboolstrict",
-      "community": 4,
+      "community": 5,
       "norm_label": "parseboolstrict()"
     },
     {
       "label": "ParseFloatStrict()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L307",
+      "source_location": "L320",
       "id": "deformsim_stdafx_parsefloatstrict",
-      "community": 4,
+      "community": 5,
       "norm_label": "parsefloatstrict()"
     },
     {
       "label": "ParseIntStrict()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L321",
+      "source_location": "L334",
       "id": "deformsim_stdafx_parseintstrict",
-      "community": 4,
+      "community": 5,
       "norm_label": "parseintstrict()"
     },
     {
       "label": "ParseUIntStrict()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L334",
+      "source_location": "L347",
       "id": "deformsim_stdafx_parseuintstrict",
-      "community": 4,
+      "community": 5,
       "norm_label": "parseuintstrict()"
     },
     {
       "label": "PickEnv()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L347",
+      "source_location": "L360",
       "id": "deformsim_stdafx_pickenv",
-      "community": 4,
+      "community": 5,
       "norm_label": "pickenv()"
     },
     {
       "label": "LoadBoolParam()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L359",
+      "source_location": "L372",
       "id": "deformsim_stdafx_loadboolparam",
-      "community": 4,
+      "community": 5,
       "norm_label": "loadboolparam()"
     },
     {
       "label": "LoadFloatParam()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L373",
+      "source_location": "L386",
       "id": "deformsim_stdafx_loadfloatparam",
-      "community": 4,
+      "community": 5,
       "norm_label": "loadfloatparam()"
     },
     {
       "label": "LoadIntParam()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L387",
+      "source_location": "L400",
       "id": "deformsim_stdafx_loadintparam",
-      "community": 4,
+      "community": 5,
       "norm_label": "loadintparam()"
     },
     {
       "label": "LoadUIntParam()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L401",
+      "source_location": "L414",
       "id": "deformsim_stdafx_loaduintparam",
-      "community": 4,
+      "community": 5,
       "norm_label": "loaduintparam()"
     },
     {
       "label": "LoadStringParam()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L415",
+      "source_location": "L428",
       "id": "deformsim_stdafx_loadstringparam",
-      "community": 4,
+      "community": 5,
       "norm_label": "loadstringparam()"
     },
     {
       "label": "LoadAnnotationJSON()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L422",
+      "source_location": "L435",
       "id": "deformsim_stdafx_loadannotationjson",
-      "community": 4,
+      "community": 5,
       "norm_label": "loadannotationjson()"
     },
     {
       "label": "SelectKRingNeighbors()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L512",
+      "source_location": "L525",
       "id": "deformsim_stdafx_selectkringneighbors",
-      "community": 4,
+      "community": 5,
       "norm_label": "selectkringneighbors()"
     },
     {
       "label": "PrecomputeContactRegions()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L550",
+      "source_location": "L563",
       "id": "deformsim_stdafx_precomputecontactregions",
-      "community": 4,
+      "community": 5,
       "norm_label": "precomputecontactregions()"
     },
     {
       "label": "LoadSimHyperParams()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L572",
+      "source_location": "L585",
       "id": "deformsim_stdafx_loadsimhyperparams",
-      "community": 4,
+      "community": 5,
       "norm_label": "loadsimhyperparams()"
     },
     {
       "label": "ConfigureMklThreads()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L665",
+      "source_location": "L678",
       "id": "deformsim_stdafx_configuremklthreads",
-      "community": 4,
+      "community": 5,
       "norm_label": "configuremklthreads()"
     },
     {
       "label": "ResetCsvRecords()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L692",
+      "source_location": "L705",
       "id": "deformsim_stdafx_resetcsvrecords",
-      "community": 4,
+      "community": 5,
       "norm_label": "resetcsvrecords()"
     },
     {
       "label": "AppendCsvRecord()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L698",
+      "source_location": "L711",
       "id": "deformsim_stdafx_appendcsvrecord",
-      "community": 4,
+      "community": 5,
       "norm_label": "appendcsvrecord()"
     },
     {
       "label": "BuildSortedCsvRecordsSnapshot()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L720",
+      "source_location": "L733",
       "id": "deformsim_stdafx_buildsortedcsvrecordssnapshot",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildsortedcsvrecordssnapshot()"
     },
     {
       "label": "WritePlyAndVerify()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L734",
+      "source_location": "L747",
       "id": "deformsim_stdafx_writeplyandverify",
-      "community": 4,
+      "community": 5,
       "norm_label": "writeplyandverify()"
     },
     {
       "label": "ApplyMaterialParams()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L762",
+      "source_location": "L775",
       "id": "deformsim_stdafx_applymaterialparams",
-      "community": 4,
+      "community": 5,
       "norm_label": "applymaterialparams()"
     },
     {
       "label": "BuildMatrixCacheKey()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L772",
+      "source_location": "L785",
       "id": "deformsim_stdafx_buildmatrixcachekey",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildmatrixcachekey()"
     },
     {
       "label": "ApplyFreezeFromAnnotation()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L805",
+      "source_location": "L818",
       "id": "deformsim_stdafx_applyfreezefromannotation",
-      "community": 4,
+      "community": 5,
       "norm_label": "applyfreezefromannotation()"
     },
     {
       "label": "ApplyContactRegion()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L816",
+      "source_location": "L829",
       "id": "deformsim_stdafx_applycontactregion",
-      "community": 4,
+      "community": 5,
       "norm_label": "applycontactregion()"
     },
     {
       "label": "ValidateTetraTemplate()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L839",
+      "source_location": "L852",
       "id": "deformsim_stdafx_validatetetratemplate",
-      "community": 4,
+      "community": 5,
       "norm_label": "validatetetratemplate()"
     },
     {
       "label": "CloneTetraTemplate()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L856",
+      "source_location": "L869",
       "id": "deformsim_stdafx_clonetetratemplate",
-      "community": 4,
+      "community": 5,
       "norm_label": "clonetetratemplate()"
     },
     {
       "label": "ComputeTetrahedralMesh()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L924",
+      "source_location": "L937",
       "id": "deformsim_stdafx_computetetrahedralmesh",
-      "community": 4,
+      "community": 5,
       "norm_label": "computetetrahedralmesh()"
     },
     {
       "label": "RecordOutputFailure()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L967",
+      "source_location": "L980",
       "id": "deformsim_stdafx_recordoutputfailure",
-      "community": 4,
+      "community": 5,
       "norm_label": "recordoutputfailure()"
     },
     {
       "label": "WriteSampleOutput()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L977",
+      "source_location": "L990",
       "id": "deformsim_stdafx_writesampleoutput",
-      "community": 4,
+      "community": 5,
       "norm_label": "writesampleoutput()"
     },
     {
       "label": "WriteFinalSortedCsv()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1042",
+      "source_location": "L1055",
       "id": "deformsim_stdafx_writefinalsortedcsv",
-      "community": 4,
+      "community": 5,
       "norm_label": "writefinalsortedcsv()"
     },
     {
       "label": "HaveMatchingSampleIds()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1094",
+      "source_location": "L1109",
       "id": "deformsim_stdafx_havematchingsampleids",
-      "community": 4,
+      "community": 5,
       "norm_label": "havematchingsampleids()"
     },
     {
       "label": "ValidateOutputConsistency()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1107",
+      "source_location": "L1122",
       "id": "deformsim_stdafx_validateoutputconsistency",
-      "community": 4,
+      "community": 5,
       "norm_label": "validateoutputconsistency()"
     },
     {
       "label": "Generate_run_string()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1123",
+      "source_location": "L1138",
       "id": "deformsim_stdafx_generate_run_string",
-      "community": 4,
+      "community": 5,
       "norm_label": "generate_run_string()"
     },
     {
       "label": "BuildEtaString()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1152",
+      "source_location": "L1167",
       "id": "deformsim_stdafx_buildetastring",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildetastring()"
     },
     {
       "label": "Print_progress_bar()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1187",
+      "source_location": "L1202",
       "id": "deformsim_stdafx_print_progress_bar",
-      "community": 4,
+      "community": 5,
       "norm_label": "print_progress_bar()"
     },
     {
       "label": "ProgressHeartbeatProc()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1251",
+      "source_location": "L1266",
       "id": "deformsim_stdafx_progressheartbeatproc",
-      "community": 4,
+      "community": 5,
       "norm_label": "progressheartbeatproc()"
     },
     {
       "label": "Update_progress()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1261",
+      "source_location": "L1276",
       "id": "deformsim_stdafx_update_progress",
-      "community": 4,
+      "community": 5,
       "norm_label": "update_progress()"
     },
     {
       "label": "RandomFloat()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1281",
+      "source_location": "L1302",
       "id": "deformsim_stdafx_randomfloat",
-      "community": 4,
+      "community": 5,
       "norm_label": "randomfloat()"
     },
     {
       "label": "ComputeForceEuclidean()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1286",
+      "source_location": "L1308",
       "id": "deformsim_stdafx_computeforceeuclidean",
-      "community": 4,
+      "community": 5,
       "norm_label": "computeforceeuclidean()"
     },
     {
       "label": "AngleWithZAxis()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1291",
+      "source_location": "L1313",
       "id": "deformsim_stdafx_anglewithzaxis",
-      "community": 4,
+      "community": 5,
       "norm_label": "anglewithzaxis()"
     },
     {
       "label": "generateVectorsFromCsv()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1303",
+      "source_location": "L1325",
       "id": "deformsim_stdafx_generatevectorsfromcsv",
-      "community": 4,
+      "community": 5,
       "norm_label": "generatevectorsfromcsv()"
     },
     {
       "label": "generateVectors()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1368",
+      "source_location": "L1390",
       "id": "deformsim_stdafx_generatevectors",
-      "community": 4,
+      "community": 5,
       "norm_label": "generatevectors()"
     },
     {
       "label": "CreateSampleID()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1416",
+      "source_location": "L1438",
       "id": "deformsim_stdafx_createsampleid",
-      "community": 4,
+      "community": 5,
       "norm_label": "createsampleid()"
     },
     {
       "label": "processObjects()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1421",
+      "source_location": "L1443",
       "id": "deformsim_stdafx_processobjects",
-      "community": 4,
+      "community": 5,
       "norm_label": "processobjects()"
     },
     {
       "label": "main()",
       "file_type": "code",
       "source_file": "stdafx.cpp",
-      "source_location": "L1533",
+      "source_location": "L1555",
       "id": "deformsim_stdafx_main",
-      "community": 4,
+      "community": 5,
       "norm_label": "main()"
     },
     {
@@ -512,7 +512,7 @@
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L1",
       "id": "bmgl_geometry_cpp",
-      "community": 21,
+      "community": 18,
       "norm_label": "geometry.cpp"
     },
     {
@@ -521,7 +521,7 @@
       "source_file": "BMGL/geometry.h",
       "source_location": "L15",
       "id": "bmgl_geometry_vertex",
-      "community": 21,
+      "community": 18,
       "norm_label": "vertex()"
     },
     {
@@ -530,7 +530,7 @@
       "source_file": "BMGL/geometry.h",
       "source_location": "L55",
       "id": "bmgl_geometry_line",
-      "community": 21,
+      "community": 18,
       "norm_label": "line()"
     },
     {
@@ -539,7 +539,7 @@
       "source_file": "BMGL/geometry.h",
       "source_location": "L67",
       "id": "bmgl_geometry_triangle",
-      "community": 21,
+      "community": 18,
       "norm_label": "triangle()"
     },
     {
@@ -548,7 +548,7 @@
       "source_file": "BMGL/geometry.h",
       "source_location": "L82",
       "id": "bmgl_geometry_tetrahedron",
-      "community": 21,
+      "community": 18,
       "norm_label": "tetrahedron()"
     },
     {
@@ -557,7 +557,7 @@
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L75",
       "id": "bmgl_geometry_initneighborvertex",
-      "community": 21,
+      "community": 18,
       "norm_label": "initneighborvertex()"
     },
     {
@@ -566,7 +566,7 @@
       "source_file": "BMGL/geometry.h",
       "source_location": "L1",
       "id": "bmgl_geometry_h",
-      "community": 21,
+      "community": 18,
       "norm_label": "geometry.h"
     },
     {
@@ -575,7 +575,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L1",
       "id": "bmgl_matrix_cpp",
-      "community": 14,
+      "community": 13,
       "norm_label": "matrix.cpp"
     },
     {
@@ -584,7 +584,7 @@
       "source_file": "BMGL/matrix.h",
       "source_location": "L17",
       "id": "bmgl_matrix_matrix3x3",
-      "community": 14,
+      "community": 13,
       "norm_label": "matrix3x3()"
     },
     {
@@ -593,7 +593,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L48",
       "id": "bmgl_matrix_operator",
-      "community": 17,
+      "community": 13,
       "norm_label": "operator+()"
     },
     {
@@ -602,7 +602,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L84",
       "id": "bmgl_matrix_identity",
-      "community": 14,
+      "community": 13,
       "norm_label": "identity()"
     },
     {
@@ -611,7 +611,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L92",
       "id": "bmgl_matrix_setmatrix",
-      "community": 14,
+      "community": 13,
       "norm_label": "setmatrix()"
     },
     {
@@ -620,7 +620,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L119",
       "id": "bmgl_matrix_setrotatematrix",
-      "community": 14,
+      "community": 13,
       "norm_label": "setrotatematrix()"
     },
     {
@@ -629,7 +629,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L136",
       "id": "bmgl_matrix_setscalematrix",
-      "community": 14,
+      "community": 13,
       "norm_label": "setscalematrix()"
     },
     {
@@ -638,7 +638,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L143",
       "id": "bmgl_matrix_gettranslatevector",
-      "community": 14,
+      "community": 13,
       "norm_label": "gettranslatevector()"
     },
     {
@@ -647,7 +647,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L151",
       "id": "bmgl_matrix_getrotatematrix",
-      "community": 14,
+      "community": 13,
       "norm_label": "getrotatematrix()"
     },
     {
@@ -656,7 +656,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L159",
       "id": "bmgl_matrix_transpose",
-      "community": 14,
+      "community": 13,
       "norm_label": "transpose()"
     },
     {
@@ -665,7 +665,7 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L166",
       "id": "bmgl_matrix_inverse",
-      "community": 14,
+      "community": 13,
       "norm_label": "inverse()"
     },
     {
@@ -674,7 +674,7 @@
       "source_file": "BMGL/matrix.h",
       "source_location": "L52",
       "id": "bmgl_matrix_matrix4x4",
-      "community": 14,
+      "community": 13,
       "norm_label": "matrix4x4()"
     },
     {
@@ -683,80 +683,8 @@
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L328",
       "id": "bmgl_matrix_settranslatematrix",
-      "community": 14,
+      "community": 13,
       "norm_label": "settranslatematrix()"
-    },
-    {
-      "label": "MatrixMxN()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L380",
-      "id": "bmgl_matrix_matrixmxn",
-      "community": 14,
-      "norm_label": "matrixmxn()"
-    },
-    {
-      "label": "Init()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L399",
-      "id": "bmgl_matrix_init",
-      "community": 14,
-      "norm_label": "init()"
-    },
-    {
-      "label": "Clear()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L418",
-      "id": "bmgl_matrix_clear",
-      "community": 14,
-      "norm_label": "clear()"
-    },
-    {
-      "label": "SetValue()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L432",
-      "id": "bmgl_matrix_setvalue",
-      "community": 14,
-      "norm_label": "setvalue()"
-    },
-    {
-      "label": "GetValue()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L439",
-      "id": "bmgl_matrix_getvalue",
-      "community": 14,
-      "norm_label": "getvalue()"
-    },
-    {
-      "label": "GetRowVector()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L444",
-      "id": "bmgl_matrix_getrowvector",
-      "community": 14,
-      "norm_label": "getrowvector()"
-    },
-    {
-      "label": "GetColumnVector()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L455",
-      "id": "bmgl_matrix_getcolumnvector",
-      "community": 14,
-      "norm_label": "getcolumnvector()"
-    },
-    {
-      "label": "GetFrobeniusNorm()",
-      "file_type": "code",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L706",
-      "id": "bmgl_matrix_getfrobeniusnorm",
-      "community": 14,
-      "norm_label": "getfrobeniusnorm()"
     },
     {
       "label": "matrix.h",
@@ -764,7 +692,7 @@
       "source_file": "BMGL/matrix.h",
       "source_location": "L1",
       "id": "bmgl_matrix_h",
-      "community": 14,
+      "community": 13,
       "norm_label": "matrix.h"
     },
     {
@@ -773,7 +701,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L1",
       "id": "bmgl_object_cpp",
-      "community": 8,
+      "community": 11,
       "norm_label": "object.cpp"
     },
     {
@@ -782,7 +710,7 @@
       "source_file": "BMGL/object.h",
       "source_location": "L19",
       "id": "bmgl_object_object",
-      "community": 8,
+      "community": 11,
       "norm_label": "object()"
     },
     {
@@ -791,7 +719,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L71",
       "id": "bmgl_object_clear",
-      "community": 8,
+      "community": 11,
       "norm_label": "clear()"
     },
     {
@@ -800,7 +728,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L138",
       "id": "bmgl_object_releaseassemblyscratch",
-      "community": 8,
+      "community": 11,
       "norm_label": "releaseassemblyscratch()"
     },
     {
@@ -809,7 +737,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L155",
       "id": "bmgl_object_releasesolverstate",
-      "community": 8,
+      "community": 23,
       "norm_label": "releasesolverstate()"
     },
     {
@@ -818,7 +746,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L174",
       "id": "bmgl_object_alloc2dim",
-      "community": 8,
+      "community": 23,
       "norm_label": "alloc2dim()"
     },
     {
@@ -827,7 +755,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L193",
       "id": "bmgl_object_clonematrixstatefrom",
-      "community": 8,
+      "community": 23,
       "norm_label": "clonematrixstatefrom()"
     },
     {
@@ -836,7 +764,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L239",
       "id": "bmgl_object_computematrixk",
-      "community": 8,
+      "community": 23,
       "norm_label": "computematrixk()"
     },
     {
@@ -845,7 +773,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L367",
       "id": "bmgl_object_computematrixke",
-      "community": 8,
+      "community": 23,
       "norm_label": "computematrixke()"
     },
     {
@@ -854,7 +782,7 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L470",
       "id": "bmgl_object_computematrixd",
-      "community": 8,
+      "community": 23,
       "norm_label": "computematrixd()"
     },
     {
@@ -863,133 +791,124 @@
       "source_file": "BMGL/object.cpp",
       "source_location": "L525",
       "id": "bmgl_object_computematrixb",
-      "community": 8,
+      "community": 23,
       "norm_label": "computematrixb()"
-    },
-    {
-      "label": "ComputeMatrixT()",
-      "file_type": "code",
-      "source_file": "BMGL/object.cpp",
-      "source_location": "L616",
-      "id": "bmgl_object_computematrixt",
-      "community": 8,
-      "norm_label": "computematrixt()"
     },
     {
       "label": "Deform()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L646",
+      "source_location": "L604",
       "id": "bmgl_object_deform",
-      "community": 8,
+      "community": 11,
       "norm_label": "deform()"
     },
     {
       "label": "ReadObject()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L684",
+      "source_location": "L642",
       "id": "bmgl_object_readobject",
-      "community": 8,
+      "community": 11,
       "norm_label": "readobject()"
     },
     {
       "label": "WriteObject()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L801",
+      "source_location": "L759",
       "id": "bmgl_object_writeobject",
-      "community": 8,
+      "community": 11,
       "norm_label": "writeobject()"
     },
     {
       "label": "WritePLY()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L856",
+      "source_location": "L814",
       "id": "bmgl_object_writeply",
-      "community": 8,
+      "community": 11,
       "norm_label": "writeply()"
     },
     {
       "label": "ComputeQualityTetrahedralMesh()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L889",
+      "source_location": "L847",
       "id": "bmgl_object_computequalitytetrahedralmesh",
-      "community": 8,
+      "community": 11,
       "norm_label": "computequalitytetrahedralmesh()"
     },
     {
       "label": "ComputeTetrahedralMesh()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1079",
+      "source_location": "L1037",
       "id": "bmgl_object_computetetrahedralmesh",
-      "community": 8,
+      "community": 11,
       "norm_label": "computetetrahedralmesh()"
     },
     {
       "label": "Smooth()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1213",
+      "source_location": "L1171",
       "id": "bmgl_object_smooth",
-      "community": 8,
+      "community": 11,
       "norm_label": "smooth()"
     },
     {
       "label": "ComputeArea()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1261",
+      "source_location": "L1219",
       "id": "bmgl_object_computearea",
-      "community": 8,
+      "community": 11,
       "norm_label": "computearea()"
     },
     {
       "label": "ComputeVolume()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1295",
+      "source_location": "L1253",
       "id": "bmgl_object_computevolume",
-      "community": 8,
+      "community": 11,
       "norm_label": "computevolume()"
     },
     {
       "label": "ComputeNormal()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1321",
+      "source_location": "L1279",
       "id": "bmgl_object_computenormal",
-      "community": 8,
+      "community": 11,
       "norm_label": "computenormal()"
     },
     {
       "label": "CheckSelfIntersection()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1371",
+      "source_location": "L1329",
       "id": "bmgl_object_checkselfintersection",
-      "community": 8,
+      "community": 11,
       "norm_label": "checkselfintersection()"
     },
     {
       "label": "ComputeBoundingBox()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1422",
+      "source_location": "L1380",
       "id": "bmgl_object_computeboundingbox",
-      "community": 17,
+      "community": 20,
       "norm_label": "computeboundingbox()"
     },
     {
       "label": "CheckInOutSurface()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
-      "source_location": "L1438",
+      "source_location": "L1396",
       "id": "bmgl_object_checkinoutsurface",
-      "community": 8,
+      "community": 11,
       "norm_label": "checkinoutsurface()"
     },
     {
@@ -998,7 +917,7 @@
       "source_file": "BMGL/object.h",
       "source_location": "L1",
       "id": "bmgl_object_h",
-      "community": 8,
+      "community": 11,
       "norm_label": "object.h"
     },
     {
@@ -1124,7 +1043,7 @@
       "source_file": "BMGL/vector.cpp",
       "source_location": "L1",
       "id": "bmgl_vector_cpp",
-      "community": 23,
+      "community": 4,
       "norm_label": "vector.cpp"
     },
     {
@@ -1133,62 +1052,8 @@
       "source_file": "BMGL/vector.cpp",
       "source_location": "L13",
       "id": "bmgl_vector_surfaceprojection",
-      "community": 23,
+      "community": 4,
       "norm_label": "surfaceprojection()"
-    },
-    {
-      "label": "VectorNf()",
-      "file_type": "code",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L119",
-      "id": "bmgl_vector_vectornf",
-      "community": 23,
-      "norm_label": "vectornf()"
-    },
-    {
-      "label": "Init()",
-      "file_type": "code",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L38",
-      "id": "bmgl_vector_init",
-      "community": 23,
-      "norm_label": "init()"
-    },
-    {
-      "label": "Clear()",
-      "file_type": "code",
-      "source_file": "BMGL/vector.cpp",
-      "source_location": "L53",
-      "id": "bmgl_vector_clear",
-      "community": 23,
-      "norm_label": "clear()"
-    },
-    {
-      "label": "operator()",
-      "file_type": "code",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L35",
-      "id": "bmgl_vector_operator",
-      "community": 17,
-      "norm_label": "operator()"
-    },
-    {
-      "label": "GetLength()",
-      "file_type": "code",
-      "source_file": "BMGL/vector.cpp",
-      "source_location": "L229",
-      "id": "bmgl_vector_getlength",
-      "community": 23,
-      "norm_label": "getlength()"
-    },
-    {
-      "label": "GetLength2()",
-      "file_type": "code",
-      "source_file": "BMGL/vector.cpp",
-      "source_location": "L242",
-      "id": "bmgl_vector_getlength2",
-      "community": 23,
-      "norm_label": "getlength2()"
     },
     {
       "label": "vector.h",
@@ -1196,7 +1061,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L1",
       "id": "bmgl_vector_h",
-      "community": 17,
+      "community": 4,
       "norm_label": "vector.h"
     },
     {
@@ -1205,7 +1070,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L16",
       "id": "bmgl_vector_vector2f",
-      "community": 17,
+      "community": 4,
       "norm_label": "vector2f()"
     },
     {
@@ -1214,8 +1079,26 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L33",
       "id": "bmgl_vector_float",
-      "community": 17,
+      "community": 4,
       "norm_label": "float()"
+    },
+    {
+      "label": "operator()",
+      "file_type": "code",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L35",
+      "id": "bmgl_vector_operator",
+      "community": 4,
+      "norm_label": "operator()"
+    },
+    {
+      "label": "Init()",
+      "file_type": "code",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L38",
+      "id": "bmgl_vector_init",
+      "community": 4,
+      "norm_label": "init()"
     },
     {
       "label": "SetVector()",
@@ -1223,7 +1106,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L39",
       "id": "bmgl_vector_setvector",
-      "community": 23,
+      "community": 4,
       "norm_label": "setvector()"
     },
     {
@@ -1232,7 +1115,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L42",
       "id": "bmgl_vector_normalize",
-      "community": 23,
+      "community": 4,
       "norm_label": "normalize()"
     },
     {
@@ -1241,7 +1124,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L47",
       "id": "bmgl_vector_vector3f",
-      "community": 17,
+      "community": 20,
       "norm_label": "vector3f()"
     },
     {
@@ -1250,7 +1133,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L79",
       "id": "bmgl_vector_dotproduct",
-      "community": 17,
+      "community": 4,
       "norm_label": "dotproduct()"
     },
     {
@@ -1259,7 +1142,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L80",
       "id": "bmgl_vector_crossproduct",
-      "community": 17,
+      "community": 4,
       "norm_label": "crossproduct()"
     },
     {
@@ -1268,7 +1151,7 @@
       "source_file": "BMGL/vector.h",
       "source_location": "L88",
       "id": "bmgl_vector_vector4f",
-      "community": 17,
+      "community": 4,
       "norm_label": "vector4f()"
     },
     {
@@ -1871,7 +1754,7 @@
       "source_file": "third_party/nlohmann/json.hpp",
       "source_location": "L18908",
       "id": "nlohmann_json_decode",
-      "community": 15,
+      "community": 7,
       "norm_label": "decode()"
     },
     {
@@ -2600,7 +2483,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1",
       "id": "utility_predicates_cpp",
-      "community": 5,
+      "community": 6,
       "norm_label": "predicates.cpp"
     },
     {
@@ -2609,7 +2492,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L403",
       "id": "utility_predicates_fppow2",
-      "community": 5,
+      "community": 6,
       "norm_label": "fppow2()"
     },
     {
@@ -2618,7 +2501,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L416",
       "id": "utility_predicates_fstore",
-      "community": 5,
+      "community": 6,
       "norm_label": "fstore()"
     },
     {
@@ -2627,7 +2510,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L421",
       "id": "utility_predicates_test_float",
-      "community": 5,
+      "community": 6,
       "norm_label": "test_float()"
     },
     {
@@ -2636,7 +2519,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L471",
       "id": "utility_predicates_dstore",
-      "community": 5,
+      "community": 6,
       "norm_label": "dstore()"
     },
     {
@@ -2645,7 +2528,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L476",
       "id": "utility_predicates_test_double",
-      "community": 5,
+      "community": 6,
       "norm_label": "test_double()"
     },
     {
@@ -2654,7 +2537,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L544",
       "id": "utility_predicates_exactinit",
-      "community": 5,
+      "community": 6,
       "norm_label": "exactinit()"
     },
     {
@@ -2663,7 +2546,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L661",
       "id": "utility_predicates_grow_expansion",
-      "community": 5,
+      "community": 6,
       "norm_label": "grow_expansion()"
     },
     {
@@ -2672,7 +2555,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L695",
       "id": "utility_predicates_grow_expansion_zeroelim",
-      "community": 5,
+      "community": 6,
       "norm_label": "grow_expansion_zeroelim()"
     },
     {
@@ -2681,7 +2564,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L734",
       "id": "utility_predicates_expansion_sum",
-      "community": 5,
+      "community": 6,
       "norm_label": "expansion_sum()"
     },
     {
@@ -2690,7 +2573,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L778",
       "id": "utility_predicates_expansion_sum_zeroelim1",
-      "community": 5,
+      "community": 6,
       "norm_label": "expansion_sum_zeroelim1()"
     },
     {
@@ -2699,7 +2582,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L833",
       "id": "utility_predicates_expansion_sum_zeroelim2",
-      "community": 5,
+      "community": 6,
       "norm_label": "expansion_sum_zeroelim2()"
     },
     {
@@ -2708,7 +2591,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L885",
       "id": "utility_predicates_fast_expansion_sum",
-      "community": 5,
+      "community": 6,
       "norm_label": "fast_expansion_sum()"
     },
     {
@@ -2717,7 +2600,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L957",
       "id": "utility_predicates_fast_expansion_sum_zeroelim",
-      "community": 5,
+      "community": 6,
       "norm_label": "fast_expansion_sum_zeroelim()"
     },
     {
@@ -2726,7 +2609,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1039",
       "id": "utility_predicates_linear_expansion_sum",
-      "community": 5,
+      "community": 6,
       "norm_label": "linear_expansion_sum()"
     },
     {
@@ -2735,7 +2618,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1099",
       "id": "utility_predicates_linear_expansion_sum_zeroelim",
-      "community": 5,
+      "community": 6,
       "norm_label": "linear_expansion_sum_zeroelim()"
     },
     {
@@ -2744,7 +2627,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1169",
       "id": "utility_predicates_scale_expansion",
-      "community": 2,
+      "community": 6,
       "norm_label": "scale_expansion()"
     },
     {
@@ -2753,7 +2636,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1215",
       "id": "utility_predicates_scale_expansion_zeroelim",
-      "community": 5,
+      "community": 6,
       "norm_label": "scale_expansion_zeroelim()"
     },
     {
@@ -2762,7 +2645,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1267",
       "id": "utility_predicates_compress",
-      "community": 5,
+      "community": 6,
       "norm_label": "compress()"
     },
     {
@@ -2771,7 +2654,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1310",
       "id": "utility_predicates_estimate",
-      "community": 5,
+      "community": 6,
       "norm_label": "estimate()"
     },
     {
@@ -2780,7 +2663,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1348",
       "id": "utility_predicates_orient2dfast",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient2dfast()"
     },
     {
@@ -2789,7 +2672,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1361",
       "id": "utility_predicates_orient2dexact",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient2dexact()"
     },
     {
@@ -2798,7 +2681,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1403",
       "id": "utility_predicates_orient2dslow",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient2dslow()"
     },
     {
@@ -2807,7 +2690,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1444",
       "id": "utility_predicates_orient2dadapt",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient2dadapt()"
     },
     {
@@ -2816,7 +2699,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1524",
       "id": "utility_predicates_orient2d",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient2d()"
     },
     {
@@ -2825,7 +2708,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1586",
       "id": "utility_predicates_orient3dfast",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient3dfast()"
     },
     {
@@ -2834,7 +2717,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1607",
       "id": "utility_predicates_orient3dexact",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient3dexact()"
     },
     {
@@ -2843,7 +2726,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1684",
       "id": "utility_predicates_orient3dslow",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient3dslow()"
     },
     {
@@ -2852,7 +2735,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L1776",
       "id": "utility_predicates_orient3dadapt",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient3dadapt()"
     },
     {
@@ -2870,7 +2753,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L2274",
       "id": "utility_predicates_incirclefast",
-      "community": 5,
+      "community": 6,
       "norm_label": "incirclefast()"
     },
     {
@@ -2879,7 +2762,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L2297",
       "id": "utility_predicates_incircleexact",
-      "community": 5,
+      "community": 6,
       "norm_label": "incircleexact()"
     },
     {
@@ -2888,7 +2771,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L2395",
       "id": "utility_predicates_incircleslow",
-      "community": 5,
+      "community": 6,
       "norm_label": "incircleslow()"
     },
     {
@@ -2897,7 +2780,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L2551",
       "id": "utility_predicates_incircleadapt",
-      "community": 5,
+      "community": 6,
       "norm_label": "incircleadapt()"
     },
     {
@@ -2906,7 +2789,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L3123",
       "id": "utility_predicates_incircle",
-      "community": 5,
+      "community": 6,
       "norm_label": "incircle()"
     },
     {
@@ -2915,7 +2798,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L3192",
       "id": "utility_predicates_inspherefast",
-      "community": 5,
+      "community": 6,
       "norm_label": "inspherefast()"
     },
     {
@@ -2924,7 +2807,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L3235",
       "id": "utility_predicates_insphereexact",
-      "community": 5,
+      "community": 6,
       "norm_label": "insphereexact()"
     },
     {
@@ -2933,7 +2816,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L3488",
       "id": "utility_predicates_insphereslow",
-      "community": 5,
+      "community": 6,
       "norm_label": "insphereslow()"
     },
     {
@@ -2942,7 +2825,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L3817",
       "id": "utility_predicates_insphereadapt",
-      "community": 5,
+      "community": 6,
       "norm_label": "insphereadapt()"
     },
     {
@@ -2951,7 +2834,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L4035",
       "id": "utility_predicates_insphere",
-      "community": 0,
+      "community": 15,
       "norm_label": "insphere()"
     },
     {
@@ -2960,7 +2843,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L4187",
       "id": "utility_predicates_orient4dexact",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient4dexact()"
     },
     {
@@ -2969,7 +2852,7 @@
       "source_file": "Utility/predicates.cpp",
       "source_location": "L4402",
       "id": "utility_predicates_orient4dadapt",
-      "community": 5,
+      "community": 6,
       "norm_label": "orient4dadapt()"
     },
     {
@@ -2996,7 +2879,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L70",
       "id": "utility_tetgen_load_node_call",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_node_call()"
     },
     {
@@ -3005,7 +2888,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L191",
       "id": "utility_tetgen_load_node",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_node()"
     },
     {
@@ -3014,7 +2897,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L269",
       "id": "utility_tetgen_load_edge",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_edge()"
     },
     {
@@ -3023,7 +2906,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L350",
       "id": "utility_tetgen_load_face",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_face()"
     },
     {
@@ -3032,7 +2915,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L446",
       "id": "utility_tetgen_load_tet",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_tet()"
     },
     {
@@ -3041,7 +2924,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L553",
       "id": "utility_tetgen_load_vol",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_vol()"
     },
     {
@@ -3050,7 +2933,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L615",
       "id": "utility_tetgen_load_var",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_var()"
     },
     {
@@ -3059,7 +2942,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L736",
       "id": "utility_tetgen_load_mtr",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_mtr()"
     },
     {
@@ -3068,7 +2951,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L809",
       "id": "utility_tetgen_load_elem",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_elem()"
     },
     {
@@ -3077,7 +2960,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L856",
       "id": "utility_tetgen_load_poly",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_poly()"
     },
     {
@@ -3086,7 +2969,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L1260",
       "id": "utility_tetgen_load_off",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_off()"
     },
     {
@@ -3095,7 +2978,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L1421",
       "id": "utility_tetgen_load_ply",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_ply()"
     },
     {
@@ -3104,7 +2987,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L1639",
       "id": "utility_tetgen_swapbytes",
-      "community": 6,
+      "community": 4,
       "norm_label": "swapbytes()"
     },
     {
@@ -3113,7 +2996,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L1651",
       "id": "utility_tetgen_load_stl",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_stl()"
     },
     {
@@ -3122,7 +3005,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L1823",
       "id": "utility_tetgen_load_medit",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_medit()"
     },
     {
@@ -3131,7 +3014,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2171",
       "id": "utility_tetgen_testisbigendian",
-      "community": 6,
+      "community": 4,
       "norm_label": "testisbigendian()"
     },
     {
@@ -3140,7 +3023,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2180",
       "id": "utility_tetgen_load_vtk",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_vtk()"
     },
     {
@@ -3149,7 +3032,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2425",
       "id": "utility_tetgen_load_plc",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_plc()"
     },
     {
@@ -3158,7 +3041,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2463",
       "id": "utility_tetgen_load_tetmesh",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_tetmesh()"
     },
     {
@@ -3230,7 +3113,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2840",
       "id": "utility_tetgen_readline",
-      "community": 6,
+      "community": 4,
       "norm_label": "readline()"
     },
     {
@@ -3239,7 +3122,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2867",
       "id": "utility_tetgen_findnextfield",
-      "community": 6,
+      "community": 4,
       "norm_label": "findnextfield()"
     },
     {
@@ -3248,7 +3131,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2895",
       "id": "utility_tetgen_readnumberline",
-      "community": 6,
+      "community": 4,
       "norm_label": "readnumberline()"
     },
     {
@@ -3257,7 +3140,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2927",
       "id": "utility_tetgen_findnextnumber",
-      "community": 6,
+      "community": 4,
       "norm_label": "findnextnumber()"
     },
     {
@@ -3266,7 +3149,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2966",
       "id": "utility_tetgen_syntax",
-      "community": 6,
+      "community": 3,
       "norm_label": "syntax()"
     },
     {
@@ -3275,7 +3158,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3010",
       "id": "utility_tetgen_usage",
-      "community": 6,
+      "community": 3,
       "norm_label": "usage()"
     },
     {
@@ -3284,7 +3167,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3075",
       "id": "utility_tetgen_parse_commandline",
-      "community": 6,
+      "community": 3,
       "norm_label": "parse_commandline()"
     },
     {
@@ -3365,7 +3248,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4212",
       "id": "utility_tetgen_memorypool_poolinit",
-      "community": 6,
+      "community": 4,
       "norm_label": "memorypool::poolinit()"
     },
     {
@@ -3383,7 +3266,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4283",
       "id": "utility_tetgen_memorypool_alloc",
-      "community": 6,
+      "community": 4,
       "norm_label": "memorypool::alloc()"
     },
     {
@@ -3419,7 +3302,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4423",
       "id": "utility_tetgen_makeindex2pointmap",
-      "community": 18,
+      "community": 19,
       "norm_label": "makeindex2pointmap()"
     },
     {
@@ -3455,7 +3338,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4577",
       "id": "utility_tetgen_alltetrahedrontraverse",
-      "community": 11,
+      "community": 9,
       "norm_label": "alltetrahedrontraverse()"
     },
     {
@@ -3464,7 +3347,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4597",
       "id": "utility_tetgen_shellfacedealloc",
-      "community": 7,
+      "community": 0,
       "norm_label": "shellfacedealloc()"
     },
     {
@@ -3482,7 +3365,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4632",
       "id": "utility_tetgen_pointdealloc",
-      "community": 9,
+      "community": 8,
       "norm_label": "pointdealloc()"
     },
     {
@@ -3491,7 +3374,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4646",
       "id": "utility_tetgen_pointtraverse",
-      "community": 11,
+      "community": 9,
       "norm_label": "pointtraverse()"
     },
     {
@@ -3509,7 +3392,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4701",
       "id": "utility_tetgen_maketetrahedron2",
-      "community": 15,
+      "community": 3,
       "norm_label": "maketetrahedron2()"
     },
     {
@@ -3527,7 +3410,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4783",
       "id": "utility_tetgen_makepoint",
-      "community": 9,
+      "community": 8,
       "norm_label": "makepoint()"
     },
     {
@@ -3653,7 +3536,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L6537",
       "id": "utility_tetgen_triarea",
-      "community": 15,
+      "community": 9,
       "norm_label": "triarea()"
     },
     {
@@ -3662,7 +3545,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L6554",
       "id": "utility_tetgen_orient3dfast",
-      "community": 15,
+      "community": 9,
       "norm_label": "orient3dfast()"
     },
     {
@@ -3725,7 +3608,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L6855",
       "id": "utility_tetgen_planelineint",
-      "community": 9,
+      "community": 8,
       "norm_label": "planelineint()"
     },
     {
@@ -3734,7 +3617,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L6904",
       "id": "utility_tetgen_linelineint",
-      "community": 7,
+      "community": 8,
       "norm_label": "linelineint()"
     },
     {
@@ -3752,7 +3635,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L6995",
       "id": "utility_tetgen_calculateabovepoint",
-      "community": 15,
+      "community": 12,
       "norm_label": "calculateabovepoint()"
     },
     {
@@ -3770,7 +3653,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L7129",
       "id": "utility_tetgen_flippush",
-      "community": 9,
+      "community": 15,
       "norm_label": "flippush()"
     },
     {
@@ -3797,7 +3680,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L7908",
       "id": "utility_tetgen_flip41",
-      "community": 9,
+      "community": 15,
       "norm_label": "flip41()"
     },
     {
@@ -3806,7 +3689,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L8227",
       "id": "utility_tetgen_flipnm",
-      "community": 20,
+      "community": 8,
       "norm_label": "flipnm()"
     },
     {
@@ -3815,7 +3698,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L8922",
       "id": "utility_tetgen_flipnm_post",
-      "community": 20,
+      "community": 8,
       "norm_label": "flipnm_post()"
     },
     {
@@ -3824,7 +3707,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L9085",
       "id": "utility_tetgen_insertpoint",
-      "community": 9,
+      "community": 15,
       "norm_label": "insertpoint()"
     },
     {
@@ -3833,7 +3716,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L10658",
       "id": "utility_tetgen_insertpoint_abort",
-      "community": 9,
+      "community": 15,
       "norm_label": "insertpoint_abort()"
     },
     {
@@ -3851,7 +3734,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L10822",
       "id": "utility_tetgen_hilbert_init",
-      "community": 15,
+      "community": 3,
       "norm_label": "hilbert_init()"
     },
     {
@@ -3905,7 +3788,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L11214",
       "id": "utility_tetgen_locate_dt",
-      "community": 15,
+      "community": 7,
       "norm_label": "locate_dt()"
     },
     {
@@ -3914,7 +3797,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L11336",
       "id": "utility_tetgen_locate",
-      "community": 9,
+      "community": 3,
       "norm_label": "locate()"
     },
     {
@@ -3923,7 +3806,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L11532",
       "id": "utility_tetgen_insert_vertex_bw",
-      "community": 15,
+      "community": 7,
       "norm_label": "insert_vertex_bw()"
     },
     {
@@ -3932,7 +3815,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L11895",
       "id": "utility_tetgen_initialdelaunay",
-      "community": 15,
+      "community": 3,
       "norm_label": "initialdelaunay()"
     },
     {
@@ -3941,7 +3824,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L11984",
       "id": "utility_tetgen_incrementaldelaunay",
-      "community": 15,
+      "community": 3,
       "norm_label": "incrementaldelaunay()"
     },
     {
@@ -4022,7 +3905,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L13734",
       "id": "utility_tetgen_scarveholes",
-      "community": 7,
+      "community": 0,
       "norm_label": "scarveholes()"
     },
     {
@@ -4031,7 +3914,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L13831",
       "id": "utility_tetgen_triangulate",
-      "community": 7,
+      "community": 0,
       "norm_label": "triangulate()"
     },
     {
@@ -4076,7 +3959,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L14753",
       "id": "utility_tetgen_finddirection",
-      "community": 20,
+      "community": 8,
       "norm_label": "finddirection()"
     },
     {
@@ -4103,7 +3986,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L15241",
       "id": "utility_tetgen_delaunizesegments",
-      "community": 0,
+      "community": 16,
       "norm_label": "delaunizesegments()"
     },
     {
@@ -4112,7 +3995,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L15358",
       "id": "utility_tetgen_scoutsubface",
-      "community": 20,
+      "community": 7,
       "norm_label": "scoutsubface()"
     },
     {
@@ -4121,7 +4004,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L15425",
       "id": "utility_tetgen_formregion",
-      "community": 0,
+      "community": 8,
       "norm_label": "formregion()"
     },
     {
@@ -4175,7 +4058,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16893",
       "id": "utility_tetgen_restorecavity",
-      "community": 0,
+      "community": 7,
       "norm_label": "restorecavity()"
     },
     {
@@ -4193,7 +4076,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L17132",
       "id": "utility_tetgen_flipinsertfacet",
-      "community": 15,
+      "community": 7,
       "norm_label": "flipinsertfacet()"
     },
     {
@@ -4220,7 +4103,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L17753",
       "id": "utility_tetgen_constrainedfacets",
-      "community": 0,
+      "community": 7,
       "norm_label": "constrainedfacets()"
     },
     {
@@ -4229,7 +4112,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18003",
       "id": "utility_tetgen_constraineddelaunay",
-      "community": 18,
+      "community": 19,
       "norm_label": "constraineddelaunay()"
     },
     {
@@ -4238,7 +4121,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18105",
       "id": "utility_tetgen_sort_2pts",
-      "community": 9,
+      "community": 8,
       "norm_label": "sort_2pts()"
     },
     {
@@ -4247,7 +4130,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18116",
       "id": "utility_tetgen_sort_3pts",
-      "community": 9,
+      "community": 8,
       "norm_label": "sort_3pts()"
     },
     {
@@ -4256,7 +4139,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18163",
       "id": "utility_tetgen_is_collinear_at",
-      "community": 9,
+      "community": 8,
       "norm_label": "is_collinear_at()"
     },
     {
@@ -4265,7 +4148,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18189",
       "id": "utility_tetgen_is_segment",
-      "community": 20,
+      "community": 8,
       "norm_label": "is_segment()"
     },
     {
@@ -4274,7 +4157,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18252",
       "id": "utility_tetgen_valid_constrained_f23",
-      "community": 20,
+      "community": 8,
       "norm_label": "valid_constrained_f23()"
     },
     {
@@ -4283,7 +4166,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18320",
       "id": "utility_tetgen_valid_constrained_f32",
-      "community": 20,
+      "community": 8,
       "norm_label": "valid_constrained_f32()"
     },
     {
@@ -4292,7 +4175,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18389",
       "id": "utility_tetgen_checkflipeligibility",
-      "community": 12,
+      "community": 8,
       "norm_label": "checkflipeligibility()"
     },
     {
@@ -4301,7 +4184,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18671",
       "id": "utility_tetgen_removeedgebyflips",
-      "community": 20,
+      "community": 8,
       "norm_label": "removeedgebyflips()"
     },
     {
@@ -4310,7 +4193,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18768",
       "id": "utility_tetgen_removefacebyflips",
-      "community": 20,
+      "community": 8,
       "norm_label": "removefacebyflips()"
     },
     {
@@ -4319,7 +4202,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18843",
       "id": "utility_tetgen_recoveredgebyflips",
-      "community": 20,
+      "community": 8,
       "norm_label": "recoveredgebyflips()"
     },
     {
@@ -4328,7 +4211,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L19286",
       "id": "utility_tetgen_add_steinerpt_in_schoenhardtpoly",
-      "community": 9,
+      "community": 8,
       "norm_label": "add_steinerpt_in_schoenhardtpoly()"
     },
     {
@@ -4337,7 +4220,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L19487",
       "id": "utility_tetgen_add_steinerpt_in_segment",
-      "community": 9,
+      "community": 8,
       "norm_label": "add_steinerpt_in_segment()"
     },
     {
@@ -4346,7 +4229,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L19730",
       "id": "utility_tetgen_add_steinerpt_to_recover_edge",
-      "community": 9,
+      "community": 8,
       "norm_label": "add_steinerpt_to_recover_edge()"
     },
     {
@@ -4355,7 +4238,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L20344",
       "id": "utility_tetgen_recoversegments",
-      "community": 20,
+      "community": 8,
       "norm_label": "recoversegments()"
     },
     {
@@ -4373,7 +4256,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L20768",
       "id": "utility_tetgen_recoversubfaces",
-      "community": 9,
+      "community": 8,
       "norm_label": "recoversubfaces()"
     },
     {
@@ -4382,7 +4265,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L21373",
       "id": "utility_tetgen_getvertexstar",
-      "community": 11,
+      "community": 9,
       "norm_label": "getvertexstar()"
     },
     {
@@ -4391,7 +4274,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L21515",
       "id": "utility_tetgen_getedge",
-      "community": 20,
+      "community": 8,
       "norm_label": "getedge()"
     },
     {
@@ -4400,7 +4283,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L21637",
       "id": "utility_tetgen_reduceedgesatvertex",
-      "community": 20,
+      "community": 8,
       "norm_label": "reduceedgesatvertex()"
     },
     {
@@ -4409,7 +4292,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L21727",
       "id": "utility_tetgen_removevertexbyflips",
-      "community": 20,
+      "community": 8,
       "norm_label": "removevertexbyflips()"
     },
     {
@@ -4418,7 +4301,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L22363",
       "id": "utility_tetgen_smoothpoint",
-      "community": 15,
+      "community": 9,
       "norm_label": "smoothpoint()"
     },
     {
@@ -4427,7 +4310,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L22524",
       "id": "utility_tetgen_suppressbdrysteinerpoint",
-      "community": 9,
+      "community": 8,
       "norm_label": "suppressbdrysteinerpoint()"
     },
     {
@@ -4436,7 +4319,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L22891",
       "id": "utility_tetgen_suppresssteinerpoints",
-      "community": 15,
+      "community": 9,
       "norm_label": "suppresssteinerpoints()"
     },
     {
@@ -4445,7 +4328,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L23047",
       "id": "utility_tetgen_recoverboundary",
-      "community": 18,
+      "community": 8,
       "norm_label": "recoverboundary()"
     },
     {
@@ -4463,7 +4346,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L24379",
       "id": "utility_tetgen_search_face",
-      "community": 1,
+      "community": 3,
       "norm_label": "search_face()"
     },
     {
@@ -4472,7 +4355,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L24434",
       "id": "utility_tetgen_search_edge",
-      "community": 1,
+      "community": 3,
       "norm_label": "search_edge()"
     },
     {
@@ -4481,7 +4364,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L24464",
       "id": "utility_tetgen_reconstructmesh",
-      "community": 1,
+      "community": 0,
       "norm_label": "reconstructmesh()"
     },
     {
@@ -4499,7 +4382,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L25232",
       "id": "utility_tetgen_getpointmeshsize",
-      "community": 15,
+      "community": 9,
       "norm_label": "getpointmeshsize()"
     },
     {
@@ -4508,7 +4391,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L25298",
       "id": "utility_tetgen_interpolatemeshsize",
-      "community": 11,
+      "community": 9,
       "norm_label": "interpolatemeshsize()"
     },
     {
@@ -4517,7 +4400,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L25369",
       "id": "utility_tetgen_insertconstrainedpoints",
-      "community": 9,
+      "community": 8,
       "norm_label": "insertconstrainedpoints()"
     },
     {
@@ -4526,7 +4409,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L25616",
       "id": "utility_tetgen_collectremovepoints",
-      "community": 11,
+      "community": 9,
       "norm_label": "collectremovepoints()"
     },
     {
@@ -4535,7 +4418,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L25742",
       "id": "utility_tetgen_meshcoarsening",
-      "community": 11,
+      "community": 9,
       "norm_label": "meshcoarsening()"
     },
     {
@@ -4544,7 +4427,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L25845",
       "id": "utility_tetgen_makesegmentendpointsmap",
-      "community": 18,
+      "community": 19,
       "norm_label": "makesegmentendpointsmap()"
     },
     {
@@ -4589,7 +4472,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26195",
       "id": "utility_tetgen_makefacetverticesmap",
-      "community": 18,
+      "community": 19,
       "norm_label": "makefacetverticesmap()"
     },
     {
@@ -4598,7 +4481,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26360",
       "id": "utility_tetgen_create_segment_facet_map",
-      "community": 18,
+      "community": 19,
       "norm_label": "create_segment_facet_map()"
     },
     {
@@ -4616,7 +4499,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26470",
       "id": "utility_tetgen_facet_ridge_vertex_adjacent",
-      "community": 18,
+      "community": 15,
       "norm_label": "facet_ridge_vertex_adjacent()"
     },
     {
@@ -4634,7 +4517,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26517",
       "id": "utility_tetgen_segfacetadjacent",
-      "community": 18,
+      "community": 15,
       "norm_label": "segfacetadjacent()"
     },
     {
@@ -4652,7 +4535,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26573",
       "id": "utility_tetgen_is_sharp_segment",
-      "community": 9,
+      "community": 8,
       "norm_label": "is_sharp_segment()"
     },
     {
@@ -4661,7 +4544,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26587",
       "id": "utility_tetgen_does_seg_contain_acute_vertex",
-      "community": 9,
+      "community": 8,
       "norm_label": "does_seg_contain_acute_vertex()"
     },
     {
@@ -4670,7 +4553,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26610",
       "id": "utility_tetgen_create_a_shorter_edge",
-      "community": 18,
+      "community": 15,
       "norm_label": "create_a_shorter_edge()"
     },
     {
@@ -4679,7 +4562,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26688",
       "id": "utility_tetgen_enqueuesubface",
-      "community": 9,
+      "community": 15,
       "norm_label": "enqueuesubface()"
     },
     {
@@ -4688,7 +4571,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26703",
       "id": "utility_tetgen_enqueuetetrahedron",
-      "community": 9,
+      "community": 15,
       "norm_label": "enqueuetetrahedron()"
     },
     {
@@ -4724,7 +4607,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L26982",
       "id": "utility_tetgen_split_segment",
-      "community": 9,
+      "community": 8,
       "norm_label": "split_segment()"
     },
     {
@@ -4742,7 +4625,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27229",
       "id": "utility_tetgen_get_subface_ccent",
-      "community": 18,
+      "community": 19,
       "norm_label": "get_subface_ccent()"
     },
     {
@@ -4751,7 +4634,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27250",
       "id": "utility_tetgen_check_enc_subface",
-      "community": 18,
+      "community": 15,
       "norm_label": "check_enc_subface()"
     },
     {
@@ -4760,7 +4643,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27348",
       "id": "utility_tetgen_check_subface",
-      "community": 18,
+      "community": 19,
       "norm_label": "check_subface()"
     },
     {
@@ -4769,7 +4652,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27397",
       "id": "utility_tetgen_enqueue_subface",
-      "community": 18,
+      "community": 19,
       "norm_label": "enqueue_subface()"
     },
     {
@@ -4778,7 +4661,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27463",
       "id": "utility_tetgen_top_subface",
-      "community": 18,
+      "community": 19,
       "norm_label": "top_subface()"
     },
     {
@@ -4787,7 +4670,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27487",
       "id": "utility_tetgen_dequeue_subface",
-      "community": 18,
+      "community": 19,
       "norm_label": "dequeue_subface()"
     },
     {
@@ -4814,7 +4697,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27704",
       "id": "utility_tetgen_split_subface",
-      "community": 9,
+      "community": 8,
       "norm_label": "split_subface()"
     },
     {
@@ -4823,7 +4706,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L27954",
       "id": "utility_tetgen_repairencfacs",
-      "community": 18,
+      "community": 19,
       "norm_label": "repairencfacs()"
     },
     {
@@ -4832,7 +4715,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L28106",
       "id": "utility_tetgen_check_tetrahedron",
-      "community": 5,
+      "community": 6,
       "norm_label": "check_tetrahedron()"
     },
     {
@@ -4859,7 +4742,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L28709",
       "id": "utility_tetgen_split_tetrahedron",
-      "community": 9,
+      "community": 8,
       "norm_label": "split_tetrahedron()"
     },
     {
@@ -4877,7 +4760,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L29125",
       "id": "utility_tetgen_delaunayrefinement",
-      "community": 18,
+      "community": 19,
       "norm_label": "delaunayrefinement()"
     },
     {
@@ -4886,7 +4769,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L29725",
       "id": "utility_tetgen_lawsonflip3d",
-      "community": 9,
+      "community": 8,
       "norm_label": "lawsonflip3d()"
     },
     {
@@ -4895,7 +4778,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30149",
       "id": "utility_tetgen_recoverdelaunay",
-      "community": 9,
+      "community": 8,
       "norm_label": "recoverdelaunay()"
     },
     {
@@ -4904,7 +4787,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30323",
       "id": "utility_tetgen_get_seg_laplacian_center",
-      "community": 11,
+      "community": 9,
       "norm_label": "get_seg_laplacian_center()"
     },
     {
@@ -4913,7 +4796,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30375",
       "id": "utility_tetgen_get_surf_laplacian_center",
-      "community": 11,
+      "community": 9,
       "norm_label": "get_surf_laplacian_center()"
     },
     {
@@ -4922,7 +4805,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30423",
       "id": "utility_tetgen_get_laplacian_center",
-      "community": 11,
+      "community": 9,
       "norm_label": "get_laplacian_center()"
     },
     {
@@ -4931,7 +4814,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30459",
       "id": "utility_tetgen_move_vertex",
-      "community": 11,
+      "community": 15,
       "norm_label": "move_vertex()"
     },
     {
@@ -4940,7 +4823,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30571",
       "id": "utility_tetgen_smooth_vertices",
-      "community": 11,
+      "community": 9,
       "norm_label": "smooth_vertices()"
     },
     {
@@ -4949,7 +4832,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30746",
       "id": "utility_tetgen_get_tet",
-      "community": 26,
+      "community": 21,
       "norm_label": "get_tet()"
     },
     {
@@ -4958,7 +4841,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30794",
       "id": "utility_tetgen_get_tetqual",
-      "community": 12,
+      "community": 21,
       "norm_label": "get_tetqual()"
     },
     {
@@ -4967,7 +4850,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L30971",
       "id": "utility_tetgen_enqueue_badtet",
-      "community": 26,
+      "community": 21,
       "norm_label": "enqueue_badtet()"
     },
     {
@@ -4976,7 +4859,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31037",
       "id": "utility_tetgen_top_badtet",
-      "community": 26,
+      "community": 21,
       "norm_label": "top_badtet()"
     },
     {
@@ -4985,7 +4868,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31057",
       "id": "utility_tetgen_dequeue_badtet",
-      "community": 26,
+      "community": 21,
       "norm_label": "dequeue_badtet()"
     },
     {
@@ -4994,7 +4877,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31095",
       "id": "utility_tetgen_add_steinerpt_to_repair",
-      "community": 9,
+      "community": 21,
       "norm_label": "add_steinerpt_to_repair()"
     },
     {
@@ -5003,7 +4886,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31318",
       "id": "utility_tetgen_flip_edge_to_improve",
-      "community": 26,
+      "community": 21,
       "norm_label": "flip_edge_to_improve()"
     },
     {
@@ -5012,7 +4895,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31371",
       "id": "utility_tetgen_repair_tet",
-      "community": 26,
+      "community": 21,
       "norm_label": "repair_tet()"
     },
     {
@@ -5021,7 +4904,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31478",
       "id": "utility_tetgen_repair_badqual_tets",
-      "community": 26,
+      "community": 21,
       "norm_label": "repair_badqual_tets()"
     },
     {
@@ -5030,7 +4913,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31529",
       "id": "utility_tetgen_improve_mesh",
-      "community": 26,
+      "community": 21,
       "norm_label": "improve_mesh()"
     },
     {
@@ -5048,7 +4931,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31732",
       "id": "utility_tetgen_check_mesh",
-      "community": 11,
+      "community": 9,
       "norm_label": "check_mesh()"
     },
     {
@@ -5057,7 +4940,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L31874",
       "id": "utility_tetgen_check_shells",
-      "community": 11,
+      "community": 9,
       "norm_label": "check_shells()"
     },
     {
@@ -5066,7 +4949,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L32061",
       "id": "utility_tetgen_check_segments",
-      "community": 11,
+      "community": 9,
       "norm_label": "check_segments()"
     },
     {
@@ -5129,7 +5012,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L33262",
       "id": "utility_tetgen_jettisonnodes",
-      "community": 11,
+      "community": 9,
       "norm_label": "jettisonnodes()"
     },
     {
@@ -5147,7 +5030,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L33418",
       "id": "utility_tetgen_indexelements",
-      "community": 11,
+      "community": 9,
       "norm_label": "indexelements()"
     },
     {
@@ -5156,7 +5039,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L33451",
       "id": "utility_tetgen_numberedges",
-      "community": 11,
+      "community": 9,
       "norm_label": "numberedges()"
     },
     {
@@ -5165,7 +5048,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L33494",
       "id": "utility_tetgen_outnodes",
-      "community": 11,
+      "community": 0,
       "norm_label": "outnodes()"
     },
     {
@@ -5174,7 +5057,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L33696",
       "id": "utility_tetgen_outmetrics",
-      "community": 11,
+      "community": 9,
       "norm_label": "outmetrics()"
     },
     {
@@ -5219,7 +5102,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L34494",
       "id": "utility_tetgen_outedges",
-      "community": 11,
+      "community": 9,
       "norm_label": "outedges()"
     },
     {
@@ -5237,7 +5120,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L34925",
       "id": "utility_tetgen_outneighbors",
-      "community": 6,
+      "community": 4,
       "norm_label": "outneighbors()"
     },
     {
@@ -5246,7 +5129,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L35026",
       "id": "utility_tetgen_outvoronoi",
-      "community": 11,
+      "community": 9,
       "norm_label": "outvoronoi()"
     },
     {
@@ -5273,7 +5156,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L35803",
       "id": "utility_tetgen_outmesh2vtk",
-      "community": 11,
+      "community": 9,
       "norm_label": "outmesh2vtk()"
     },
     {
@@ -5282,7 +5165,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L35909",
       "id": "utility_tetgen_out_surfmesh_vtk",
-      "community": 11,
+      "community": 9,
       "norm_label": "out_surfmesh_vtk()"
     },
     {
@@ -5291,7 +5174,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L36039",
       "id": "utility_tetgen_out_intersected_facets",
-      "community": 11,
+      "community": 0,
       "norm_label": "out_intersected_facets()"
     },
     {
@@ -5300,7 +5183,7 @@
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L36121",
       "id": "utility_tetgen_tetrahedralize",
-      "community": 11,
+      "community": 9,
       "norm_label": "tetrahedralize()"
     },
     {
@@ -5309,7 +5192,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1",
       "id": "utility_tetgen_h",
-      "community": 13,
+      "community": 4,
       "norm_label": "tetgen.h"
     },
     {
@@ -5318,7 +5201,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L109",
       "id": "utility_tetgen_tetgenio",
-      "community": 13,
+      "community": 4,
       "norm_label": "tetgenio()"
     },
     {
@@ -5327,7 +5210,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L615",
       "id": "utility_tetgen_tetgenbehavior",
-      "community": 13,
+      "community": 4,
       "norm_label": "tetgenbehavior()"
     },
     {
@@ -5336,7 +5219,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1009",
       "id": "utility_tetgen_triface",
-      "community": 13,
+      "community": 4,
       "norm_label": "triface()"
     },
     {
@@ -5345,7 +5228,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1020",
       "id": "utility_tetgen_face",
-      "community": 13,
+      "community": 4,
       "norm_label": "face()"
     },
     {
@@ -5354,7 +5237,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1049",
       "id": "utility_tetgen_arraypool",
-      "community": 13,
+      "community": 4,
       "norm_label": "arraypool()"
     },
     {
@@ -5363,7 +5246,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1101",
       "id": "utility_tetgen_memorypool",
-      "community": 13,
+      "community": 4,
       "norm_label": "memorypool()"
     },
     {
@@ -5372,7 +5255,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1143",
       "id": "utility_tetgen_badface",
-      "community": 13,
+      "community": 4,
       "norm_label": "badface()"
     },
     {
@@ -5381,7 +5264,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1170",
       "id": "utility_tetgen_insertvertexflags",
-      "community": 13,
+      "community": 4,
       "norm_label": "insertvertexflags()"
     },
     {
@@ -5390,7 +5273,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1224",
       "id": "utility_tetgen_flipconstraints",
-      "community": 13,
+      "community": 4,
       "norm_label": "flipconstraints()"
     },
     {
@@ -5399,7 +5282,7 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L1286",
       "id": "utility_tetgen_optparameters",
-      "community": 13,
+      "community": 4,
       "norm_label": "optparameters()"
     },
     {
@@ -5408,8 +5291,44 @@
       "source_file": "Utility/tetgen.h",
       "source_location": "L2246",
       "id": "utility_tetgen_initializetetgenmesh",
-      "community": 13,
+      "community": 4,
       "norm_label": "initializetetgenmesh()"
+    },
+    {
+      "label": "fem_bar_bench.cpp",
+      "file_type": "code",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L1",
+      "id": "verification_apps_fem_bar_bench_cpp",
+      "community": 30,
+      "norm_label": "fem_bar_bench.cpp"
+    },
+    {
+      "label": "build_bar_surface()",
+      "file_type": "code",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L26",
+      "id": "apps_fem_bar_bench_build_bar_surface",
+      "community": 30,
+      "norm_label": "build_bar_surface()"
+    },
+    {
+      "label": "run_case()",
+      "file_type": "code",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L62",
+      "id": "apps_fem_bar_bench_run_case",
+      "community": 30,
+      "norm_label": "run_case()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L148",
+      "id": "apps_fem_bar_bench_main",
+      "community": 30,
+      "norm_label": "main()"
     },
     {
       "label": "ply_tetra_diagnostic.cpp",
@@ -5417,7 +5336,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L1",
       "id": "verification_apps_ply_tetra_diagnostic_cpp",
-      "community": 16,
+      "community": 14,
       "norm_label": "ply_tetra_diagnostic.cpp"
     },
     {
@@ -5426,7 +5345,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L42",
       "id": "apps_ply_tetra_diagnostic_json_escape",
-      "community": 16,
+      "community": 14,
       "norm_label": "json_escape()"
     },
     {
@@ -5435,7 +5354,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L83",
       "id": "apps_ply_tetra_diagnostic_triangle_area",
-      "community": 16,
+      "community": 14,
       "norm_label": "triangle_area()"
     },
     {
@@ -5444,7 +5363,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L97",
       "id": "apps_ply_tetra_diagnostic_compute_bounding_box",
-      "community": 16,
+      "community": 14,
       "norm_label": "compute_bounding_box()"
     },
     {
@@ -5453,7 +5372,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L118",
       "id": "apps_ply_tetra_diagnostic_make_empty_index_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "make_empty_index_stats()"
     },
     {
@@ -5462,7 +5381,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L125",
       "id": "apps_ply_tetra_diagnostic_add_index_to_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "add_index_to_stats()"
     },
     {
@@ -5471,7 +5390,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L133",
       "id": "apps_ply_tetra_diagnostic_precheck_ascii_ply",
-      "community": 16,
+      "community": 14,
       "norm_label": "precheck_ascii_ply()"
     },
     {
@@ -5480,7 +5399,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L249",
       "id": "apps_ply_tetra_diagnostic_surface_face_index_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "surface_face_index_stats()"
     },
     {
@@ -5489,7 +5408,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L269",
       "id": "apps_ply_tetra_diagnostic_count_degenerate_surface_triangles",
-      "community": 16,
+      "community": 14,
       "norm_label": "count_degenerate_surface_triangles()"
     },
     {
@@ -5498,7 +5417,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L291",
       "id": "apps_ply_tetra_diagnostic_copy_surface_to_object",
-      "community": 16,
+      "community": 14,
       "norm_label": "copy_surface_to_object()"
     },
     {
@@ -5507,7 +5426,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L303",
       "id": "apps_ply_tetra_diagnostic_object_triangle_index_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "object_triangle_index_stats()"
     },
     {
@@ -5516,7 +5435,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L323",
       "id": "apps_ply_tetra_diagnostic_tetgen_tetra_index_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "tetgen_tetra_index_stats()"
     },
     {
@@ -5525,7 +5444,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L343",
       "id": "apps_ply_tetra_diagnostic_tetgen_triface_index_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "tetgen_triface_index_stats()"
     },
     {
@@ -5534,7 +5453,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L362",
       "id": "apps_ply_tetra_diagnostic_count_unique_lines_from_tets",
-      "community": 16,
+      "community": 14,
       "norm_label": "count_unique_lines_from_tets()"
     },
     {
@@ -5543,7 +5462,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L385",
       "id": "apps_ply_tetra_diagnostic_fill_tetgen_input",
-      "community": 16,
+      "community": 14,
       "norm_label": "fill_tetgen_input()"
     },
     {
@@ -5552,7 +5471,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L416",
       "id": "apps_ply_tetra_diagnostic_write_index_stats",
-      "community": 16,
+      "community": 14,
       "norm_label": "write_index_stats()"
     },
     {
@@ -5561,7 +5480,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L424",
       "id": "apps_ply_tetra_diagnostic_write_bounding_box_fields",
-      "community": 16,
+      "community": 14,
       "norm_label": "write_bounding_box_fields()"
     },
     {
@@ -5570,7 +5489,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L435",
       "id": "apps_ply_tetra_diagnostic_write_precheck_failure_json",
-      "community": 16,
+      "community": 14,
       "norm_label": "write_precheck_failure_json()"
     },
     {
@@ -5579,7 +5498,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L492",
       "id": "apps_ply_tetra_diagnostic_write_json_result",
-      "community": 16,
+      "community": 14,
       "norm_label": "write_json_result()"
     },
     {
@@ -5588,7 +5507,7 @@
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L565",
       "id": "apps_ply_tetra_diagnostic_main",
-      "community": 16,
+      "community": 14,
       "norm_label": "main()"
     },
     {
@@ -5597,7 +5516,7 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L1",
       "id": "verification_apps_ply_tetra_smoke_cpp",
-      "community": 28,
+      "community": 27,
       "norm_label": "ply_tetra_smoke.cpp"
     },
     {
@@ -5606,7 +5525,7 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L17",
       "id": "apps_ply_tetra_smoke_tetra_volume",
-      "community": 28,
+      "community": 27,
       "norm_label": "tetra_volume()"
     },
     {
@@ -5615,7 +5534,7 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L29",
       "id": "apps_ply_tetra_smoke_total_tetra_volume",
-      "community": 28,
+      "community": 27,
       "norm_label": "total_tetra_volume()"
     },
     {
@@ -5624,7 +5543,7 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L37",
       "id": "apps_ply_tetra_smoke_json_escape",
-      "community": 28,
+      "community": 27,
       "norm_label": "json_escape()"
     },
     {
@@ -5633,7 +5552,7 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L49",
       "id": "apps_ply_tetra_smoke_copy_surface_to_object",
-      "community": 28,
+      "community": 27,
       "norm_label": "copy_surface_to_object()"
     },
     {
@@ -5642,7 +5561,7 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L61",
       "id": "apps_ply_tetra_smoke_write_json",
-      "community": 28,
+      "community": 27,
       "norm_label": "write_json()"
     },
     {
@@ -5651,15 +5570,132 @@
       "source_file": "verification/apps/ply_tetra_smoke.cpp",
       "source_location": "L90",
       "id": "apps_ply_tetra_smoke_main",
-      "community": 28,
+      "community": 27,
       "norm_label": "main()"
+    },
+    {
+      "label": "MatrixMxN()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L380",
+      "community": 13,
+      "norm_label": "matrixmxn()",
+      "id": "bmgl_matrix_matrixmxn"
+    },
+    {
+      "label": "Init()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L399",
+      "community": 13,
+      "norm_label": "init()",
+      "id": "bmgl_matrix_init"
+    },
+    {
+      "label": "Clear()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L418",
+      "community": 13,
+      "norm_label": "clear()",
+      "id": "bmgl_matrix_clear"
+    },
+    {
+      "label": "SetValue()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L432",
+      "community": 13,
+      "norm_label": "setvalue()",
+      "id": "bmgl_matrix_setvalue"
+    },
+    {
+      "label": "GetValue()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L439",
+      "community": 13,
+      "norm_label": "getvalue()",
+      "id": "bmgl_matrix_getvalue"
+    },
+    {
+      "label": "GetRowVector()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L444",
+      "community": 13,
+      "norm_label": "getrowvector()",
+      "id": "bmgl_matrix_getrowvector"
+    },
+    {
+      "label": "GetColumnVector()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L455",
+      "community": 13,
+      "norm_label": "getcolumnvector()",
+      "id": "bmgl_matrix_getcolumnvector"
+    },
+    {
+      "label": "GetFrobeniusNorm()",
+      "file_type": "code",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L706",
+      "community": 13,
+      "norm_label": "getfrobeniusnorm()",
+      "id": "bmgl_matrix_getfrobeniusnorm"
+    },
+    {
+      "label": "ComputeMatrixT()",
+      "file_type": "code",
+      "source_file": "BMGL/object.cpp",
+      "source_location": "L616",
+      "community": 11,
+      "norm_label": "computematrixt()",
+      "id": "bmgl_object_computematrixt"
+    },
+    {
+      "label": "VectorNf()",
+      "file_type": "code",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L119",
+      "community": 4,
+      "norm_label": "vectornf()",
+      "id": "bmgl_vector_vectornf"
+    },
+    {
+      "label": "Clear()",
+      "file_type": "code",
+      "source_file": "BMGL/vector.cpp",
+      "source_location": "L53",
+      "community": 4,
+      "norm_label": "clear()",
+      "id": "bmgl_vector_clear"
+    },
+    {
+      "label": "GetLength()",
+      "file_type": "code",
+      "source_file": "BMGL/vector.cpp",
+      "source_location": "L229",
+      "community": 4,
+      "norm_label": "getlength()",
+      "id": "bmgl_vector_getlength"
+    },
+    {
+      "label": "GetLength2()",
+      "file_type": "code",
+      "source_file": "BMGL/vector.cpp",
+      "source_location": "L242",
+      "community": 4,
+      "norm_label": "getlength2()",
+      "id": "bmgl_vector_getlength2"
     },
     {
       "label": "Force()",
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L587",
-      "community": 8,
+      "community": 23,
       "norm_label": "force()",
       "id": "bmgl_object_force"
     },
@@ -5677,7 +5713,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L641",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildfreezecachefromobject()",
       "id": "deformsim_stdafx_buildfreezecachefromobject"
     },
@@ -5686,7 +5722,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L657",
-      "community": 4,
+      "community": 5,
       "norm_label": "applyfreezestate()",
       "id": "deformsim_stdafx_applyfreezestate"
     },
@@ -5695,7 +5731,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L767",
-      "community": 4,
+      "community": 5,
       "norm_label": "initbiascontactcache()",
       "id": "deformsim_stdafx_initbiascontactcache"
     },
@@ -5704,7 +5740,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L780",
-      "community": 4,
+      "community": 5,
       "norm_label": "buildbiascontactcache()",
       "id": "deformsim_stdafx_buildbiascontactcache"
     },
@@ -5713,7 +5749,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L797",
-      "community": 4,
+      "community": 5,
       "norm_label": "applybiascontactselection()",
       "id": "deformsim_stdafx_applybiascontactselection"
     },
@@ -5722,7 +5758,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L1263",
-      "community": 4,
+      "community": 5,
       "norm_label": "generate_bias_triangle()",
       "id": "deformsim_stdafx_generate_bias_triangle"
     },
@@ -5731,7 +5767,7 @@
       "file_type": "code",
       "source_file": "stdafx.cpp",
       "source_location": "L1297",
-      "community": 4,
+      "community": 5,
       "norm_label": "generate_bias_center()",
       "id": "deformsim_stdafx_generate_bias_center"
     },
@@ -5740,7 +5776,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.cpp",
       "source_location": "L1",
-      "community": 27,
+      "community": 26,
       "norm_label": "admm.cpp",
       "id": "bmgl_admm_cpp"
     },
@@ -5749,7 +5785,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.h",
       "source_location": "L17",
-      "community": 27,
+      "community": 26,
       "norm_label": "admm()",
       "id": "bmgl_admm_admm"
     },
@@ -5758,7 +5794,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.cpp",
       "source_location": "L70",
-      "community": 27,
+      "community": 26,
       "norm_label": "alloc2dim()",
       "id": "bmgl_admm_alloc2dim"
     },
@@ -5767,7 +5803,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.cpp",
       "source_location": "L83",
-      "community": 27,
+      "community": 26,
       "norm_label": "init()",
       "id": "bmgl_admm_init"
     },
@@ -5776,7 +5812,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.cpp",
       "source_location": "L183",
-      "community": 27,
+      "community": 26,
       "norm_label": "compute()",
       "id": "bmgl_admm_compute"
     },
@@ -5785,7 +5821,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.cpp",
       "source_location": "L205",
-      "community": 27,
+      "community": 26,
       "norm_label": "optimize()",
       "id": "bmgl_admm_optimize"
     },
@@ -5794,7 +5830,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.cpp",
       "source_location": "L256",
-      "community": 27,
+      "community": 26,
       "norm_label": "softthreshold()",
       "id": "bmgl_admm_softthreshold"
     },
@@ -5803,7 +5839,7 @@
       "file_type": "code",
       "source_file": "BMGL/admm.h",
       "source_location": "L1",
-      "community": 27,
+      "community": 26,
       "norm_label": "admm.h",
       "id": "bmgl_admm_h"
     },
@@ -5821,7 +5857,7 @@
       "file_type": "code",
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L75",
-      "community": 21,
+      "community": 18,
       "norm_label": "rotate()",
       "id": "bmgl_geometry_rotate"
     },
@@ -5830,7 +5866,7 @@
       "file_type": "code",
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L86",
-      "community": 21,
+      "community": 18,
       "norm_label": "translate()",
       "id": "bmgl_geometry_translate"
     },
@@ -5839,7 +5875,7 @@
       "file_type": "code",
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L91",
-      "community": 21,
+      "community": 18,
       "norm_label": "scale()",
       "id": "bmgl_geometry_scale"
     },
@@ -5848,7 +5884,7 @@
       "file_type": "code",
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L99",
-      "community": 21,
+      "community": 18,
       "norm_label": "transform()",
       "id": "bmgl_geometry_transform"
     },
@@ -5857,7 +5893,7 @@
       "file_type": "code",
       "source_file": "BMGL/geometry.cpp",
       "source_location": "L109",
-      "community": 21,
+      "community": 18,
       "norm_label": "renderboundingbox()",
       "id": "bmgl_geometry_renderboundingbox"
     },
@@ -5866,7 +5902,7 @@
       "file_type": "code",
       "source_file": "BMGL/geometry.h",
       "source_location": "L100",
-      "community": 21,
+      "community": 18,
       "norm_label": "boundingbox()",
       "id": "bmgl_geometry_boundingbox"
     },
@@ -5875,7 +5911,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L1",
-      "community": 19,
+      "community": 17,
       "norm_label": "image.cpp",
       "id": "bmgl_image_cpp"
     },
@@ -5884,7 +5920,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.h",
       "source_location": "L17",
-      "community": 19,
+      "community": 17,
       "norm_label": "image3d()",
       "id": "bmgl_image_image3d"
     },
@@ -5893,7 +5929,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L46",
-      "community": 19,
+      "community": 17,
       "norm_label": "initimage()",
       "id": "bmgl_image_initimage"
     },
@@ -5902,7 +5938,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L76",
-      "community": 19,
+      "community": 17,
       "norm_label": "freeimage()",
       "id": "bmgl_image_freeimage"
     },
@@ -5911,7 +5947,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L97",
-      "community": 19,
+      "community": 17,
       "norm_label": "readimageraw()",
       "id": "bmgl_image_readimageraw"
     },
@@ -5920,7 +5956,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L160",
-      "community": 19,
+      "community": 17,
       "norm_label": "readlookuptable()",
       "id": "bmgl_image_readlookuptable"
     },
@@ -5929,7 +5965,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L190",
-      "community": 19,
+      "community": 17,
       "norm_label": "writeimageraw()",
       "id": "bmgl_image_writeimageraw"
     },
@@ -5938,7 +5974,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L202",
-      "community": 19,
+      "community": 17,
       "norm_label": "writeimagecuberaw()",
       "id": "bmgl_image_writeimagecuberaw"
     },
@@ -5947,7 +5983,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L227",
-      "community": 19,
+      "community": 17,
       "norm_label": "writeimagesphereraw()",
       "id": "bmgl_image_writeimagesphereraw"
     },
@@ -5956,7 +5992,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L252",
-      "community": 19,
+      "community": 17,
       "norm_label": "evaluatefilter()",
       "id": "bmgl_image_evaluatefilter"
     },
@@ -5965,7 +6001,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L298",
-      "community": 19,
+      "community": 17,
       "norm_label": "updateintensityvolume()",
       "id": "bmgl_image_updateintensityvolume"
     },
@@ -5974,7 +6010,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L336",
-      "community": 19,
+      "community": 17,
       "norm_label": "updategradientvolume()",
       "id": "bmgl_image_updategradientvolume"
     },
@@ -5983,7 +6019,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L427",
-      "community": 19,
+      "community": 17,
       "norm_label": "updatecolorlookuptable()",
       "id": "bmgl_image_updatecolorlookuptable"
     },
@@ -5992,7 +6028,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.cpp",
       "source_location": "L447",
-      "community": 19,
+      "community": 17,
       "norm_label": "evaluatesusan()",
       "id": "bmgl_image_evaluatesusan"
     },
@@ -6001,7 +6037,7 @@
       "file_type": "code",
       "source_file": "BMGL/image.h",
       "source_location": "L1",
-      "community": 19,
+      "community": 17,
       "norm_label": "image.h",
       "id": "bmgl_image_h"
     },
@@ -6100,7 +6136,7 @@
       "file_type": "code",
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L686",
-      "community": 14,
+      "community": 13,
       "norm_label": "indentity()",
       "id": "bmgl_matrix_indentity"
     },
@@ -6109,7 +6145,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L966",
-      "community": 8,
+      "community": 11,
       "norm_label": "rendervertex()",
       "id": "bmgl_object_rendervertex"
     },
@@ -6118,7 +6154,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L987",
-      "community": 8,
+      "community": 11,
       "norm_label": "renderline()",
       "id": "bmgl_object_renderline"
     },
@@ -6127,7 +6163,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1012",
-      "community": 17,
+      "community": 20,
       "norm_label": "renderlaplacian()",
       "id": "bmgl_object_renderlaplacian"
     },
@@ -6136,7 +6172,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1051",
-      "community": 17,
+      "community": 20,
       "norm_label": "rendernormal()",
       "id": "bmgl_object_rendernormal"
     },
@@ -6145,7 +6181,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1088",
-      "community": 17,
+      "community": 20,
       "norm_label": "rendervector()",
       "id": "bmgl_object_rendervector"
     },
@@ -6154,7 +6190,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1114",
-      "community": 8,
+      "community": 11,
       "norm_label": "rendertriangle()",
       "id": "bmgl_object_rendertriangle"
     },
@@ -6163,7 +6199,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1139",
-      "community": 8,
+      "community": 11,
       "norm_label": "rendersurface()",
       "id": "bmgl_object_rendersurface"
     },
@@ -6172,7 +6208,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1168",
-      "community": 17,
+      "community": 20,
       "norm_label": "rendercolormap()",
       "id": "bmgl_object_rendercolormap"
     },
@@ -6181,7 +6217,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1241",
-      "community": 17,
+      "community": 20,
       "norm_label": "renderdeform()",
       "id": "bmgl_object_renderdeform"
     },
@@ -6190,7 +6226,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1295",
-      "community": 17,
+      "community": 20,
       "norm_label": "getcolorvalue()",
       "id": "bmgl_object_getcolorvalue"
     },
@@ -6199,7 +6235,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1304",
-      "community": 17,
+      "community": 20,
       "norm_label": "changehsvtocolor()",
       "id": "bmgl_object_changehsvtocolor"
     },
@@ -6208,7 +6244,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1357",
-      "community": 8,
+      "community": 11,
       "norm_label": "renderstress()",
       "id": "bmgl_object_renderstress"
     },
@@ -6217,7 +6253,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1879",
-      "community": 17,
+      "community": 20,
       "norm_label": "mapobject()",
       "id": "bmgl_object_mapobject"
     },
@@ -6226,7 +6262,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L1937",
-      "community": 8,
+      "community": 11,
       "norm_label": "updateobject()",
       "id": "bmgl_object_updateobject"
     },
@@ -6235,7 +6271,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L2049",
-      "community": 8,
+      "community": 11,
       "norm_label": "computelaplacian()",
       "id": "bmgl_object_computelaplacian"
     },
@@ -6244,7 +6280,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L2148",
-      "community": 8,
+      "community": 11,
       "norm_label": "computedisplacementlaplacian()",
       "id": "bmgl_object_computedisplacementlaplacian"
     },
@@ -6253,7 +6289,7 @@
       "file_type": "code",
       "source_file": "BMGL/object.cpp",
       "source_location": "L2169",
-      "community": 8,
+      "community": 23,
       "norm_label": "computeleastsquaremesh()",
       "id": "bmgl_object_computeleastsquaremesh"
     },
@@ -6397,7 +6433,7 @@
       "file_type": "code",
       "source_file": "GL/glsl.cpp",
       "source_location": "L1",
-      "community": 30,
+      "community": 29,
       "norm_label": "glsl.cpp",
       "id": "gl_glsl_cpp"
     },
@@ -6406,7 +6442,7 @@
       "file_type": "code",
       "source_file": "GL/glsl.cpp",
       "source_location": "L108",
-      "community": 30,
+      "community": 29,
       "norm_label": "glslinit()",
       "id": "gl_glsl_glslinit"
     },
@@ -6415,7 +6451,7 @@
       "file_type": "code",
       "source_file": "GL/glsl.cpp",
       "source_location": "L219",
-      "community": 30,
+      "community": 29,
       "norm_label": "readshadersource()",
       "id": "gl_glsl_readshadersource"
     },
@@ -6424,7 +6460,7 @@
       "file_type": "code",
       "source_file": "GL/glsl.cpp",
       "source_location": "L264",
-      "community": 30,
+      "community": 29,
       "norm_label": "printshaderinfolog()",
       "id": "gl_glsl_printshaderinfolog"
     },
@@ -6433,7 +6469,7 @@
       "file_type": "code",
       "source_file": "GL/glsl.cpp",
       "source_location": "L289",
-      "community": 30,
+      "community": 29,
       "norm_label": "printprograminfolog()",
       "id": "gl_glsl_printprograminfolog"
     },
@@ -6496,7 +6532,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L40",
-      "community": 6,
+      "community": 4,
       "norm_label": "terminatetetgen()",
       "id": "utility_tetgen_terminatetetgen"
     },
@@ -6505,7 +6541,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L66",
-      "community": 13,
+      "community": 4,
       "norm_label": "initialize()",
       "id": "utility_tetgen_initialize"
     },
@@ -6514,7 +6550,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L134",
-      "community": 13,
+      "community": 4,
       "norm_label": "deinitialize()",
       "id": "utility_tetgen_deinitialize"
     },
@@ -6523,7 +6559,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L428",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_addnodes()",
       "id": "utility_tetgen_load_addnodes"
     },
@@ -6532,7 +6568,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L515",
-      "community": 6,
+      "community": 4,
       "norm_label": "load_pbc()",
       "id": "utility_tetgen_load_pbc"
     },
@@ -6541,7 +6577,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L2677",
-      "community": 6,
+      "community": 3,
       "norm_label": "versioninfo()",
       "id": "utility_tetgen_versioninfo"
     },
@@ -6577,7 +6613,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3185",
-      "community": 13,
+      "community": 4,
       "norm_label": "set_compfunc()",
       "id": "utility_tetgen_set_compfunc"
     },
@@ -6586,7 +6622,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3220",
-      "community": 6,
+      "community": 4,
       "norm_label": "list::\r\nlistinit()",
       "id": "utility_tetgen_list_listinit"
     },
@@ -6595,7 +6631,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3249",
-      "community": 6,
+      "community": 4,
       "norm_label": "list::append()",
       "id": "utility_tetgen_list_append"
     },
@@ -6604,7 +6640,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3280",
-      "community": 6,
+      "community": 4,
       "norm_label": "list::insert()",
       "id": "utility_tetgen_list_insert"
     },
@@ -6667,7 +6703,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3770",
-      "community": 13,
+      "community": 4,
       "norm_label": "link::locate()",
       "id": "utility_tetgen_link_locate"
     },
@@ -6685,7 +6721,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3840",
-      "community": 9,
+      "community": 3,
       "norm_label": "link::insert()",
       "id": "utility_tetgen_link_insert"
     },
@@ -6694,7 +6730,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3874",
-      "community": 9,
+      "community": 3,
       "norm_label": "link::del()",
       "id": "utility_tetgen_link_del"
     },
@@ -6712,7 +6748,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3937",
-      "community": 9,
+      "community": 3,
       "norm_label": "link::getnitem()",
       "id": "utility_tetgen_link_getnitem"
     },
@@ -6721,7 +6757,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L3953",
-      "community": 13,
+      "community": 4,
       "norm_label": "link::hasitem()",
       "id": "utility_tetgen_link_hasitem"
     },
@@ -6730,7 +6766,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4073",
-      "community": 1,
+      "community": 16,
       "norm_label": "decode()",
       "id": "utility_tetgen_decode"
     },
@@ -6739,7 +6775,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4079",
-      "community": 1,
+      "community": 16,
       "norm_label": "encode()",
       "id": "utility_tetgen_encode"
     },
@@ -7207,7 +7243,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4385",
-      "community": 0,
+      "community": 1,
       "norm_label": "sfnextself()",
       "id": "utility_tetgen_sfnextself"
     },
@@ -7441,7 +7477,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4555",
-      "community": 0,
+      "community": 16,
       "norm_label": "point2tet()",
       "id": "utility_tetgen_point2tet"
     },
@@ -7450,7 +7486,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4559",
-      "community": 0,
+      "community": 16,
       "norm_label": "setpoint2tet()",
       "id": "utility_tetgen_setpoint2tet"
     },
@@ -7486,7 +7522,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4581",
-      "community": 9,
+      "community": 8,
       "norm_label": "setpoint2ppt()",
       "id": "utility_tetgen_setpoint2ppt"
     },
@@ -7504,7 +7540,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4591",
-      "community": 0,
+      "community": 16,
       "norm_label": "setpoint2pbcpt()",
       "id": "utility_tetgen_setpoint2pbcpt"
     },
@@ -7522,7 +7558,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4601",
-      "community": 3,
+      "community": 8,
       "norm_label": "setedgebound()",
       "id": "utility_tetgen_setedgebound"
     },
@@ -7558,7 +7594,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L4658",
-      "community": 1,
+      "community": 0,
       "norm_label": "isfacehasedge()",
       "id": "utility_tetgen_isfacehasedge"
     },
@@ -7693,7 +7729,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L5473",
-      "community": 1,
+      "community": 16,
       "norm_label": "makepoint2tetmap()",
       "id": "utility_tetgen_makepoint2tetmap"
     },
@@ -7936,7 +7972,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L7912",
-      "community": 0,
+      "community": 16,
       "norm_label": "badfacedealloc()",
       "id": "utility_tetgen_badfacedealloc"
     },
@@ -7945,7 +7981,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L7926",
-      "community": 0,
+      "community": 16,
       "norm_label": "badfacetraverse()",
       "id": "utility_tetgen_badfacetraverse"
     },
@@ -7954,7 +7990,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L8121",
-      "community": 9,
+      "community": 3,
       "norm_label": "distance2()",
       "id": "utility_tetgen_distance2"
     },
@@ -8242,7 +8278,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L13200",
-      "community": 11,
+      "community": 9,
       "norm_label": "delaunizevertices()",
       "id": "utility_tetgen_delaunizevertices"
     },
@@ -8485,7 +8521,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16136",
-      "community": 0,
+      "community": 16,
       "norm_label": "randgenerator()",
       "id": "utility_tetgen_randgenerator"
     },
@@ -8512,7 +8548,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16333",
-      "community": 3,
+      "community": 0,
       "norm_label": "tallcocirsubs()",
       "id": "utility_tetgen_tallcocirsubs"
     },
@@ -8521,7 +8557,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16355",
-      "community": 3,
+      "community": 1,
       "norm_label": "tallcosphtets()",
       "id": "utility_tetgen_tallcosphtets"
     },
@@ -8539,7 +8575,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16421",
-      "community": 0,
+      "community": 16,
       "norm_label": "tallencsubsfsubs()",
       "id": "utility_tetgen_tallencsubsfsubs"
     },
@@ -8557,7 +8593,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16541",
-      "community": 0,
+      "community": 16,
       "norm_label": "perturbrepairencsegs()",
       "id": "utility_tetgen_perturbrepairencsegs"
     },
@@ -8566,7 +8602,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16724",
-      "community": 0,
+      "community": 16,
       "norm_label": "perturbrepairencsubs()",
       "id": "utility_tetgen_perturbrepairencsubs"
     },
@@ -8575,7 +8611,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L16975",
-      "community": 1,
+      "community": 16,
       "norm_label": "perturbrepairbadtets()",
       "id": "utility_tetgen_perturbrepairbadtets"
     },
@@ -8584,7 +8620,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L17156",
-      "community": 3,
+      "community": 16,
       "norm_label": "incrperturbvertices()",
       "id": "utility_tetgen_incrperturbvertices"
     },
@@ -8602,7 +8638,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L17328",
-      "community": 0,
+      "community": 16,
       "norm_label": "initializerpsarray()",
       "id": "utility_tetgen_initializerpsarray"
     },
@@ -8611,7 +8647,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L17588",
-      "community": 1,
+      "community": 16,
       "norm_label": "getsearchtet()",
       "id": "utility_tetgen_getsearchtet"
     },
@@ -8692,7 +8728,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L18599",
-      "community": 1,
+      "community": 16,
       "norm_label": "delaunizecavvertices()",
       "id": "utility_tetgen_delaunizecavvertices"
     },
@@ -8800,7 +8836,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L20481",
-      "community": 1,
+      "community": 0,
       "norm_label": "plague()",
       "id": "utility_tetgen_plague"
     },
@@ -8944,7 +8980,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L22705",
-      "community": 3,
+      "community": 0,
       "norm_label": "assignvarconstraints()",
       "id": "utility_tetgen_assignvarconstraints"
     },
@@ -9349,7 +9385,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.cpp",
       "source_location": "L29384",
-      "community": 0,
+      "community": 4,
       "norm_label": "internalerror()",
       "id": "utility_tetgen_internalerror"
     },
@@ -9412,7 +9448,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.h",
       "source_location": "L547",
-      "community": 13,
+      "community": 4,
       "norm_label": "tetgenmesh()",
       "id": "utility_tetgen_tetgenmesh"
     },
@@ -9421,7 +9457,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.h",
       "source_location": "L1118",
-      "community": 13,
+      "community": 4,
       "norm_label": "setcomp()",
       "id": "utility_tetgen_setcomp"
     },
@@ -9430,7 +9466,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.h",
       "source_location": "L1119",
-      "community": 13,
+      "community": 4,
       "norm_label": "rewind()",
       "id": "utility_tetgen_rewind"
     },
@@ -9439,7 +9475,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.h",
       "source_location": "L1120",
-      "community": 13,
+      "community": 4,
       "norm_label": "goend()",
       "id": "utility_tetgen_goend"
     },
@@ -9448,7 +9484,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.h",
       "source_location": "L1121",
-      "community": 13,
+      "community": 4,
       "norm_label": "len()",
       "id": "utility_tetgen_len"
     },
@@ -9457,7 +9493,7 @@
       "file_type": "code",
       "source_file": "Utility/tetgen.h",
       "source_location": "L1147",
-      "community": 13,
+      "community": 4,
       "norm_label": "link()",
       "id": "utility_tetgen_link"
     },
@@ -9560,7 +9596,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 28,
       "norm_label": "deformsim cmake project",
       "id": "cmakelists_deformsim_project"
     },
@@ -9573,7 +9609,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 28,
       "norm_label": "findlocaldeps.cmake include",
       "id": "cmakelists_findlocaldeps_include"
     },
@@ -9586,7 +9622,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 28,
       "norm_label": "deformsimtargets.cmake include",
       "id": "cmakelists_deformsimtargets_include"
     },
@@ -9612,7 +9648,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 28,
       "norm_label": "openmp dependency",
       "id": "cmakelists_openmp_dep"
     },
@@ -9625,7 +9661,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 28,
       "norm_label": "deformsim_add_main_target() call",
       "id": "cmakelists_deformsim_add_main_target"
     },
@@ -9651,7 +9687,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 29,
+      "community": 28,
       "norm_label": "c++17 standard setting",
       "id": "cmakelists_cxx17_standard"
     }
@@ -10805,9 +10841,9 @@
       "source_file": "stdafx.cpp",
       "source_location": "L1527",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "deformsim_stdafx_processobjects",
-      "target": "deformsim_stdafx_recordoutputfailure",
-      "confidence_score": 1.0
+      "target": "deformsim_stdafx_recordoutputfailure"
     },
     {
       "relation": "calls",
@@ -11545,6 +11581,17 @@
     {
       "relation": "calls",
       "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L163",
+      "weight": 1.0,
+      "source": "bmgl_matrix_transpose",
+      "target": "nlohmann_json_swap"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "BMGL/matrix.cpp",
       "source_location": "L676",
@@ -11576,17 +11623,6 @@
       "target": "bmgl_matrix_getvalue"
     },
     {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L163",
-      "weight": 1.0,
-      "source": "bmgl_matrix_transpose",
-      "target": "nlohmann_json_swap"
-    },
-    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "BMGL/matrix.h",
@@ -11606,28 +11642,6 @@
       "weight": 1.0,
       "source": "bmgl_matrix_matrix4x4",
       "target": "bmgl_matrix_matrixmxn"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L402",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_matrix_init",
-      "target": "bmgl_matrix_clear"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/matrix.cpp",
-      "source_location": "L690",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_matrix_indentity",
-      "target": "bmgl_matrix_setvalue"
     },
     {
       "relation": "contains",
@@ -11728,16 +11742,6 @@
       "confidence_score": 1.0,
       "source": "bmgl_object_cpp",
       "target": "bmgl_object_computematrixb"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/object.cpp",
-      "source_location": "L557",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_object_cpp",
-      "target": "bmgl_object_computematrixt"
     },
     {
       "relation": "contains",
@@ -11868,6 +11872,16 @@
       "confidence_score": 1.0,
       "source": "bmgl_object_cpp",
       "target": "bmgl_object_checkinoutsurface"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/object.cpp",
+      "source_location": "L557",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_object_cpp",
+      "target": "bmgl_object_computematrixt"
     },
     {
       "relation": "contains",
@@ -12680,102 +12694,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "BMGL/vector.h",
-      "source_location": "L119",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_h",
-      "target": "bmgl_vector_vectornf"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.cpp",
-      "source_location": "L38",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_init",
-      "target": "bmgl_vector_clear"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L110",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_h",
-      "target": "bmgl_vector_init"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L38",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_init",
-      "target": "bmgl_vector_setvector"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L107",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_h",
-      "target": "bmgl_vector_operator"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L35",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_operator",
-      "target": "bmgl_vector_vector2f"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L66",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_operator",
-      "target": "bmgl_vector_vector3f"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
-      "source_location": "L107",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "bmgl_vector_operator",
-      "target": "bmgl_vector_vector4f"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "BMGL/vector.h",
-      "source_location": "L42",
-      "weight": 1.0,
-      "source": "bmgl_vector_normalize",
-      "target": "bmgl_vector_getlength"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "BMGL/vector.h",
       "source_location": "L32",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12791,6 +12709,26 @@
       "confidence_score": 1.0,
       "source": "bmgl_vector_h",
       "target": "bmgl_vector_float"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_h",
+      "target": "bmgl_vector_operator"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L110",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_h",
+      "target": "bmgl_vector_init"
     },
     {
       "relation": "contains",
@@ -12853,6 +12791,16 @@
       "target": "bmgl_vector_vector4f"
     },
     {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L119",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_h",
+      "target": "bmgl_vector_vectornf"
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -12861,6 +12809,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "bmgl_vector_float",
+      "target": "bmgl_vector_vector2f"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_operator",
       "target": "bmgl_vector_vector2f"
     },
     {
@@ -12890,11 +12849,132 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "BMGL/vector.h",
+      "source_location": "L66",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_operator",
+      "target": "bmgl_vector_vector3f"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_operator",
+      "target": "bmgl_vector_vector4f"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
+      "source_location": "L38",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_init",
+      "target": "bmgl_vector_setvector"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Utility/tetgen.cpp",
+      "source_location": "L982",
+      "weight": 1.0,
+      "source": "utility_tetgen_load_poly",
+      "target": "bmgl_vector_init"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Utility/tetgen.cpp",
+      "source_location": "L1341",
+      "weight": 1.0,
+      "source": "utility_tetgen_load_off",
+      "target": "bmgl_vector_init"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Utility/tetgen.cpp",
+      "source_location": "L1560",
+      "weight": 1.0,
+      "source": "utility_tetgen_load_ply",
+      "target": "bmgl_vector_init"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Utility/tetgen.cpp",
+      "source_location": "L1795",
+      "weight": 1.0,
+      "source": "utility_tetgen_load_stl",
+      "target": "bmgl_vector_init"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Utility/tetgen.cpp",
+      "source_location": "L2326",
+      "weight": 1.0,
+      "source": "utility_tetgen_load_vtk",
+      "target": "bmgl_vector_init"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "Utility/tetgen.h",
+      "source_location": "L1211",
+      "weight": 1.0,
+      "source": "utility_tetgen_insertvertexflags",
+      "target": "bmgl_vector_init"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.cpp",
+      "source_location": "L38",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_vector_init",
+      "target": "bmgl_vector_clear"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/vector.h",
       "source_location": "L42",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "bmgl_vector_normalize",
       "target": "bmgl_vector_setvector"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "BMGL/vector.h",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "bmgl_vector_normalize",
+      "target": "bmgl_vector_getlength"
     },
     {
       "relation": "calls",
@@ -40151,6 +40231,58 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "verification_apps_fem_bar_bench_cpp",
+      "target": "apps_fem_bar_bench_build_bar_surface",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "verification_apps_fem_bar_bench_cpp",
+      "target": "apps_fem_bar_bench_run_case",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "verification_apps_fem_bar_bench_cpp",
+      "target": "apps_fem_bar_bench_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "apps_fem_bar_bench_run_case",
+      "target": "apps_fem_bar_bench_build_bar_surface",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "verification/apps/fem_bar_bench.cpp",
+      "source_location": "L157",
+      "weight": 1.0,
+      "source": "apps_fem_bar_bench_main",
+      "target": "apps_fem_bar_bench_run_case",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "verification/apps/ply_tetra_diagnostic.cpp",
       "source_location": "L43",
       "weight": 1.0,
@@ -40749,6 +40881,28 @@
       "confidence_score": 1.0,
       "source": "apps_ply_tetra_smoke_main",
       "target": "apps_ply_tetra_smoke_write_json"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L402",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_matrix_init",
+      "target": "bmgl_matrix_clear"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "BMGL/matrix.cpp",
+      "source_location": "L690",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "bmgl_matrix_indentity",
+      "target": "bmgl_matrix_setvalue"
     },
     {
       "relation": "calls",

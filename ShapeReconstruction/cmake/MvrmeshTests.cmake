@@ -229,6 +229,33 @@ add_test(
         -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_mode_flag"
 )
 
+# Pose canonicalization (production pipeline flags): PCA frame + hull support
+# orientation, optional flip, and explicit physical-coordinate restoration.
+add_test(
+    NAME mvrmesh_cli_canonicalize_pose
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --canonicalize-pose true
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_canonicalize_pose"
+)
+
+add_test(
+    NAME mvrmesh_cli_canonicalize_pose_flip
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --canonicalize-pose true
+        --pose-flip true
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_canonicalize_pose_flip"
+)
+
+add_test(
+    NAME mvrmesh_cli_restore_physical_coords
+    COMMAND mvr_to_mesh_cli
+        "${MVRMESH_TEST_FIXTURE}"
+        --restore-physical-coords true
+        -o "${CMAKE_CURRENT_BINARY_DIR}/tiny_restore_physical_coords"
+)
+
 add_executable(mvrmesh_postprocess_tests
     verification/core/mesh_postprocess_tests.cpp
 )

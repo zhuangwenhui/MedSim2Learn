@@ -1,12 +1,12 @@
 # Graph Report - DeformSim  (2026-06-12)
 
 ## Corpus Check
-- 22 files · ~288,634 words
+- 23 files · ~288,158 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1067 nodes · 5021 edges · 31 communities detected
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 148 edges (avg confidence: 0.8)
+- 1071 nodes · 5032 edges · 31 communities detected
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 154 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -39,7 +39,7 @@
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
 - [[_COMMUNITY_Community 28|Community 28]]
-- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 32|Community 32]]
 
 ## God Nodes (most connected - your core abstractions)
@@ -61,10 +61,10 @@
   BMGL/object.cpp → Utility/tetgen.cpp
 - `badface()` --calls--> `key()`  [INFERRED]
   Utility/tetgen.h → third_party/nlohmann/json.hpp
+- `scale_expansion()` --calls--> `split()`  [INFERRED]
+  Utility/predicates.cpp → third_party/nlohmann/json.hpp
 - `ApplyContactRegion()` --calls--> `Vector3f()`  [INFERRED]
   stdafx.cpp → BMGL/vector.h
-- `Transpose()` --calls--> `swap()`  [INFERRED]
-  BMGL/matrix.cpp → third_party/nlohmann/json.hpp
 
 ## Hyperedges (group relationships)
 - **DeformSim build orchestration** — cmakelists_deformsim_project, cmakelists_findlocaldeps_include, cmakelists_deformsimtargets_include, cmakelists_deformsimverification_include [EXTRACTED 1.00]
@@ -73,92 +73,91 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.09
-Nodes (149): insphere(), adjustlocateseg(), adjustlocatesub(), areabound(), badfacedealloc(), badfacetraverse(), bowatinsertsegsite(), bowatinsertsubsite() (+141 more)
+Nodes (142): adjustlocateseg(), adjustlocatesub(), areabound(), assignvarconstraints(), bowatinsertsegsite(), bowatinsertsubsite(), carveholessub(), checkconforming() (+134 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.11
-Nodes (146): adjustedgering(), adjustlocate(), apex(), assignregionattribs(), bond(), bowatinsertsite(), bowatinsertvolsite(), carvecavity() (+138 more)
+Nodes (137): adjustedgering(), adjustlocate(), apex(), assignregionattribs(), bond(), bowatinsertsite(), bowatinsertvolsite(), carvecavity() (+129 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.05
-Nodes (110): accept(), add(), array(), at(), back(), basic_json(), begin(), binary() (+102 more)
+Nodes (109): accept(), add(), array(), at(), back(), basic_json(), begin(), binary() (+101 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.04
-Nodes (30): assignvarconstraints(), brio_multiscale_sort(), check_enc_segment(), check_encroachment(), dequeuebadtet(), dummyinit(), get_steiner_on_segment(), getsteinerptonsegment() (+22 more)
+Cohesion: 0.03
+Nodes (40): brio_multiscale_sort(), check_enc_segment(), check_encroachment(), dequeuebadtet(), distance2(), dummyinit(), get_steiner_on_segment(), getsteinerptonsegment() (+32 more)
 
 ### Community 4 - "Community 4"
+Cohesion: 0.05
+Nodes (55): Clear(), float(), GetLength(), Init(), Normalize(), operator(), SetVector(), Vector2f() (+47 more)
+
+### Community 5 - "Community 5"
 Cohesion: 0.08
 Nodes (58): AngleWithZAxis(), AppendCsvRecord(), ApplyBiasContactSelection(), ApplyContactRegion(), ApplyFreezeFromAnnotation(), ApplyFreezeState(), ApplyMaterialParams(), BuildBiasContactCache() (+50 more)
 
-### Community 5 - "Community 5"
-Cohesion: 0.1
-Nodes (26): dstore(), estimate(), exactinit(), fast_expansion_sum_zeroelim(), fppow2(), fstore(), incircle(), incircleadapt() (+18 more)
-
 ### Community 6 - "Community 6"
-Cohesion: 0.12
-Nodes (37): findnextfield(), findnextnumber(), list::append(), list::insert(), list::
-listinit(), load_addnodes(), load_edge(), load_elem() (+29 more)
+Cohesion: 0.09
+Nodes (28): dstore(), estimate(), exactinit(), fast_expansion_sum_zeroelim(), fppow2(), fstore(), incircle(), incircleadapt() (+20 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.12
-Nodes (36): orient3d(), calculateabovepoint4(), cos_interiorangle(), delaunizecavity(), edge_edge_cop_inter(), edge_vert_col_inter(), fillcavity(), flip31() (+28 more)
+Cohesion: 0.11
+Nodes (39): decode(), orient3d(), calculateabovepoint4(), constrainedfacets(), cos_interiorangle(), delaunizecavity(), edge_edge_cop_inter(), edge_vert_col_inter() (+31 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.08
-Nodes (16): Alloc2Dim(), CheckSelfIntersection(), Clear(), CloneMatrixStateFrom(), ComputeLeastSquareMesh(), ComputeMatrixB(), ComputeMatrixD(), ComputeMatrixK() (+8 more)
+Cohesion: 0.13
+Nodes (38): add_steinerpt_in_schoenhardtpoly(), add_steinerpt_in_segment(), add_steinerpt_to_recover_edge(), checkflipeligibility(), does_seg_contain_acute_vertex(), finddirection(), flipnm(), flipnm_post() (+30 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.16
-Nodes (32): add_steinerpt_in_schoenhardtpoly(), add_steinerpt_in_segment(), add_steinerpt_to_recover_edge(), add_steinerpt_to_repair(), distance2(), does_seg_contain_acute_vertex(), enqueuesubface(), enqueuetetrahedron() (+24 more)
+Cohesion: 0.12
+Nodes (28): alltetrahedrontraverse(), check_mesh(), check_segments(), check_shells(), collectremovepoints(), delaunizevertices(), get_laplacian_center(), get_seg_laplacian_center() (+20 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.12
 Nodes (16): Alloc2Dim(), ChangeHSVToColor(), Clear(), ComputeArea(), ComputeBoundingBox(), ComputeLaplacian(), ComputeLeastSquareMesh(), ComputeNeighbors() (+8 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.13
-Nodes (26): alltetrahedrontraverse(), check_mesh(), check_segments(), check_shells(), collectremovepoints(), delaunizevertices(), get_laplacian_center(), get_seg_laplacian_center() (+18 more)
+Cohesion: 0.09
+Nodes (7): CheckSelfIntersection(), Clear(), ComputeNormal(), ComputeQualityTetrahedralMesh(), ComputeTetrahedralMesh(), Object(), UpdateObject()
 
 ### Community 12 - "Community 12"
 Cohesion: 0.14
-Nodes (26): check_conforming(), checkflipeligibility(), checktet4split(), circumsphere(), create_segment_info_list(), createsubpbcgrouptable(), cross(), dot() (+18 more)
+Nodes (25): calculateabovepoint(), check_conforming(), checktet4split(), circumsphere(), create_segment_info_list(), createsubpbcgrouptable(), cross(), dot() (+17 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.09
-Nodes (11): badface(), deinitialize(), goend(), initialize(), link::hasitem(), link::locate(), rewind(), set_compfunc() (+3 more)
+Cohesion: 0.14
+Nodes (16): Clear(), GetRotateMatrix(), GetValue(), Identity(), Indentity(), Init(), Matrix3x3(), Matrix4x4() (+8 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.14
-Nodes (15): Clear(), GetRotateMatrix(), GetValue(), Identity(), Indentity(), Init(), Matrix3x3(), Matrix4x4() (+7 more)
-
-### Community 15 - "Community 15"
-Cohesion: 0.13
-Nodes (21): decode(), orient4d(), calculateabovepoint(), check_delaunay(), check_regular(), flipcertify(), flipinsertfacet(), getpointmeshsize() (+13 more)
-
-### Community 16 - "Community 16"
 Cohesion: 0.24
 Nodes (19): add_index_to_stats(), compute_bounding_box(), copy_surface_to_object(), count_degenerate_surface_triangles(), count_unique_lines_from_tets(), fill_tetgen_input(), json_escape(), main() (+11 more)
 
-### Community 17 - "Community 17"
+### Community 15 - "Community 15"
 Cohesion: 0.18
-Nodes (15): operator+(), ChangeHSVToColor(), ComputeBoundingBox(), GetColorValue(), MapObject(), RenderColorMap(), RenderDeform(), RenderLaplacian() (+7 more)
+Nodes (19): insphere(), orient4d(), check_delaunay(), check_enc_subface(), check_regular(), create_a_shorter_edge(), enqueuesubface(), enqueuetetrahedron() (+11 more)
 
-### Community 18 - "Community 18"
-Cohesion: 0.16
-Nodes (17): check_enc_subface(), check_subface(), constraineddelaunay(), create_a_shorter_edge(), create_segment_facet_map(), delaunayrefinement(), dequeue_subface(), enqueue_subface() (+9 more)
+### Community 16 - "Community 16"
+Cohesion: 0.27
+Nodes (18): badfacedealloc(), badfacetraverse(), decode(), delaunizecavvertices(), delaunizesegments(), encode(), getsearchtet(), incrperturbvertices() (+10 more)
 
-### Community 19 - "Community 19"
+### Community 17 - "Community 17"
 Cohesion: 0.15
 Nodes (5): Image3D(), ReadImageRAW(), ReadLookUpTable(), UpdateColorLookUpTable(), UpdateIntensityVolume()
 
-### Community 20 - "Community 20"
-Cohesion: 0.25
-Nodes (14): finddirection(), flipnm(), flipnm_post(), getedge(), is_segment(), recoveredgebyflips(), recoversegments(), reduceedgesatvertex() (+6 more)
-
-### Community 21 - "Community 21"
+### Community 18 - "Community 18"
 Cohesion: 0.19
 Nodes (4): Line(), Tetrahedron(), Triangle(), Vertex()
+
+### Community 19 - "Community 19"
+Cohesion: 0.23
+Nodes (12): check_subface(), constraineddelaunay(), create_segment_facet_map(), delaunayrefinement(), dequeue_subface(), enqueue_subface(), get_subface_ccent(), makefacetverticesmap() (+4 more)
+
+### Community 20 - "Community 20"
+Cohesion: 0.29
+Nodes (10): ChangeHSVToColor(), ComputeBoundingBox(), GetColorValue(), MapObject(), RenderColorMap(), RenderDeform(), RenderLaplacian(), RenderNormal() (+2 more)
+
+### Community 21 - "Community 21"
+Cohesion: 0.36
+Nodes (10): add_steinerpt_to_repair(), dequeue_badtet(), enqueue_badtet(), flip_edge_to_improve(), get_tet(), get_tetqual(), improve_mesh(), repair_badqual_tets() (+2 more)
 
 ### Community 22 - "Community 22"
 Cohesion: 0.33
@@ -166,7 +165,7 @@ Nodes (7): Filter3D(), GetValue(), Normalize(), SetGaussian(), SetGradient(), Se
 
 ### Community 23 - "Community 23"
 Cohesion: 0.28
-Nodes (6): Clear(), GetLength(), Init(), Normalize(), SetVector(), VectorNf()
+Nodes (9): Alloc2Dim(), CloneMatrixStateFrom(), ComputeLeastSquareMesh(), ComputeMatrixB(), ComputeMatrixD(), ComputeMatrixK(), ComputeMatrixKe(), Force() (+1 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.33
@@ -177,20 +176,20 @@ Cohesion: 0.32
 Nodes (4): Assert-RequiredFile(), Get-VsDevCmdPath(), Normalize-PathValue(), Update-EnvironmentPrefix()
 
 ### Community 26 - "Community 26"
-Cohesion: 0.36
-Nodes (8): dequeue_badtet(), enqueue_badtet(), flip_edge_to_improve(), get_tet(), improve_mesh(), repair_badqual_tets(), repair_tet(), top_badtet()
-
-### Community 27 - "Community 27"
 Cohesion: 0.43
 Nodes (6): ADMM(), Alloc2Dim(), Compute(), Init(), Optimize(), SoftThreshold()
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
 Cohesion: 0.52
 Nodes (6): copy_surface_to_object(), json_escape(), main(), tetra_volume(), total_tetra_volume(), write_json()
 
-### Community 29 - "Community 29"
+### Community 28 - "Community 28"
 Cohesion: 0.4
 Nodes (6): C++17 standard setting, deformsim_add_main_target() call, DeformSim CMake Project, DeformSimTargets.cmake include, FindLocalDeps.cmake include, OpenMP dependency
+
+### Community 30 - "Community 30"
+Cohesion: 0.83
+Nodes (3): build_bar_surface(), main(), run_case()
 
 ## Knowledge Gaps
 - **5 isolated node(s):** `json_sax_acceptor`, `FindLocalDeps.cmake include`, `DeformSimVerification.cmake include`, `DEFORMSIM_ENABLE_VERIFICATION option`, `C++17 standard setting`
@@ -200,12 +199,12 @@ Nodes (6): C++17 standard setting, deformsim_add_main_target() call, DeformSim C
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `tetrahedralize()` connect `Community 11` to `Community 0`, `Community 1`, `Community 3`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 15`, `Community 16`, `Community 18`, `Community 26`?**
-  _High betweenness centrality (0.218) - this node is a cross-community bridge._
-- **Why does `decode()` connect `Community 15` to `Community 1`, `Community 2`, `Community 7`, `Community 9`, `Community 11`, `Community 20`?**
-  _High betweenness centrality (0.193) - this node is a cross-community bridge._
-- **Why does `Vector3f()` connect `Community 17` to `Community 10`, `Community 4`?**
-  _High betweenness centrality (0.146) - this node is a cross-community bridge._
+- **Why does `decode()` connect `Community 7` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 8`, `Community 9`, `Community 15`?**
+  _High betweenness centrality (0.195) - this node is a cross-community bridge._
+- **Why does `tetrahedralize()` connect `Community 9` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 6`, `Community 7`, `Community 8`, `Community 11`, `Community 14`, `Community 15`, `Community 16`, `Community 19`, `Community 21`?**
+  _High betweenness centrality (0.128) - this node is a cross-community bridge._
+- **Why does `Vector3f()` connect `Community 20` to `Community 13`, `Community 10`, `Community 4`, `Community 5`?**
+  _High betweenness centrality (0.115) - this node is a cross-community bridge._
 - **Are the 81 inferred relationships involving `orient3d()` (e.g. with `insphere_s()` and `orient4d_s()`) actually correct?**
   _`orient3d()` has 81 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `json_sax_acceptor`, `FindLocalDeps.cmake include`, `DeformSimVerification.cmake include` to the rest of the system?**

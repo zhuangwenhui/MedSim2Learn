@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 
@@ -18,23 +19,6 @@ constexpr double kDegenerateTriangleEpsilon = 1e-12;
 void add_unique_neighbor(std::vector<int>& neighbors, int v) {
     if (std::find(neighbors.begin(), neighbors.end(), v) == neighbors.end()) {
         neighbors.push_back(v);
-    }
-}
-
-void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
-    if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
-        std::ostringstream oss;
-        oss << "Face index out of range for smoothing: " << idx
-            << ", n_vertices=" << vertices.size();
-        throw std::runtime_error(oss.str());
-    }
-}
-
-void validate_face_indices(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
-    for (const Face& face : faces) {
-        validate_face_index(vertices, face[0]);
-        validate_face_index(vertices, face[1]);
-        validate_face_index(vertices, face[2]);
     }
 }
 
@@ -175,7 +159,7 @@ std::vector<Vec3> taubin_smooth(
         return vertices;
     }
 
-    validate_face_indices(vertices, faces);
+    validate_face_indices(vertices, faces, "Taubin smoothing");
     validate_face_geometry(vertices, faces);
 
     std::vector<std::vector<int>> adjacency;
@@ -206,7 +190,7 @@ std::vector<Vec3> project_vertices_to_surface(
     const std::vector<Vec3>& reference_vertices,
     const std::vector<Face>& reference_faces
 ) {
-    validate_face_indices(reference_vertices, reference_faces);
+    validate_face_indices(reference_vertices, reference_faces, "surface projection");
 
     std::vector<Vec3> projected;
     projected.reserve(vertices.size());

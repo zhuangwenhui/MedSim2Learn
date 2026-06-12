@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/convex_hull_3.h>
@@ -139,7 +140,15 @@ bool hull_support_down_direction(const std::vector<Vec3>& verts, const Vec3& cen
     pts.reserve(verts.size());
     for (const auto& p : verts) pts.emplace_back(p.x, p.y, p.z);
     SMesh hull;
-    CGAL::convex_hull_3(pts.begin(), pts.end(), hull);
+    try {
+        CGAL::convex_hull_3(pts.begin(), pts.end(), hull);
+    } catch (const std::exception& ex) {
+        // Degenerate input (e.g. all-coplanar points) must not kill the run;
+        // fall back to the plain PCA orientation without the hull sign fix.
+        std::cerr << "[warn] canonicalize_pose: convex_hull_3 failed ("
+                  << ex.what() << "); skipping hull support-direction heuristic\n";
+        return false;
+    }
 
     double best_area = -1.0;
     bool found = false;
@@ -264,17 +273,10 @@ void restore_physical_coordinates(
     }
 
     // Compute current vertex bounding box.
-    double v_x_min = vertices[0].x, v_x_max = vertices[0].x;
-    double v_y_min = vertices[0].y, v_y_max = vertices[0].y;
-    double v_z_min = vertices[0].z, v_z_max = vertices[0].z;
-    for (const auto& v : vertices) {
-        v_x_min = std::min(v_x_min, v.x);
-        v_x_max = std::max(v_x_max, v.x);
-        v_y_min = std::min(v_y_min, v.y);
-        v_y_max = std::max(v_y_max, v.y);
-        v_z_min = std::min(v_z_min, v.z);
-        v_z_max = std::max(v_z_max, v.z);
-    }
+    const MeshBoundingBox vbox = compute_bbox(vertices);
+    const double v_x_min = vbox.min.x, v_x_max = vbox.max.x;
+    const double v_y_min = vbox.min.y, v_y_max = vbox.max.y;
+    const double v_z_min = vbox.min.z, v_z_max = vbox.max.z;
 
     const double v_x_span = v_x_max - v_x_min;
     const double v_y_span = v_y_max - v_y_min;
@@ -313,21 +315,11 @@ void restore_physical_coordinates(
     }
 
     // Log restored bounding box.
-    double rx_min = vertices[0].x, rx_max = vertices[0].x;
-    double ry_min = vertices[0].y, ry_max = vertices[0].y;
-    double rz_min = vertices[0].z, rz_max = vertices[0].z;
-    for (const auto& v : vertices) {
-        rx_min = std::min(rx_min, v.x);
-        rx_max = std::max(rx_max, v.x);
-        ry_min = std::min(ry_min, v.y);
-        ry_max = std::max(ry_max, v.y);
-        rz_min = std::min(rz_min, v.z);
-        rz_max = std::max(rz_max, v.z);
-    }
+    const MeshBoundingBox rbox = compute_bbox(vertices);
     std::cout << "[info] restore_physical_coordinates: "
-              << "restored BB [" << rx_min << ".." << rx_max
-              << "] x [" << ry_min << ".." << ry_max
-              << "] x [" << rz_min << ".." << rz_max
+              << "restored BB [" << rbox.min.x << ".." << rbox.max.x
+              << "] x [" << rbox.min.y << ".." << rbox.max.y
+              << "] x [" << rbox.min.z << ".." << rbox.max.z
               << "] mm\n";
 }
 

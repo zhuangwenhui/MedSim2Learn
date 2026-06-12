@@ -20,6 +20,19 @@ static atomic<bool> g_progressHeartbeatStop(false);
 static const unsigned long long kFnvOffset64 = 14695981039346656037ULL;
 static const unsigned long long kFnvPrime64 = 1099511628211ULL;
 
+// Simulation hyper-parameters, loaded from SIM2LEARN_PARAM_* env vars.
+//
+// Unit system (consistent mm-MPa-N, inherited from the ShapeReconstruction
+// meshes which carry millimetre coordinates):
+//   lengths/coordinates  mm
+//   material_young       MPa (N/mm^2); kidney production runs use 0.03 MPa
+//                        = 30 kPa, in the soft-tissue range
+//   material_poisson     dimensionless, valid (-1, 0.5); 0.40 for kidney
+//   forces               N (per-vertex nodal forces; force_*_min/max bound
+//                        the sampled total contact force components)
+//   angles               degrees, measured from the -z axis (contact cone)
+// The angle window [min_angle_deg, max_angle_deg] restricts sampled force
+// directions to a downward cone; values still need literature endorsement.
 struct SimHyperParams
 {
     float material_young = 1.0f;
@@ -1058,7 +1071,9 @@ static bool WriteFinalSortedCsv(const char* csv_filename, OutputStats* stats)
     for (size_t i = 0; ok && i < records.size(); ++i)
     {
         const CsvRecord& record = records[i];
-        if (fprintf(fp, "%s,%.3f,%.3f,%.3f,%.3f\n",
+        // %.9g round-trips float exactly, so feeding this CSV back through
+        // SIM2LEARN_PARAM_FORCE_LIST_CSV reproduces the run bit-exactly.
+        if (fprintf(fp, "%s,%.9g,%.9g,%.9g,%.9g\n",
             record.sample_id.c_str(), record.fx, record.fy, record.fz, record.norm) < 0)
         {
             printf("Error: final CSV write failed for %s\n", record.sample_id.c_str());
@@ -1278,9 +1293,16 @@ void Update_progress()
 	}
 }
 
+// Force-sampling RNG: a dedicated engine is immune to the vendored tetgen
+// reseeding the CRT PRNG (tetgen calls srand internally) and provides full
+// float resolution instead of the 15-bit RAND_MAX lattice of MSVC rand().
+// Note: sequences differ from historical rand()-based runs at equal seeds.
+static std::mt19937 g_forceRng;
+
 float RandomFloat(float min, float max)
 {
-	return min + (float)rand() / RAND_MAX * (max - min);
+	std::uniform_real_distribution<float> dist(min, max);
+	return dist(g_forceRng);
 }
 
 float ComputeForceEuclidean(float x, float y, float z)
@@ -1537,7 +1559,7 @@ int main(int argc, char* argv[])
 	printf("\nPLY path: %s\n", params.ply_path.c_str());
 	printf("Annotation path: %s\n", params.annotation_path.c_str());
 
-	srand(params.seed);
+	g_forceRng.seed(params.seed);
 	printf("Random seed: %u\n", params.seed);
 	printf("Contact hash diagnostics: %s\n", params.use_diag_contact_hash ? "ON" : "OFF");
 	printf("Tetra template reuse: %s\n", params.use_reuse_tetra_template ? "ON" : "OFF");

@@ -1,4 +1,13 @@
-set(TETGEN_ROOT "D:/dev/tetgen-1.6.0" CACHE PATH
+# Default TetGen location: prefer the TETGEN_ROOT environment variable when
+# set, falling back to the local checkout. An explicit -DTETGEN_ROOT=... on
+# the configure line still overrides both.
+if(DEFINED ENV{TETGEN_ROOT})
+    set(MVRMESH_TETGEN_DEFAULT_ROOT "$ENV{TETGEN_ROOT}")
+else()
+    set(MVRMESH_TETGEN_DEFAULT_ROOT "D:/dev/tetgen-1.6.0")
+endif()
+
+set(TETGEN_ROOT "${MVRMESH_TETGEN_DEFAULT_ROOT}" CACHE PATH
     "Root directory of the external TetGen 1.6 source checkout")
 
 set(MVRMESH_REQUIRED_TETGEN_SOURCES

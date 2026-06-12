@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 
 namespace mvrmesh {
 
@@ -47,23 +48,6 @@ double clamp_minus_one_to_one(double value) {
         return 1.0;
     }
     return value;
-}
-
-void validate_face_index(const std::vector<Vec3>& vertices, int idx) {
-    if (idx < 0 || static_cast<std::size_t>(idx) >= vertices.size()) {
-        std::ostringstream oss;
-        oss << "Face index out of range for mesh quality metrics: " << idx
-            << ", n_vertices=" << vertices.size();
-        throw std::runtime_error(oss.str());
-    }
-}
-
-void validate_faces(const std::vector<Vec3>& vertices, const std::vector<Face>& faces) {
-    for (const Face& face : faces) {
-        validate_face_index(vertices, face[0]);
-        validate_face_index(vertices, face[1]);
-        validate_face_index(vertices, face[2]);
-    }
 }
 
 double edge_length(const Vec3& a, const Vec3& b) {
@@ -113,21 +97,11 @@ double triangle_aspect_ratio(
 }
 
 double bbox_diagonal(const std::vector<Vec3>& vertices) {
-    if (vertices.empty()) {
+    const MeshBoundingBox box = compute_bbox(vertices);
+    if (!box.valid) {
         return 0.0;
     }
-
-    Vec3 min_corner = vertices.front();
-    Vec3 max_corner = vertices.front();
-    for (const Vec3& vertex : vertices) {
-        min_corner.x = std::min(min_corner.x, vertex.x);
-        min_corner.y = std::min(min_corner.y, vertex.y);
-        min_corner.z = std::min(min_corner.z, vertex.z);
-        max_corner.x = std::max(max_corner.x, vertex.x);
-        max_corner.y = std::max(max_corner.y, vertex.y);
-        max_corner.z = std::max(max_corner.z, vertex.z);
-    }
-    return norm(vsub(max_corner, min_corner));
+    return norm(vsub(box.max, box.min));
 }
 
 Vec3 centroid(const std::vector<Vec3>& vertices) {
@@ -265,7 +239,7 @@ MeshQualityMetrics compute_mesh_quality_metrics(
     const std::vector<Vec3>& vertices,
     const std::vector<Face>& faces
 ) {
-    validate_faces(vertices, faces);
+    validate_face_indices(vertices, faces, "mesh quality metrics");
 
     MeshQualityMetrics metrics;
     if (faces.empty() || vertices.empty()) {
@@ -357,8 +331,8 @@ ShapeComparisonMetrics compare_shape_to_reference(
     const std::vector<Vec3>& reference_vertices,
     const std::vector<Face>& reference_faces
 ) {
-    validate_faces(vertices, faces);
-    validate_faces(reference_vertices, reference_faces);
+    validate_face_indices(vertices, faces, "shape comparison");
+    validate_face_indices(reference_vertices, reference_faces, "shape comparison reference");
 
     ShapeComparisonMetrics metrics{};
 

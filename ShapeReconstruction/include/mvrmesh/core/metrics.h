@@ -8,12 +8,6 @@
 
 namespace mvrmesh {
 
-struct MeshBoundingBox {
-    bool valid = false;
-    Vec3 min;
-    Vec3 max;
-};
-
 struct SurfaceMetrics {
     std::size_t vertex_count = 0;
     std::size_t face_count = 0;

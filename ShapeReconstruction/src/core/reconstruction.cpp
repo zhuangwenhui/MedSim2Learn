@@ -15,6 +15,7 @@
 
 #include "mvrmesh/core/compaction.h"
 #include "mvrmesh/core/geometry.h"
+#include "mvrmesh/core/topology.h"
 
 #include <CGAL/AABB_face_graph_triangle_primitive.h>
 #include <CGAL/AABB_tree.h>
@@ -68,11 +69,6 @@ std::size_t checked_size_t_add(std::size_t lhs, std::size_t rhs, const char* con
     return lhs + rhs;
 }
 
-struct BBox {
-    Vec3 min_v;
-    Vec3 max_v;
-};
-
 struct SampledGrid {
     int resolution = 0;
     int span = 0;
@@ -87,19 +83,6 @@ struct EdgeCacheHash {
             ^ static_cast<std::uint32_t>(key.second);
     }
 };
-
-BBox compute_bbox(const std::vector<Vec3>& vertices) {
-    BBox box{vertices[0], vertices[0]};
-    for (const Vec3& v : vertices) {
-        box.min_v.x = std::min(box.min_v.x, v.x);
-        box.min_v.y = std::min(box.min_v.y, v.y);
-        box.min_v.z = std::min(box.min_v.z, v.z);
-        box.max_v.x = std::max(box.max_v.x, v.x);
-        box.max_v.y = std::max(box.max_v.y, v.y);
-        box.max_v.z = std::max(box.max_v.z, v.z);
-    }
-    return box;
-}
 
 void validate_inputs(
     const std::vector<Vec3>& boundary_vertices,
@@ -121,28 +104,18 @@ void validate_inputs(
     if (boundary_faces.empty()) {
         throw std::runtime_error("reconstruct_surface_sdf: boundary_faces is empty");
     }
-    const int n_vertices = static_cast<int>(boundary_vertices.size());
-    for (const Face& face : boundary_faces) {
-        for (int idx : face) {
-            if (idx < 0 || idx >= n_vertices) {
-                std::ostringstream oss;
-                oss << "reconstruct_surface_sdf: face index out of range: " << idx
-                    << ", vertex_count=" << n_vertices;
-                throw std::runtime_error(oss.str());
-            }
-        }
-    }
+    validate_face_indices(boundary_vertices, boundary_faces, "reconstruct_surface_sdf");
 }
 
 void setup_grid(
-    const BBox& box,
+    const MeshBoundingBox& box,
     double padding_ratio,
     int grid_resolution,
     SampledGrid& grid_out
 ) {
-    const double span_x = box.max_v.x - box.min_v.x;
-    const double span_y = box.max_v.y - box.min_v.y;
-    const double span_z = box.max_v.z - box.min_v.z;
+    const double span_x = box.max.x - box.min.x;
+    const double span_y = box.max.y - box.min.y;
+    const double span_z = box.max.z - box.min.z;
     const double max_span = std::max(span_x, std::max(span_y, span_z));
     if (max_span <= 0.0) {
         throw std::runtime_error("reconstruct_surface_sdf: boundary bbox has zero extent");
@@ -152,14 +125,14 @@ void setup_grid(
     grid_out.resolution = grid_resolution;
     grid_out.span = grid_resolution + 1;
     grid_out.origin = {
-        box.min_v.x - padding,
-        box.min_v.y - padding,
-        box.min_v.z - padding,
+        box.min.x - padding,
+        box.min.y - padding,
+        box.min.z - padding,
     };
     grid_out.spacing = {
-        (box.max_v.x - box.min_v.x + 2.0 * padding) / static_cast<double>(grid_resolution),
-        (box.max_v.y - box.min_v.y + 2.0 * padding) / static_cast<double>(grid_resolution),
-        (box.max_v.z - box.min_v.z + 2.0 * padding) / static_cast<double>(grid_resolution),
+        (box.max.x - box.min.x + 2.0 * padding) / static_cast<double>(grid_resolution),
+        (box.max.y - box.min.y + 2.0 * padding) / static_cast<double>(grid_resolution),
+        (box.max.z - box.min.z + 2.0 * padding) / static_cast<double>(grid_resolution),
     };
     if (grid_out.spacing.x <= 0.0 || grid_out.spacing.y <= 0.0 || grid_out.spacing.z <= 0.0) {
         throw std::runtime_error("reconstruct_surface_sdf: invalid sampling spacing");
@@ -559,7 +532,7 @@ ReconstructedMesh reconstruct_surface_sdf(
         throw std::runtime_error("reconstruct_surface_sdf: compacted boundary mesh is empty");
     }
 
-    const BBox box = compute_bbox(vertices);
+    const MeshBoundingBox box = compute_bbox(vertices);
     SampledGrid grid;
     setup_grid(box, options.padding_ratio, options.grid_resolution, grid);
 
