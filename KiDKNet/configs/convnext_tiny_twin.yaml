@@ -16,20 +16,20 @@ general:
   seed: 42
   num_workers: 16
   pin_memory: true
-  output_dir: "D:/MedSim2Learn-ComplexObject/DataFlow/KiDKNet/outputs/experiments"
-  result_dir: "D:/MedSim2Learn-ComplexObject/DataFlow/KiDKNet/outputs/evaluation_results"
+  output_dir: "D:/MedSim2Learn/DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "D:/MedSim2Learn/DataFlow/KiDKNet/outputs/evaluation_results"
 
 data:
   # Absolute path to the assembled merged dataset (must match the data_dir baked
   # into dataset_split.json by Deform_post/main.py assemble).
-  data_dir: "D:/MedSim2Learn-ComplexObject/DataFlow/Deform_post/twin_merged"
+  data_dir: "D:/MedSim2Learn/DataFlow/Deform_post/twin_merged"
   enable_dataset_selection: false
   split_ratios:
     train: 0.7
     val: 0.15
     test: 0.15
   # By-sequence split written under DataFlow/KiDKNet/splits/ by Deform_post/main.py assemble.
-  split_file: "D:/MedSim2Learn-ComplexObject/DataFlow/KiDKNet/splits/dataset_split.json"
+  split_file: "D:/MedSim2Learn/DataFlow/KiDKNet/splits/dataset_split.json"
 
   augmentation:
     # ON: the ConvNeXt backbone is ImageNet-pretrained, so match that input
