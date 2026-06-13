@@ -26,7 +26,8 @@ def pick_camera(mesh_path, init_cam=None, window_name="Camera picker"):
     width = init_cam.intrinsic.width if init_cam is not None else 800
     height = init_cam.intrinsic.height if init_cam is not None else 800
 
-    vis = o3d.visualization.Visualizer()
+    # open3d's type stub omits .visualization (it exists at runtime).
+    vis = o3d.visualization.Visualizer()  # type: ignore[attr-defined]
     if not vis.create_window(window_name=window_name, width=width, height=height):
         raise RuntimeError(
             "cannot create a GUI window (headless session?); use the auto or "

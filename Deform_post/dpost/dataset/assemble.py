@@ -38,7 +38,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, TypedDict
 
 import torch
 import yaml
@@ -49,6 +49,15 @@ import yaml
 # =========================================================================
 BATCH_FILENAME = "preprocessed_batch_0000.pt"
 METADATA_FILENAME = "metadata.yaml"
+
+
+class SeqEntry(TypedDict):
+    """Per-sequence entry in the assembled dataset index (``end`` exclusive)."""
+
+    batch_file: str
+    start: int
+    end: int
+    n: int
 
 
 def _parse_seq_id(name: str) -> Tuple[int, str]:
@@ -308,7 +317,7 @@ def assign_sequences_to_splits(
 
 
 def build_split_payload(
-    seq_index: Dict[str, Dict[str, int]],
+    seq_index: Dict[str, SeqEntry],
     train_ids: List[str],
     val_ids: List[str],
     test_ids: List[str],
@@ -428,7 +437,7 @@ def assemble(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Materialise batches in sequence order and compute global index ranges.
-    seq_index: Dict[str, Dict[str, int]] = {}
+    seq_index: Dict[str, SeqEntry] = {}
     seq_order: List[str] = []
     cursor = 0
     representative_batch_size = ready[0].n_samples

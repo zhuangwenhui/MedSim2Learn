@@ -186,7 +186,7 @@ def _render_plot_background(fmag, F, maxu, meta, fps, plot_size):
 
     dpi = 100.0
     fig = plt.figure(figsize=(pw / dpi, ph / dpi), dpi=dpi)
-    ax = fig.add_axes([0.10, 0.12, 0.78, 0.78])
+    ax = fig.add_axes((0.10, 0.12, 0.78, 0.78))
     ax.set_title(f"seq {seq_id}  |F|(t) & max|u|(t)  E={young:g}MPa v={poisson:g} seed{seed}",
                  fontsize=9)
     l1, = ax.plot(t, fmag, color="tab:blue", lw=0.8, label="|F| (N)")
@@ -251,7 +251,7 @@ def _twin_sync_mp4(seq_dir, fmag, F, maxu, meta, fps, sample_ids):
     total_w = panel + bg_w
     total_h = max(panel, bg_h)
     out_path = os.path.join(seq_dir, "twin_sync.mp4")
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    fourcc = cv2.VideoWriter.fourcc(*"mp4v")
     vw = cv2.VideoWriter(out_path, fourcc, float(fps), (total_w, total_h))
     if not vw.isOpened():
         raise RuntimeError(f"cv2 VideoWriter failed to open {out_path}")

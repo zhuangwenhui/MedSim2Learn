@@ -131,6 +131,7 @@ class DataPreprocessor:
 
     def _load_force_data(self):
         """Load the single force CSV -> {SampleID: (fx, fy, fz)}."""
+        assert self.dataset_dir is not None, "dataset_dir not set"
         csv_files = [f for f in os.listdir(self.dataset_dir) if f.endswith(".csv")]
         if not csv_files:
             raise FileNotFoundError(
@@ -175,6 +176,7 @@ class DataPreprocessor:
             img_tensor.div_(255.0)
 
         if self.normalize_images:
+            assert self.mean is not None and self.std is not None
             if cache_key not in self._tensor_cache:
                 self._tensor_cache[cache_key] = {
                     "mean_view": self.mean.view(3, 1, 1),
@@ -203,6 +205,7 @@ class DataPreprocessor:
 
     async def _save_batch_async(self, batch, batch_count):
         """Save one batch via a thread pool so the event loop keeps processing."""
+        assert self.output_dir is not None, "output_dir not set"
         batch_path = os.path.join(
             self.output_dir, f"preprocessed_batch_{batch_count:04d}.pt"
         )
@@ -237,11 +240,19 @@ class DataPreprocessor:
 
     async def _serialize_async(self):
         """Concurrent serialization: semaphore-gated chunks, async batch saves."""
+        # serialize() validates these are set before delegating here; the
+        # asserts narrow the Optional attributes for the path/tensor uses below.
+        assert (self.image_dir is not None and self.dataset_dir is not None
+                and self.output_dir is not None)
+        assert self.mean is not None and self.std is not None
+        # Capture the validated image dir as a local: assert-narrowing on
+        # self.* attributes does not propagate into the nested worker closure.
+        image_dir = self.image_dir
         start_time = time.time()
 
         force_dict = self._load_force_data()
 
-        image_files = [f for f in os.listdir(self.image_dir) if f.endswith(".png")]
+        image_files = [f for f in os.listdir(image_dir) if f.endswith(".png")]
         image_files.sort()
 
         batch = []
@@ -250,7 +261,7 @@ class DataPreprocessor:
 
         # Auto-detect image channels from first image
         first_image_path = (
-            os.path.join(self.image_dir, image_files[0])
+            os.path.join(image_dir, image_files[0])
             if image_files else None
         )
         original_image_size = None
@@ -278,7 +289,7 @@ class DataPreprocessor:
                 if sample_id not in force_dict:
                     return None, f"No force label for image: {sample_id}"
 
-                image_path = os.path.join(self.image_dir, fname)
+                image_path = os.path.join(image_dir, fname)
                 try:
                     loop = asyncio.get_event_loop()
                     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
@@ -345,7 +356,7 @@ class DataPreprocessor:
             "original_image_size": (
                 list(original_image_size) if original_image_size else None
             ),
-            "image_size": list(target_size),
+            "image_size": list(target_size) if target_size is not None else None,
             "normalize_images": self.normalize_images,
             "normalize_forces": self.normalize_forces,
             "force_normalization": self.force_normalization,
@@ -420,6 +431,7 @@ def serialize_labels_dataset(png_dir, labels_csv, out_data_dir, resize=None):
     dp.set_force_normalization(False)
     dp.serialize()
     res = dp.get_results()
+    assert res is not None, "serialize() did not populate results"
     print(f"serialize: {res['total_samples']} samples, {res['batches']} batch(es) -> {out_data_dir}")
     return res
 

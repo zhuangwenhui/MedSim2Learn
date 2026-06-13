@@ -49,7 +49,8 @@ def render_geoms(geoms, direction, up, path, size=800, fov_deg=60.0, dist_mult=2
     eye = center + d * (dist_mult * max_extent)
     extr = look_at_extrinsic(eye, center, up)
 
-    vis = o3d.visualization.Visualizer()
+    # open3d's type stub omits .visualization (it exists at runtime).
+    vis = o3d.visualization.Visualizer()  # type: ignore[attr-defined]
     vis.create_window(visible=False, width=size, height=size)
     opt = vis.get_render_option()
     opt.background_color = np.array([1.0, 1.0, 1.0])

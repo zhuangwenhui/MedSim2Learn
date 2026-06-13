@@ -39,7 +39,8 @@ def render_fixed_camera_sequence(
     if not ply_files:
         raise ValueError(f"no PLY files in {ply_dir}")
 
-    vis = o3d.visualization.Visualizer()
+    # open3d's type stub omits .visualization (it exists at runtime).
+    vis = o3d.visualization.Visualizer()  # type: ignore[attr-defined]
     vis.create_window(visible=False, width=w, height=h)
     opt = vis.get_render_option()
     opt.background_color = np.array(list(background))

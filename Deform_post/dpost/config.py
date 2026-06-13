@@ -102,9 +102,12 @@ class RecipeConfig:
     serialize: SerializeConfig = dataclasses.field(default_factory=SerializeConfig)
     batch: BatchConfig = dataclasses.field(default_factory=BatchConfig)
 
-    def resolved(self, name):
+    def resolved(self, name) -> str:
         """Return a path field with {workspace}/{dataflow} expanded."""
-        return paths.expand(getattr(self, name))
+        value = paths.expand(getattr(self, name))
+        if value is None:
+            raise ValueError(f"recipe path field {name!r} is unset")
+        return value
 
 
 def _apply_section(obj, data, label):
