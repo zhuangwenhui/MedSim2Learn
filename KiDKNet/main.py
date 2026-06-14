@@ -44,11 +44,53 @@ def setup_logging() -> None:
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
+# Workspace root (the directory that contains this KiDKNet checkout and the
+# sibling DataFlow/ tree). Configs store data/output paths relative to it so
+# they carry no hardcoded drive letter; _resolve_config_paths expands them at
+# load time.
+_WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
+
+
+def _resolve_config_paths(config: dict) -> None:
+    """Expand repo-root-relative path values in a loaded config to absolute.
+
+    Data/output paths are stored relative to the workspace root (e.g.
+    ``DataFlow/Deform_post/preprocessed/datasets/real``) for portability across
+    machines. This resolves them in place so downstream consumers receive
+    absolute paths independent of the current working directory. Absolute paths
+    and unexpanded ``<...>`` orchestrator placeholders (filled in by run_cv.py)
+    are left untouched.
+    """
+    def _resolve(value):
+        if (not isinstance(value, str) or not value
+                or "<" in value or os.path.isabs(value)):
+            return value
+        return str((_WORKSPACE_ROOT / value).resolve())
+
+    for section_name, keys in (("data", ("data_dir", "split_file")),
+                               ("general", ("output_dir", "result_dir"))):
+        section = config.get(section_name)
+        if isinstance(section, dict):
+            for key in keys:
+                if key in section:
+                    section[key] = _resolve(section[key])
+
+    # transfer.init_from_checkpoint sits one level deeper than the flat sections.
+    training = config.get("training")
+    if isinstance(training, dict):
+        transfer = training.get("transfer")
+        if isinstance(transfer, dict) and "init_from_checkpoint" in transfer:
+            transfer["init_from_checkpoint"] = _resolve(
+                transfer["init_from_checkpoint"]
+            )
+
+
 def _load_config(config_path: str, logger: logging.Logger) -> dict:
     """Load config or raise a clear error when it fails."""
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
+        _resolve_config_paths(config)
         logger.info(f"Configuration loaded: {config_path}")
         print()
         return config

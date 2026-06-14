@@ -54,12 +54,17 @@ class KiDKNetSlimmingContractTests(unittest.TestCase):
             self.assertFalse((PROJECT_ROOT / "configs" / filename).exists())
 
     def test_configs_use_med_pipeline_data_path(self):
+        # The data-governance pass migrated configs from relative ../Deform_post
+        # paths to absolute DataFlow/Deform_post paths. Contract: every config
+        # with a data_dir points at the DataFlow pipeline data (real_merged /
+        # mixed_merged_256 / feature_cache all live under DataFlow/Deform_post)
+        # and never references the retired Obj_post module.
         config_dir = PROJECT_ROOT / "configs"
         for path in config_dir.glob("*.yaml"):
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn("../Obj_post/", text)
+            self.assertNotIn("Obj_post", text)
             if re.search(r"^\s*data_dir\s*:", text, re.MULTILINE):
-                self.assertIn("../Deform_post/", text)
+                self.assertIn("DataFlow/Deform_post/", text)
 
     def test_interpretability_validation_entrypoint_is_removed(self):
         checked_files = (

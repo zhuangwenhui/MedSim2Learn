@@ -149,8 +149,12 @@ class ForceLoss:
         if loss_key == 'COMBINED':
             return MagnitudeAngleLoss(**kwargs)
 
+        if loss_key == 'SEQUENCE_COMBINED':
+            return SequenceMagnitudeAngleLoss(**kwargs)
+
         raise ValueError(
-            f"Unsupported loss type: {loss_type}. Use 'MSE' or 'COMBINED'."
+            f"Unsupported loss type: {loss_type}. Use 'MSE', 'COMBINED', "
+            "or 'SEQUENCE_COMBINED'."
         )
 
 
@@ -368,3 +372,104 @@ class MagnitudeAngleLoss(nn.Module):
                 'lambda_magnitude': self.lambda_magnitude,
                 'lambda_angle': self.lambda_angle
             }
+
+
+#==============================================================#
+#                   Sequence (per-frame) Loss                  #
+#==============================================================#
+class SequenceMagnitudeAngleLoss(nn.Module):
+    """Per-frame magnitude+angle loss with deep supervision and smoothness.
+
+    Wraps a :class:`MagnitudeAngleLoss` applied to every frame (the clip is
+    flattened to ``(B*T, 3)``) and adds two sequence-specific terms:
+
+    - Deep supervision: when ``pred`` is a list of per-stage outputs (MS-TCN),
+      the frame loss is computed for each stage and averaged (``stage_weight_mode
+      = 'uniform'``) or taken from the final stage only (``'last'``).
+    - Temporal smoothness: ``lambda_smooth`` * a term on the FINAL stage's
+      first differences. ``smoothness_mode='delta_match'`` matches the
+      ground-truth temporal deltas ``mean((dpred - dtarget)**2)`` (rewards the
+      true dynamics); ``'jitter'`` penalizes raw prediction jitter
+      ``mean(dpred**2)`` (MS-TCN style, target-agnostic).
+
+    ``forward`` accepts ``pred`` as a single ``(B, T, 3)`` tensor or a list of
+    such tensors, and ``target`` as ``(B, T, 3)``.
+    """
+
+    def __init__(
+        self,
+        lambda_smooth: float = 0.1,
+        smoothness_mode: str = 'delta_match',
+        stage_weight_mode: str = 'uniform',
+        **frame_loss_kwargs: Any,
+    ) -> None:
+        super().__init__()
+        self.lambda_smooth = _ensure_numeric(
+            lambda_smooth, 0.1, "lambda_smooth"
+        )
+        self.smoothness_mode = str(smoothness_mode).lower()
+        if self.smoothness_mode not in ('delta_match', 'jitter'):
+            raise ValueError(
+                "smoothness_mode must be 'delta_match' or 'jitter', got "
+                f"{smoothness_mode!r}"
+            )
+        self.stage_weight_mode = str(stage_weight_mode).lower()
+        if self.stage_weight_mode not in ('uniform', 'last'):
+            raise ValueError(
+                "stage_weight_mode must be 'uniform' or 'last', got "
+                f"{stage_weight_mode!r}"
+            )
+        # Per-frame loss reduces to a scalar over the flattened frames.
+        frame_loss_kwargs.setdefault('reduction', 'mean')
+        self.frame_loss = MagnitudeAngleLoss(**frame_loss_kwargs)
+
+    @staticmethod
+    def _as_stage_list(pred: Any) -> list:
+        """Normalise ``pred`` to a list of ``(B, T, 3)`` stage tensors."""
+        if isinstance(pred, (list, tuple)):
+            return list(pred)
+        return [pred]
+
+    def _smoothness(
+        self, pred: torch.Tensor, target: torch.Tensor
+    ) -> torch.Tensor:
+        """Temporal-smoothness term on the final-stage prediction."""
+        if pred.size(1) < 2:
+            return pred.new_zeros(())
+        d_pred = pred[:, 1:] - pred[:, :-1]
+        if self.smoothness_mode == 'jitter':
+            return d_pred.pow(2).mean()
+        d_target = target[:, 1:] - target[:, :-1]
+        return (d_pred - d_target).pow(2).mean()
+
+    def forward(self, pred: Any, target: torch.Tensor) -> torch.Tensor:
+        """Combine deep-supervised per-frame loss with the smoothness term."""
+        stages = self._as_stage_list(pred)
+        flat_target = target.reshape(-1, target.shape[-1])
+        stage_losses = [
+            self.frame_loss(s.reshape(-1, s.shape[-1]), flat_target)
+            for s in stages
+        ]
+        if self.stage_weight_mode == 'last':
+            base = stage_losses[-1]
+        else:
+            base = torch.stack(stage_losses).mean()
+
+        smooth = self._smoothness(stages[-1], target)
+        return base + self.lambda_smooth * smooth
+
+    def get_component_losses(
+        self, pred: Any, target: torch.Tensor
+    ) -> Tuple[float, float]:
+        """Final-stage magnitude/angle losses (for monitoring)."""
+        final = self._as_stage_list(pred)[-1]
+        return self.frame_loss.get_component_losses(
+            final.reshape(-1, final.shape[-1]),
+            target.reshape(-1, target.shape[-1]),
+        )
+
+    def get_normalization_stats(self) -> Dict[str, float | bool]:
+        """Delegate normalization stats to the per-frame loss."""
+        stats = self.frame_loss.get_normalization_stats()
+        stats['lambda_smooth'] = self.lambda_smooth
+        return stats

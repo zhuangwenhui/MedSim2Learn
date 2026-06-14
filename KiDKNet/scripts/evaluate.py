@@ -23,6 +23,7 @@ from dknet.utils import (
     integrate_gradcam_to_evaluation,
     export_gradcam_basic_metrics_csv_for_loader,
 )
+from dknet.utils.metrics import compute_sequence_metrics
 
 _IMAGENET_MEAN: list[float] = [0.485, 0.456, 0.406]
 _IMAGENET_STD: list[float] = [0.229, 0.224, 0.225]
@@ -239,6 +240,7 @@ def _run_inference(
     device: torch.device,
     vis_samples: int,
     collect_sample_ids: bool,
+    is_sequence: bool = False,
 ) -> tuple[
     torch.Tensor,
     torch.Tensor,
@@ -253,6 +255,9 @@ def _run_inference(
         device: CUDA device.
         vis_samples: Number of samples to keep for visualization.
         collect_sample_ids: Whether to collect sample IDs for downstream usage.
+        is_sequence: Sequence model -- the forward returns a list of per-stage
+            ``(B, T, 3)`` outputs (use the final stage) and the batch ``image``
+            carries precomputed features, not displayable images.
 
     Returns:
         Tuple of:
@@ -269,7 +274,9 @@ def _run_inference(
     if vis_samples < 0:
         raise ValueError(f"vis_samples must be >= 0, got {vis_samples}")
 
-    collect_images = vis_samples > 0
+    # Sequence inputs are feature vectors, not images, so per-sample image
+    # visualization is skipped for the sequence path.
+    collect_images = vis_samples > 0 and not is_sequence
     collected_vis_count = 0
     with torch.inference_mode():
         for batch in tqdm(test_loader, desc="Evaluation progress"):
@@ -278,6 +285,9 @@ def _run_inference(
             ids = batch["id"] if collect_sample_ids else None
 
             outputs = model(images)
+            # Sequence model returns a list of per-stage outputs; score the last.
+            if is_sequence and isinstance(outputs, (list, tuple)):
+                outputs = outputs[-1]
 
             prediction_chunks.append(outputs.cpu())
             target_chunks.append(targets.cpu())
@@ -555,10 +565,21 @@ def _run_visualizations(
             max_samples=args.vis_samples,
         )
 
+    # Sequence predictions are (N, T, 3); pool frames to (N*T, 3) for the
+    # per-sample residual scatter and distance histogram.
+    flat_targets = (
+        all_targets.reshape(-1, all_targets.shape[-1])
+        if all_targets.dim() == 3 else all_targets
+    )
+    flat_predictions = (
+        all_predictions.reshape(-1, all_predictions.shape[-1])
+        if all_predictions.dim() == 3 else all_predictions
+    )
+
     try:
         visualizer.plot_force_residual_scatter(
-            all_targets,
-            all_predictions,
+            flat_targets,
+            flat_predictions,
             filename="error_analysis.png",
             title="Evaluation - Residual Analysis (Pred - True)",
         )
@@ -570,8 +591,8 @@ def _run_visualizations(
         try:
             vis_3d_path = os.path.join(output_dir, "force_distance_histogram.png")
             plot_force_distance_histogram(
-                all_targets,
-                all_predictions,
+                flat_targets,
+                flat_predictions,
                 vis_3d_path,
                 title="Evaluation - Force Distance Distribution",
             )
@@ -664,6 +685,90 @@ def _run_gradcam(
     )
 
 
+def _resolve_test_domains(
+    config: dict[str, Any],
+    split_file: str,
+    is_sequence: bool,
+    n_predictions: int,
+    logger: logging.Logger,
+) -> list[str] | None:
+    """Per-test-sample domain labels ('real'/'synt') aligned to prediction order.
+
+    Decision #4: a mixed (C3/C7) test set pools real and synt frames, so one
+    pooled error is not commensurable with the real-only-tested C1/C2/C4. This
+    returns a domain label for every test prediction so the caller can also emit
+    real-only / synt-only slices. Domains are derived authoritatively from the
+    split's prefixed ``test_sequences`` + ``sequence_index.json`` (NOT from
+    per-sample ids -- synt single-image ids are not domain-prefixed). Returns
+    ``None`` for a single-domain test set, so non-mixed conditions keep
+    pooled-only reporting.
+
+    Order matches predictions because the test loader uses ``shuffle=False`` with
+    no ``drop_last``: single-image prediction ``i`` <-> ``test_indices[i]``;
+    sequence prediction ``i`` <-> the ``i``-th window from ``build_windows`` over
+    the same ``test_indices``.
+    """
+    import bisect
+    import json as _json
+
+    from dknet.data.sequence_dataset import build_windows, load_sequence_ranges
+
+    data_dir = config["data"]["data_dir"]
+    try:
+        seq_ranges = load_sequence_ranges(data_dir)
+    except FileNotFoundError:
+        logger.warning(
+            "No sequence_index.json under %s; skipping domain slicing.", data_dir
+        )
+        return None
+    with open(split_file, "r", encoding="utf-8") as handle:
+        split = _json.load(handle)
+
+    def _domain(seq_id: str) -> str | None:
+        if seq_id.startswith("real_"):
+            return "real"
+        if seq_id.startswith("synt_"):
+            return "synt"
+        return None
+
+    present = {_domain(s) for s in split.get("test_sequences", [])}
+    if not {"real", "synt"} <= present:
+        return None  # single-domain test set -> no slicing needed
+
+    if is_sequence:
+        seq_cfg = config["data"]["sequence"]
+        windows, _ = build_windows(
+            seq_ranges,
+            split["test_indices"],
+            int(seq_cfg["window_length"]),
+            int(seq_cfg["stride"]),
+            bool(seq_cfg.get("include_tail", True)),
+        )
+        labels = [_domain(seq_id) for seq_id, _ in windows]
+    else:
+        ordered = sorted(
+            (start, end, _domain(sid)) for sid, (start, end) in seq_ranges.items()
+        )
+        start_keys = [start for start, _, _ in ordered]
+        labels = []
+        for global_idx in split["test_indices"]:
+            pos = bisect.bisect_right(start_keys, global_idx) - 1
+            if pos < 0:
+                labels.append(None)
+                continue
+            start, end, dom = ordered[pos]
+            labels.append(dom if start <= global_idx < end else None)
+
+    if len(labels) != n_predictions:
+        logger.warning(
+            "Domain-label count %d != prediction count %d; skipping slicing.",
+            len(labels),
+            n_predictions,
+        )
+        return None
+    return labels
+
+
 def evaluate(args: argparse.Namespace, config: dict[str, Any]) -> None:
     """Evaluate a trained model checkpoint using the provided experiment config."""
     if args is None or config is None:
@@ -723,6 +828,15 @@ def evaluate(args: argparse.Namespace, config: dict[str, Any]) -> None:
     # Use the config instance that may have been updated by get_dataloaders()
     # (e.g., normalization settings synced from dataset metadata).
     config = eval_config
+    # Sequence models predict a per-frame trajectory; evaluation scores the final
+    # stage with per-frame metrics and cannot run image Grad-CAM (feature mode has
+    # no in-graph backbone and the inputs are features, not images).
+    is_sequence = config["model"].get("name") == "sequence_forcenet"
+    if is_sequence and args.enable_gradcam:
+        raise ValueError(
+            "Grad-CAM is not supported for the feature-mode sequence model "
+            "(no in-graph backbone / no input images); disable --enable_gradcam."
+        )
     device = _get_cuda_device()
     image_mean, image_std = _resolve_image_stats_for_visualization(
         test_loader, logger
@@ -755,16 +869,51 @@ def evaluate(args: argparse.Namespace, config: dict[str, Any]) -> None:
         device,
         args.vis_samples,
         collect_sample_ids=bool(args.enable_gradcam),
+        is_sequence=is_sequence,
     )
 
     logger.info("Calculating comprehensive evaluation metrics...")
-    metrics = compute_all_metrics(
+    metric_fn = compute_sequence_metrics if is_sequence else compute_all_metrics
+    metrics = metric_fn(
         all_predictions,
         all_targets,
         force_normalization=force_normalization if normalize_forces else None,
         include_denormalized=normalize_forces,
         loss_fn=loss_fn if supports_component_monitoring else None,
     )
+
+    # Decision #4: for a mixed (C3/C7) test set, also report real-only and
+    # synt-only slices so the result is commensurable with the real-only-tested
+    # C1/C2/C4. Non-mixed test sets return None here and keep pooled-only.
+    domain_labels = _resolve_test_domains(
+        config, args.split_file, is_sequence, len(all_targets), logger
+    )
+    if domain_labels is not None:
+        domain_slices: dict[str, Any] = {
+            "_note": "pooled metrics are this report's top-level fields",
+        }
+        for domain in ("real", "synt"):
+            sel = [i for i, label in enumerate(domain_labels) if label == domain]
+            if not sel:
+                continue
+            index = torch.tensor(sel, dtype=torch.long)
+            domain_slices[f"{domain}_only"] = {
+                "num_samples": len(sel),
+                "metrics": metric_fn(
+                    all_predictions[index],
+                    all_targets[index],
+                    force_normalization=(
+                        force_normalization if normalize_forces else None
+                    ),
+                    include_denormalized=normalize_forces,
+                    loss_fn=loss_fn if supports_component_monitoring else None,
+                ),
+            }
+        metrics["test_domain_slices"] = domain_slices
+        logger.info(
+            "Mixed test set: added real_only/synt_only domain slices "
+            "(pooled metrics stay top-level)."
+        )
 
     _save_evaluation_report(
         metrics,

@@ -1,0 +1,127 @@
+# Condition 2: SYNT-trained, REAL-tested single-image -> single force vector.
+# KiDKNet = ConvNeXt-Large + MLP. Trains/validates on the synt (digital-twin)
+# 256px frames and tests on the real frames -- a sim-to-real transfer probe
+# WITHOUT any domain adaptation. Implemented over the combined real+synt data
+# dir via a split that routes synt sequences to train/val (~0.7/0.3) and all
+# real sequences to test (cross-dataset eval needs no loader change).
+#
+# Run (CWD = KiDKNet/, CUDA required):
+#   python main.py --mode train    --config configs/c2_synt2real_single_convnextL.yaml
+#   python main.py --mode evaluate --config configs/c2_synt2real_single_convnextL.yaml  # metrics on REAL
+#
+# NOTE: do NOT run `--mode split` (the split is authored by Deform_post assemble
+# with explicit --test-seqs=all-real / --val-seqs=synt-subset). No resume.
+
+general:
+  seed: 42
+  num_workers: 16
+  pin_memory: true
+  output_dir: "DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "DataFlow/KiDKNet/outputs/evaluation_results"
+
+data:
+  # Combined real+synt dataset (real_seqNN + synt_seqNN, 256x256). The split
+  # below sends synt->train/val and real->test.
+  data_dir: "DataFlow/Deform_post/preprocessed/datasets/mixed"
+  enable_dataset_selection: false
+  split_ratios:
+    train: 0.7
+    val: 0.3
+    test: 0.0
+  # train/val = synt (~0.7/0.3 of 32 synt seqs); test = all 32 real seqs.
+  split_file: "DataFlow/KiDKNet/splits/cv5/fold0/c2_synt2real_split.json"
+
+  augmentation:
+    override_normalization: true
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+  loading_strategy:
+    use_mmap: false
+    cache_data: true
+    cache_settings:
+      pin_memory: true
+      dtype: bfloat16
+      clone_image_on_get: false
+      clone_force: false
+
+  loader:
+    shuffle: true
+    drop_last: true
+    prefetch_factor: 2
+    persistent_workers: false
+    pin_memory_device: "cuda"
+
+model:
+  type: "force_net"
+  name: "forcenet"
+  backbone:
+    name: "convnext"
+    config:
+      size: "large"
+      pretrained: true
+      freeze_backbone: false
+  head:
+    name: "force_regression"
+    config:
+      hidden_dims: [1024, 512, 256]
+      dropout_rate: 0.2
+      normalize_output: false
+
+training:
+  batch_size: 64
+  epochs: 50
+  early_stopping_patience: 15
+  gradient_accumulation_steps: 1
+  empty_cache_freq: 5
+  prefetch_to_gpu: true
+  mixed_precision:
+    enabled: true
+    dtype: "bfloat16"
+  optimizer:
+    type: "adamw"
+    learning_rate: 0.0002
+    weight_decay: 0.05
+    momentum: 0.9
+  loss:
+    type: "COMBINED"
+    magnitude_distance: "vector_mse"
+    angle_distance: "cosine_squared"
+    lambda_magnitude: 0.4
+    normalize_losses: false
+    epsilon: 1e-8
+    reduction: "mean"
+    magnitude_kwargs: {}
+  scheduler:
+    type: "cosine"
+    patience: 5
+    factor: 0.5
+    min_lr: 0.00001
+  clip_grad_norm: 0
+
+evaluation:
+  metrics:
+    - magnitude_mean_relative_error
+    - magnitude_accuracy_10pct
+    - magnitude_accuracy_5pct
+    - mean_angle_error
+    - component_errors
+  main_metric: "magnitude_accuracy_10pct"
+  visualization:
+    enabled: true
+    num_samples: 10
+    save_path: "outputs/evaluation_viz"
+
+monitoring:
+  enable_memory_monitoring: true
+  memory_monitor_interval: 1.0
+
+cross_validation:
+  enabled: false
+  n_folds: 5
+  stratify: true
+
+logging:
+  keep_best: true
+  keep_last: 5

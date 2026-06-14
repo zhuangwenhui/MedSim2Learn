@@ -1,43 +1,38 @@
-# KiDKNet ConvNeXt-Tiny - kidney digital-twin dataset (twin_merged, 32 sequences)
-# Derived from convnext_tiny_config.yaml. Only data.* and image normalization
-# are changed to point at the assembled twin dataset and the by-sequence split.
+# Condition 3: MIXED (real + synt) single-image -> single force vector.
+# KiDKNet = ConvNeXt-Large + MLP, trained on a mix of real and synt (digital-
+# twin) 256px frames. By-sequence split 0.7/0.1/0.2 over all 64 sequences
+# (32 real_seqNN + 32 synt_seqNN), so real and synt co-occur in every split.
 #
-# Run (CWD must be KiDKNet/, CUDA required):
-#   python main.py --mode train    --config configs/convnext_tiny_twin.yaml
-#   python main.py --mode evaluate --config configs/convnext_tiny_twin.yaml   # reads best_model.pth
+# Run (CWD = KiDKNet/, CUDA required):
+#   python main.py --mode train    --config configs/c3_mixed_single_convnextL.yaml
+#   python main.py --mode evaluate --config configs/c3_mixed_single_convnextL.yaml
 #
-# NOTE: do NOT run `--mode split` with this config -- the split is authored
-# by-sequence (Deform_post/main.py assemble) to avoid temporal leakage; the built-in
-# splitter would overwrite it with a leaky random holdout.
-# NOTE: KiDKNet has no resume; a crash/sleep mid-run loses progress. Keep the
-# machine awake for the full run (e.g. powercfg, or run while attended).
+# NOTE: do NOT run `--mode split` (the split is authored by Deform_post assemble
+# by-sequence over the combined dir). No resume; run under tmux/nohup.
 
 general:
   seed: 42
   num_workers: 16
   pin_memory: true
-  output_dir: "D:/MedSim2Learn/DataFlow/KiDKNet/outputs/experiments"
-  result_dir: "D:/MedSim2Learn/DataFlow/KiDKNet/outputs/evaluation_results"
+  output_dir: "DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "DataFlow/KiDKNet/outputs/evaluation_results"
 
 data:
-  # Absolute path to the assembled merged dataset (must match the data_dir baked
-  # into dataset_split.json by Deform_post/main.py assemble).
-  data_dir: "D:/MedSim2Learn/DataFlow/Deform_post/twin_merged"
+  # Combined real+synt dataset (real_seqNN + synt_seqNN, 256x256).
+  data_dir: "DataFlow/Deform_post/preprocessed/datasets/mixed"
   enable_dataset_selection: false
   split_ratios:
     train: 0.7
-    val: 0.15
-    test: 0.15
-  # By-sequence split written under DataFlow/KiDKNet/splits/ by Deform_post/main.py assemble.
-  split_file: "D:/MedSim2Learn/DataFlow/KiDKNet/splits/dataset_split.json"
+    val: 0.1
+    test: 0.2
+  # By-sequence 0.7/0.1/0.2 over all 64 sequences (real + synt mixed).
+  split_file: "DataFlow/KiDKNet/splits/cv5/fold0/c3_mixed_split.json"
 
   augmentation:
-    # ON: the ConvNeXt backbone is ImageNet-pretrained, so match that input
-    # distribution. The .pt images stay raw [0,1]; the loader applies this.
     override_normalization: true
     normalize:
-      mean: [0.485, 0.456, 0.406]  # ImageNet mean
-      std: [0.229, 0.224, 0.225]   # ImageNet std
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
 
   loading_strategy:
     use_mmap: false
@@ -61,18 +56,18 @@ model:
   backbone:
     name: "convnext"
     config:
-      size: "tiny"
+      size: "large"
       pretrained: true
       freeze_backbone: false
   head:
     name: "force_regression"
     config:
-      hidden_dims: [512, 256, 128]
-      dropout_rate: 0.1
+      hidden_dims: [1024, 512, 256]
+      dropout_rate: 0.2
       normalize_output: false
 
 training:
-  batch_size: 250
+  batch_size: 64
   epochs: 50
   early_stopping_patience: 15
   gradient_accumulation_steps: 1
@@ -83,7 +78,7 @@ training:
     dtype: "bfloat16"
   optimizer:
     type: "adamw"
-    learning_rate: 0.0004
+    learning_rate: 0.0002
     weight_decay: 0.05
     momentum: 0.9
   loss:

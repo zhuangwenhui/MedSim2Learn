@@ -1,0 +1,130 @@
+# Condition 1 (baseline): REAL single-image -> single force vector.
+# KiDKNet = ConvNeXt-Large + MLP, trained on the real laparoscopic image-force
+# dataset (Data Processpor Origin_data -> Deform_post realbuild/assemble).
+# By-sequence split 0.7/0.1/0.2 (no temporal leakage). Input 256x256.
+#
+# Run (CWD = KiDKNet/, CUDA required):
+#   python main.py --mode train    --config configs/c1_real_single_convnextL.yaml
+#   python main.py --mode evaluate --config configs/c1_real_single_convnextL.yaml
+#
+# NOTE: do NOT run `--mode split` -- the split is authored by-sequence by
+# Deform_post (main.py assemble); the built-in splitter would overwrite it with
+# a leaky random holdout. KiDKNet has no resume; run under tmux/nohup.
+
+general:
+  seed: 42
+  num_workers: 16
+  pin_memory: true
+  output_dir: "DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "DataFlow/KiDKNet/outputs/evaluation_results"
+
+data:
+  # Real image-force dataset (256x256, 53,926 frames, 32 sequences).
+  data_dir: "DataFlow/Deform_post/preprocessed/datasets/real"
+  enable_dataset_selection: false
+  split_ratios:
+    train: 0.7
+    val: 0.1
+    test: 0.2
+  # By-sequence split written by Deform_post/main.py assemble (--ratios 0.7,0.1,0.2).
+  split_file: "DataFlow/KiDKNet/splits/cv5/fold0/real_split.json"
+
+  augmentation:
+    # ImageNet normalization: the ConvNeXt backbone is ImageNet-pretrained, so
+    # match that input distribution. The .pt images stay raw [0,1]; the loader
+    # applies this transform.
+    override_normalization: true
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+  loading_strategy:
+    use_mmap: false
+    cache_data: true
+    cache_settings:
+      pin_memory: true
+      dtype: bfloat16
+      clone_image_on_get: false
+      clone_force: false
+
+  loader:
+    shuffle: true
+    drop_last: true
+    prefetch_factor: 2
+    persistent_workers: false
+    pin_memory_device: "cuda"
+
+model:
+  type: "force_net"
+  name: "forcenet"
+  backbone:
+    name: "convnext"
+    config:
+      size: "large"        # largest backbone (1536-dim features)
+      pretrained: true
+      freeze_backbone: false
+  head:
+    name: "force_regression"
+    config:
+      hidden_dims: [1024, 512, 256]   # tuned for the 1536-dim ConvNeXt-Large output
+      dropout_rate: 0.2
+      normalize_output: false
+
+training:
+  # ConvNeXt-Large @256px is memory-heavy; tune batch_size to the GPU and raise
+  # gradient_accumulation_steps to keep the effective batch if it must shrink.
+  batch_size: 64
+  epochs: 50
+  early_stopping_patience: 15
+  gradient_accumulation_steps: 1
+  empty_cache_freq: 5
+  prefetch_to_gpu: true
+  mixed_precision:
+    enabled: true
+    dtype: "bfloat16"
+  optimizer:
+    type: "adamw"
+    learning_rate: 0.0002
+    weight_decay: 0.05
+    momentum: 0.9
+  loss:
+    type: "COMBINED"
+    magnitude_distance: "vector_mse"
+    angle_distance: "cosine_squared"
+    lambda_magnitude: 0.4
+    normalize_losses: false
+    epsilon: 1e-8
+    reduction: "mean"
+    magnitude_kwargs: {}
+  scheduler:
+    type: "cosine"
+    patience: 5
+    factor: 0.5
+    min_lr: 0.00001
+  clip_grad_norm: 0
+
+evaluation:
+  metrics:
+    - magnitude_mean_relative_error
+    - magnitude_accuracy_10pct
+    - magnitude_accuracy_5pct
+    - mean_angle_error
+    - component_errors
+  main_metric: "magnitude_accuracy_10pct"
+  visualization:
+    enabled: true
+    num_samples: 10
+    save_path: "outputs/evaluation_viz"
+
+monitoring:
+  enable_memory_monitoring: true
+  memory_monitor_interval: 1.0
+
+cross_validation:
+  enabled: false
+  n_folds: 5
+  stratify: true
+
+logging:
+  keep_best: true
+  keep_last: 5

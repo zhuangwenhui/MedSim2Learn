@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from typing import Dict, Optional, Union
-from .losses import MagnitudeAngleLoss
+from .losses import MagnitudeAngleLoss, SequenceMagnitudeAngleLoss
 
 
 DEFAULT_EPSILON = 1e-8
@@ -144,8 +144,10 @@ def compute_loss_component_metrics(
         pred, target, threshold_degrees=5.0
     )
     
-    # Add loss components when available
-    if isinstance(loss_fn, MagnitudeAngleLoss):
+    # Add loss components when available (single-image or sequence loss). The
+    # sequence loss's get_component_losses accepts already-flattened (N, 3)
+    # tensors here, so the same call works for both.
+    if isinstance(loss_fn, (MagnitudeAngleLoss, SequenceMagnitudeAngleLoss)):
         mag_loss, ang_loss = loss_fn.get_component_losses(pred, target)
         metrics['loss_magnitude_component'] = mag_loss
         metrics['loss_angle_component'] = ang_loss
@@ -214,12 +216,77 @@ def compute_all_metrics(
     if include_denormalized and force_normalization is not None:
         denorm_pred = denormalize_forces(pred, force_normalization)
         denorm_target = denormalize_forces(target, force_normalization)
-        
+
         denorm_loss_metrics = compute_loss_component_metrics(
             denorm_pred, denorm_target
         )
         metrics.update(
             {f"denorm_{k}": v for k, v in denorm_loss_metrics.items()}
         )
-    
+
+    return metrics
+
+
+def compute_sequence_metrics(
+    pred: Union[torch.Tensor, list, tuple],
+    target: torch.Tensor,
+    force_normalization: Optional[Dict[str, float]] = None,
+    include_denormalized: bool = False,
+    loss_fn: Optional[nn.Module] = None,
+    eps: float = DEFAULT_EPSILON,
+) -> Dict[str, Union[float, bool]]:
+    """Compute metrics for per-frame sequence predictions.
+
+    The per-frame quality metrics reuse :func:`compute_all_metrics` over the
+    clip flattened to ``(B*T, 3)``; two temporal-consistency metrics are added
+    on top:
+
+    - ``temporal_delta_rmse``: RMSE between predicted and ground-truth first
+      differences (how well the predicted dynamics track the true dynamics).
+    - ``temporal_jitter_rmse``: RMSE of the predicted first differences alone
+      (raw prediction smoothness, target-agnostic).
+
+    Args:
+        pred: Final-stage ``(B, T, 3)`` tensor, or a list/tuple of per-stage
+            tensors (the last element is used).
+        target: Ground-truth ``(B, T, 3)`` tensor.
+        force_normalization: Optional per-axis scale factors.
+        include_denormalized: Whether to add denormalized per-frame metrics.
+        loss_fn: Loss module exposing component losses (optional).
+        eps: Numerical stability constant.
+
+    Returns:
+        dict: Per-frame metrics plus temporal-consistency metrics.
+    """
+    if isinstance(pred, (list, tuple)):
+        pred = pred[-1]
+    pred = torch.as_tensor(pred)
+    target = torch.as_tensor(target).to(pred.device)
+    if pred.dim() != 3 or target.dim() != 3:
+        raise ValueError(
+            "compute_sequence_metrics expects (B, T, 3) tensors, got "
+            f"pred={tuple(pred.shape)} target={tuple(target.shape)}"
+        )
+
+    metrics = compute_all_metrics(
+        pred.reshape(-1, pred.shape[-1]),
+        target.reshape(-1, target.shape[-1]),
+        force_normalization=force_normalization,
+        include_denormalized=include_denormalized,
+        loss_fn=loss_fn,
+    )
+
+    if pred.size(1) >= 2:
+        d_pred = pred[:, 1:] - pred[:, :-1]
+        d_target = target[:, 1:] - target[:, :-1]
+        metrics['temporal_delta_rmse'] = torch.sqrt(
+            (d_pred - d_target).pow(2).mean() + eps
+        ).item()
+        metrics['temporal_jitter_rmse'] = torch.sqrt(
+            d_pred.pow(2).mean() + eps
+        ).item()
+    else:
+        metrics['temporal_delta_rmse'] = 0.0
+        metrics['temporal_jitter_rmse'] = 0.0
+
     return metrics

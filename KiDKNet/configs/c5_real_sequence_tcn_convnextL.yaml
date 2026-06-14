@@ -1,0 +1,146 @@
+# Condition 5: REAL video-sequence -> per-frame force trajectory.
+# ConvNeXt-Large frozen frame encoder (features PRECOMPUTED) + multi-stage causal
+# TCN temporal head (MS-TCN / TeCNO style, deep supervision). Seq-to-seq: a clip
+# of T consecutive frames -> T force vectors. Method basis: MS-TCN (Abu Farha &
+# Gall, CVPR 2019) + TeCNO (Czempiel et al., MICCAI 2020, causal dilated convs).
+#
+# Prerequisite: precompute the per-frame features ONCE (resource-safe path):
+#   python -m dknet.data.feature_cache \
+#     --source DataFlow/Deform_post/preprocessed/datasets/real \
+#     --out    DataFlow/Deform_post/feature_cache/real_feat_convnextL \
+#     --size large
+# This reuses datasets/real/sequence_index.json and the existing by-sequence split.
+#
+# Run (CWD = KiDKNet/, CUDA required):
+#   python main.py --mode train    --config configs/c5_real_sequence_tcn_convnextL.yaml
+#   python main.py --mode evaluate --config configs/c5_real_sequence_tcn_convnextL.yaml
+#
+# NOTE: do NOT run `--mode split` (split authored by Deform_post assemble). No resume.
+
+general:
+  seed: 42
+  num_workers: 8
+  pin_memory: true
+  output_dir: "DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "DataFlow/KiDKNet/outputs/evaluation_results"
+
+data:
+  # Feature cache (per-frame ConvNeXt-Large features); same global frame order +
+  # sequence_index.json as datasets/real, so the real split applies unchanged.
+  data_dir: "DataFlow/Deform_post/feature_cache/real_feat_convnextL"
+  enable_dataset_selection: false
+  split_ratios:
+    train: 0.7
+    val: 0.1
+    test: 0.2
+  split_file: "DataFlow/KiDKNet/splits/cv5/fold0/real_split.json"
+
+  # Sequence (clip) windowing over consecutive frames within each sequence.
+  sequence:
+    enabled: true
+    mode: "feature"          # consume precomputed features (resource-safe)
+    window_length: 256
+    stride: 128
+    include_tail: true
+
+  augmentation:
+    # Features are already encoded + normalized at precompute time; no image norm.
+    override_normalization: false
+
+  loading_strategy:
+    use_mmap: false
+    cache_data: true
+    cache_settings:
+      pin_memory: true
+      clone_image_on_get: false
+      clone_force: false
+
+  loader:
+    shuffle: true
+    drop_last: true
+    prefetch_factor: 2
+    persistent_workers: false
+    pin_memory_device: "cuda"
+
+model:
+  type: "sequence_forcenet"
+  name: "sequence_forcenet"
+  input_mode: "feature"
+  backbone:
+    # Names the encoder whose feature dim (large -> 1536) sizes the temporal head;
+    # no ConvNeXt is instantiated in feature mode.
+    name: "convnext"
+    config:
+      size: "large"
+      pretrained: true
+      freeze_backbone: true
+  temporal:
+    type: "tcn"
+    config:
+      num_stages: 3
+      num_layers: 10
+      num_f_maps: 64
+      dropout: 0.1
+      causal: true
+
+training:
+  batch_size: 16
+  epochs: 60
+  early_stopping_patience: 15
+  gradient_accumulation_steps: 1
+  empty_cache_freq: 5
+  prefetch_to_gpu: true
+  mixed_precision:
+    enabled: true
+    dtype: "bfloat16"
+  optimizer:
+    type: "adamw"
+    learning_rate: 0.0005
+    weight_decay: 0.01
+    momentum: 0.9
+  loss:
+    # Per-frame magnitude+angle (deep supervision over TCN stages) + temporal
+    # smoothness matching the ground-truth dynamics.
+    type: "SEQUENCE_COMBINED"
+    magnitude_distance: "vector_mse"
+    angle_distance: "cosine_squared"
+    lambda_magnitude: 0.4
+    normalize_losses: false
+    lambda_smooth: 0.1
+    smoothness_mode: "delta_match"
+    stage_weight_mode: "uniform"
+    epsilon: 1e-8
+    reduction: "mean"
+    magnitude_kwargs: {}
+  scheduler:
+    type: "cosine"
+    patience: 5
+    factor: 0.5
+    min_lr: 0.00001
+  clip_grad_norm: 0
+
+evaluation:
+  metrics:
+    - magnitude_mean_relative_error
+    - magnitude_accuracy_10pct
+    - magnitude_accuracy_5pct
+    - mean_angle_error
+    - component_errors
+  main_metric: "magnitude_accuracy_10pct"
+  visualization:
+    enabled: true
+    num_samples: 10
+    save_path: "outputs/evaluation_viz"
+
+monitoring:
+  enable_memory_monitoring: true
+  memory_monitor_interval: 1.0
+
+cross_validation:
+  enabled: false
+  n_folds: 5
+  stratify: true
+
+logging:
+  keep_best: true
+  keep_last: 5

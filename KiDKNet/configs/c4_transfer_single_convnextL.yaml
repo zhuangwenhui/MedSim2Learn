@@ -1,0 +1,139 @@
+# Condition 4: TRANSFER-LEARNING single-image -> single force vector.
+# KiDKNet = ConvNeXt-Large + MLP. Principled sim-to-real upgrade over cond2:
+# initialize from a SYNT-pretrained checkpoint, then LP-FT on REAL (linear-probe
+# the head while the backbone is frozen, then unfreeze with a small discriminative
+# LR). Method basis: LP-FT (Kumar et al., ICLR 2022, arXiv:2202.10054) + surgical
+# fine-tuning (Lee et al., ICLR 2023, arXiv:2210.11466). Tested on REAL held-out.
+#
+# Prerequisite: train cond2 first (synt-trained single-image), then point
+# training.transfer.init_from_checkpoint at its checkpoints/best_model.pth.
+#
+# Run (CWD = KiDKNet/, CUDA required):
+#   python main.py --mode train    --config configs/c4_transfer_single_convnextL.yaml
+#   python main.py --mode evaluate --config configs/c4_transfer_single_convnextL.yaml
+#
+# NOTE: do NOT run `--mode split` (split authored by Deform_post assemble). No resume.
+
+general:
+  seed: 42
+  num_workers: 16
+  pin_memory: true
+  output_dir: "DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "DataFlow/KiDKNet/outputs/evaluation_results"
+
+data:
+  # LP-FT runs on the REAL frames; the synt knowledge enters via init_from_checkpoint.
+  data_dir: "DataFlow/Deform_post/preprocessed/datasets/real"
+  enable_dataset_selection: false
+  split_ratios:
+    train: 0.7
+    val: 0.1
+    test: 0.2
+  split_file: "DataFlow/KiDKNet/splits/cv5/fold0/real_split.json"
+
+  augmentation:
+    override_normalization: true
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+  loading_strategy:
+    use_mmap: false
+    cache_data: true
+    cache_settings:
+      pin_memory: true
+      dtype: bfloat16
+      clone_image_on_get: false
+      clone_force: false
+
+  loader:
+    shuffle: true
+    drop_last: true
+    prefetch_factor: 2
+    persistent_workers: false
+    pin_memory_device: "cuda"
+
+model:
+  type: "force_net"
+  name: "forcenet"
+  backbone:
+    name: "convnext"
+    config:
+      size: "large"
+      pretrained: true
+      freeze_backbone: false
+  head:
+    name: "force_regression"
+    config:
+      hidden_dims: [1024, 512, 256]
+      dropout_rate: 0.2
+      normalize_output: false
+
+training:
+  batch_size: 64
+  epochs: 50
+  early_stopping_patience: 15
+  gradient_accumulation_steps: 1
+  empty_cache_freq: 5
+  prefetch_to_gpu: true
+  mixed_precision:
+    enabled: true
+    dtype: "bfloat16"
+  # Transfer learning (LP-FT + discriminative LR + weight init). The backbone is
+  # frozen for the first `linear_probe_epochs` (head-only "linear probe"), then
+  # unfrozen and fine-tuned at `learning_rate * backbone_lr_scale`. Set
+  # finetune_stages to a list of ConvNeXt feature-block indices for surgical
+  # fine-tuning (early blocks [0,1,2,3] suit the appearance/input shift); null
+  # unfreezes the whole backbone.
+  transfer:
+    enabled: true
+    init_from_checkpoint: "DataFlow/KiDKNet/outputs/experiments/<COND2_EXPERIMENT>/checkpoints/best_model.pth"
+    linear_probe_epochs: 5
+    backbone_lr_scale: 0.1
+    finetune_stages: null
+  optimizer:
+    type: "adamw"
+    learning_rate: 0.0002
+    weight_decay: 0.05
+    momentum: 0.9
+  loss:
+    type: "COMBINED"
+    magnitude_distance: "vector_mse"
+    angle_distance: "cosine_squared"
+    lambda_magnitude: 0.4
+    normalize_losses: false
+    epsilon: 1e-8
+    reduction: "mean"
+    magnitude_kwargs: {}
+  scheduler:
+    type: "cosine"
+    patience: 5
+    factor: 0.5
+    min_lr: 0.00001
+  clip_grad_norm: 0
+
+evaluation:
+  metrics:
+    - magnitude_mean_relative_error
+    - magnitude_accuracy_10pct
+    - magnitude_accuracy_5pct
+    - mean_angle_error
+    - component_errors
+  main_metric: "magnitude_accuracy_10pct"
+  visualization:
+    enabled: true
+    num_samples: 10
+    save_path: "outputs/evaluation_viz"
+
+monitoring:
+  enable_memory_monitoring: true
+  memory_monitor_interval: 1.0
+
+cross_validation:
+  enabled: false
+  n_folds: 5
+  stratify: true
+
+logging:
+  keep_best: true
+  keep_last: 5

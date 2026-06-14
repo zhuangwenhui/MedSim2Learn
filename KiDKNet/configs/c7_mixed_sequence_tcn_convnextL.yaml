@@ -1,0 +1,134 @@
+# Condition 7: MIXED (real + synt) video-sequence -> per-frame force trajectory.
+# Same architecture as cond5/cond6 (ConvNeXt-Large frozen features + multi-stage
+# causal TCN, seq-to-seq) trained on the combined real+synt sequences via the
+# by-sequence mixed split (real and synt co-occur in every split).
+#
+# Prerequisite: precompute the mixed features ONCE:
+#   python -m dknet.data.feature_cache \
+#     --source DataFlow/Deform_post/preprocessed/datasets/mixed \
+#     --out    DataFlow/Deform_post/feature_cache/mixed_feat_convnextL \
+#     --size large
+#
+# Run (CWD = KiDKNet/, CUDA required):
+#   python main.py --mode train    --config configs/c7_mixed_sequence_tcn_convnextL.yaml
+#   python main.py --mode evaluate --config configs/c7_mixed_sequence_tcn_convnextL.yaml
+
+general:
+  seed: 42
+  num_workers: 8
+  pin_memory: true
+  output_dir: "DataFlow/KiDKNet/outputs/experiments"
+  result_dir: "DataFlow/KiDKNet/outputs/evaluation_results"
+
+data:
+  data_dir: "DataFlow/Deform_post/feature_cache/mixed_feat_convnextL"
+  enable_dataset_selection: false
+  split_ratios:
+    train: 0.7
+    val: 0.1
+    test: 0.2
+  split_file: "DataFlow/KiDKNet/splits/cv5/fold0/c3_mixed_split.json"
+
+  sequence:
+    enabled: true
+    mode: "feature"
+    window_length: 256
+    stride: 128
+    include_tail: true
+
+  augmentation:
+    override_normalization: false
+
+  loading_strategy:
+    use_mmap: false
+    cache_data: true
+    cache_settings:
+      pin_memory: true
+      clone_image_on_get: false
+      clone_force: false
+
+  loader:
+    shuffle: true
+    drop_last: true
+    prefetch_factor: 2
+    persistent_workers: false
+    pin_memory_device: "cuda"
+
+model:
+  type: "sequence_forcenet"
+  name: "sequence_forcenet"
+  input_mode: "feature"
+  backbone:
+    name: "convnext"
+    config:
+      size: "large"
+      pretrained: true
+      freeze_backbone: true
+  temporal:
+    type: "tcn"
+    config:
+      num_stages: 3
+      num_layers: 10
+      num_f_maps: 64
+      dropout: 0.1
+      causal: true
+
+training:
+  batch_size: 16
+  epochs: 60
+  early_stopping_patience: 15
+  gradient_accumulation_steps: 1
+  empty_cache_freq: 5
+  prefetch_to_gpu: true
+  mixed_precision:
+    enabled: true
+    dtype: "bfloat16"
+  optimizer:
+    type: "adamw"
+    learning_rate: 0.0005
+    weight_decay: 0.01
+    momentum: 0.9
+  loss:
+    type: "SEQUENCE_COMBINED"
+    magnitude_distance: "vector_mse"
+    angle_distance: "cosine_squared"
+    lambda_magnitude: 0.4
+    normalize_losses: false
+    lambda_smooth: 0.1
+    smoothness_mode: "delta_match"
+    stage_weight_mode: "uniform"
+    epsilon: 1e-8
+    reduction: "mean"
+    magnitude_kwargs: {}
+  scheduler:
+    type: "cosine"
+    patience: 5
+    factor: 0.5
+    min_lr: 0.00001
+  clip_grad_norm: 0
+
+evaluation:
+  metrics:
+    - magnitude_mean_relative_error
+    - magnitude_accuracy_10pct
+    - magnitude_accuracy_5pct
+    - mean_angle_error
+    - component_errors
+  main_metric: "magnitude_accuracy_10pct"
+  visualization:
+    enabled: true
+    num_samples: 10
+    save_path: "outputs/evaluation_viz"
+
+monitoring:
+  enable_memory_monitoring: true
+  memory_monitor_interval: 1.0
+
+cross_validation:
+  enabled: false
+  n_folds: 5
+  stratify: true
+
+logging:
+  keep_best: true
+  keep_last: 5

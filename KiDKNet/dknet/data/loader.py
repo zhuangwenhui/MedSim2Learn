@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from typing import Tuple, Optional, Dict, Any
 
 from .dataset import ForceDataset, SubsetDataset
+from .feature_cache import FeatureForceDataset
 from .transforms import get_transforms
 from .splitter import load_split
 
@@ -123,8 +124,16 @@ def get_dataloaders(
     logger.info("Cache settings=%s", cache_config)
     logger.info("Loading dataset from %s", base_data_dir)
 
+    # Feature mode (sequence conditions) loads precomputed ConvNeXt features
+    # instead of images; the frame source is a FeatureForceDataset whose
+    # metadata records the original source_data_dir for split validation.
+    seq_cfg = config["data"].get("sequence") or {}
+    feature_mode = bool(seq_cfg.get("enabled")) and \
+        str(seq_cfg.get("mode", "image")).lower() == "feature"
+    dataset_cls = FeatureForceDataset if feature_mode else ForceDataset
+
     try:  # Create the base dataset; subsets will point to it.
-        dataset = ForceDataset(
+        dataset = dataset_cls(
             data_dir=base_data_dir,
             transform=None,
             use_mmap=use_mmap,
@@ -212,9 +221,16 @@ def get_dataloaders(
     logger.info("Loading dataset split from: %s", split_file_path)
 
     try:
+        # In feature mode the split was authored against the original merged
+        # dir; validate against the recorded source so the same by-sequence
+        # splits apply unchanged (global frame indexing is preserved).
+        split_validate_dir = (
+            getattr(dataset, "metadata", {}).get("source_data_dir")
+            or dataset.data_dir
+        )
         train_indices, val_indices, test_indices = load_split(
             str(split_file_path),
-            data_dir=dataset.data_dir,
+            data_dir=split_validate_dir,
             validate=True,
         )
     except ValueError as e:
@@ -240,9 +256,49 @@ def get_dataloaders(
         len(test_indices),
     )
 
-    train_dataset = SubsetDataset(dataset, train_indices, transform=transform)
-    val_dataset = SubsetDataset(dataset, val_indices, transform=transform)
-    test_dataset = SubsetDataset(dataset, test_indices, transform=transform)
+    # Sequence (clip) mode: window CONSECUTIVE frames within each sequence using
+    # the by-sequence index, so the same by-sequence splits drive both the
+    # single-image and the sequence conditions with no temporal leakage. The
+    # default collate stacks per-window (T, ...) tensors to (B, T, ...).
+    # (seq_cfg / feature_mode were resolved above, before dataset construction.)
+    if seq_cfg.get("enabled", False):
+        from .sequence_dataset import SequenceDataset, load_sequence_ranges
+
+        seq_ranges = load_sequence_ranges(dataset.data_dir)
+        window_length = int(seq_cfg["window_length"])
+        stride = int(seq_cfg.get("stride", window_length))
+        include_tail = bool(seq_cfg.get("include_tail", True))
+        # Features are pre-encoded (and pre-normalized at precompute time), so no
+        # image transform is applied in feature mode.
+        seq_transform = None if feature_mode else transform
+        logger.info(
+            "Sequence mode (%s): window_length=%d stride=%d include_tail=%s",
+            "feature" if feature_mode else "image",
+            window_length, stride, include_tail,
+        )
+
+        def _build_sequence(indices):
+            return SequenceDataset(
+                frame_source=dataset,
+                subset_indices=indices,
+                seq_ranges=seq_ranges,
+                window_length=window_length,
+                stride=stride,
+                transform=seq_transform,
+                include_tail=include_tail,
+            )
+
+        train_dataset = _build_sequence(train_indices)
+        val_dataset = _build_sequence(val_indices)
+        test_dataset = _build_sequence(test_indices)
+        logger.info(
+            "Sequence windows - Train: %d, Val: %d, Test: %d",
+            len(train_dataset), len(val_dataset), len(test_dataset),
+        )
+    else:
+        train_dataset = SubsetDataset(dataset, train_indices, transform=transform)
+        val_dataset = SubsetDataset(dataset, val_indices, transform=transform)
+        test_dataset = SubsetDataset(dataset, test_indices, transform=transform)
 
     prefetch_arg = prefetch_factor if num_workers > 0 else None
     persistent_arg = persistent_workers if num_workers > 0 else False

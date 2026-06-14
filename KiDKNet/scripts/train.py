@@ -51,10 +51,15 @@ def _create_experiment_name(config: dict) -> str:
         size = backbone_config['config'].get('size')
         if size is not None:
             backbone_name = f"{backbone_name}_{size}"
+    # Sequence models prepend "seq" and the temporal module type so experiment
+    # names stay distinct when racing tcn/gru/transformer variants.
+    if config['model'].get('name') == 'sequence_forcenet':
+        temporal_type = config['model'].get('temporal', {}).get('type', 'tcn')
+        backbone_name = f"seq_{backbone_name}_{temporal_type}"
 
     loss_config = config['training']['loss']
     loss_type = str(loss_config['type']).upper()
-    if loss_type == "COMBINED":
+    if loss_type in ("COMBINED", "SEQUENCE_COMBINED"):
         lambda_mag = loss_config['lambda_magnitude']
         mag_dist = loss_config['magnitude_distance']
         angle_dist = loss_config['angle_distance']
@@ -330,3 +335,7 @@ def main(args, config=None):
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
+    # Return the experiment directory so orchestrators (e.g. the CV driver)
+    # can locate this run's checkpoints/best_model.pth without globbing.
+    return experiment_dir

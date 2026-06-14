@@ -11,6 +11,17 @@ import torchvision.models as models
 from typing import Dict, Any
 
 
+# Pooled feature dimensionality per ConvNeXt size. Exposed so the sequence path
+# can size a temporal module's input without instantiating (and downloading the
+# pretrained weights of) the backbone when training on precomputed features.
+CONVNEXT_FEATURE_DIMS = {
+    "tiny": 768,
+    "small": 768,
+    "base": 1024,
+    "large": 1536,
+}
+
+
 class ConvNeXtBackbone(nn.Module):
     """
     ConvNeXt backbone for force prediction from images.
@@ -50,17 +61,17 @@ class ConvNeXtBackbone(nn.Module):
         self.pretrained = pretrained
         
         convnext_registry = {
-            "tiny":  (models.convnext_tiny,  768,  models.ConvNeXt_Tiny_Weights.DEFAULT),
-            "small": (models.convnext_small, 768,  models.ConvNeXt_Small_Weights.DEFAULT),
-            "base":  (models.convnext_base,  1024, models.ConvNeXt_Base_Weights.DEFAULT),
-            "large": (models.convnext_large, 1536, models.ConvNeXt_Large_Weights.DEFAULT),
+            "tiny":  (models.convnext_tiny,  models.ConvNeXt_Tiny_Weights.DEFAULT),
+            "small": (models.convnext_small, models.ConvNeXt_Small_Weights.DEFAULT),
+            "base":  (models.convnext_base,  models.ConvNeXt_Base_Weights.DEFAULT),
+            "large": (models.convnext_large, models.ConvNeXt_Large_Weights.DEFAULT),
         }
 
         if size not in convnext_registry:
             raise ValueError(f"ConvNeXt size must be one of {list(convnext_registry.keys())}")
 
-        model_fn, out_features, default_weights = convnext_registry[size]
-        self.out_features = out_features
+        model_fn, default_weights = convnext_registry[size]
+        self.out_features = CONVNEXT_FEATURE_DIMS[size]
 
         weights = default_weights if pretrained else None
         self.model = model_fn(weights=weights)

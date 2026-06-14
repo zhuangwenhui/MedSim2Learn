@@ -17,7 +17,7 @@ from tqdm import tqdm
 from typing import Any, Optional
 
 from ..utils.losses import ForceLoss
-from ..utils.metrics import compute_all_metrics
+from ..utils.metrics import compute_all_metrics, compute_sequence_metrics
 from ..utils.visualization import TrainingVisualizer, plot_force_distance_histogram
 from ..utils.memory_monitor import MemoryMonitor
 
@@ -102,6 +102,15 @@ class ForceTrainer:
 
         # Move model to device
         self.model = self.model.to(self.device)
+        # Optional weight initialization for transfer (cond4): load a checkpoint's
+        # weights only (strict=False) -- NOT a resume; optimizer/scheduler/epoch
+        # start fresh. Done before _setup_training_params so freezing applies to
+        # the initialized weights.
+        init_ckpt = (
+            config.get("training", {}).get("transfer", {}) or {}
+        ).get("init_from_checkpoint")
+        if init_ckpt:
+            self._load_init_checkpoint(init_ckpt)
         # Set up training parameters
         self._setup_training_params()
 
@@ -283,8 +292,41 @@ class ForceTrainer:
             self.momentum = optim_cfg.get("momentum", 0.9)
             self.dampening = optim_cfg.get("dampening", 0.0)
             self.nesterov = optim_cfg.get("nesterov", False)
+
+        # Transfer-learning (cond4) setup: LP-FT staged unfreeze + discriminative
+        # LR. The optimizer is built ONCE over discriminative param groups;
+        # backbone params frozen during the linear-probe phase simply receive no
+        # gradient until unfrozen, so no optimizer rebuild is needed.
+        self.transfer_cfg = train_cfg.get("transfer", {}) or {}
+        self.transfer_enabled = bool(self.transfer_cfg.get("enabled", False))
+        self.lp_epochs = int(self.transfer_cfg.get("linear_probe_epochs", 0))
+        self.backbone_lr_scale = float(self.transfer_cfg.get("backbone_lr_scale", 1.0))
+        # None/empty -> unfreeze the whole backbone after the probe; a list of
+        # ConvNeXt feature-block indices -> surgical fine-tuning of those blocks.
+        self.finetune_stages = self.transfer_cfg.get("finetune_stages")
+        self._backbone_unfrozen = not (self.transfer_enabled and self.lp_epochs > 0)
+        if self.transfer_enabled and self.lp_epochs > 0:
+            self._set_backbone_requires_grad(False)
+            self.logger.info(
+                "[transfer] linear-probe phase: backbone frozen for %d epoch(s); "
+                "backbone_lr_scale=%.3g, finetune_stages=%s",
+                self.lp_epochs, self.backbone_lr_scale,
+                self.finetune_stages or "all",
+            )
+
         self.optimizer = self._create_optimizer()
         
+        # Sequence (clip-to-per-frame) vs single-image model. The sequence model
+        # returns a LIST of (B, T, 3) stage outputs and is scored per-frame.
+        self.is_sequence_model = (
+            self.config["model"].get("name") == "sequence_forcenet"
+        )
+        if self.is_sequence_model:
+            self.logger.info(
+                "Sequence model detected: per-frame metrics + deep-supervision "
+                "loss over (B, T, 3) stage outputs."
+            )
+
         # Loss function setup
         loss_cfg = train_cfg.get("loss", {})
         self.loss_type = loss_cfg.get("type", "COMBINED")
@@ -362,17 +404,26 @@ class ForceTrainer:
         return "\n".join([line1, _render_table(rows)])
     
     def _create_optimizer(self):
-        """Create the configured optimizer."""
+        """Create the configured optimizer.
+
+        For transfer runs the backbone is placed in its own param group at a
+        scaled (usually smaller) learning rate (discriminative LR); otherwise all
+        parameters share one group.
+        """
+        params = (
+            self._transfer_param_groups() if self.transfer_enabled
+            else self.model.parameters()
+        )
         if self.optimizer_type.lower() == "adam":
             return torch.optim.Adam(
-                self.model.parameters(),
+                params,
                 lr=self.learning_rate,
                 weight_decay=self.weight_decay
             )
 
         elif self.optimizer_type.lower() == "sgdm":
             return torch.optim.SGD(
-                self.model.parameters(),
+                params,
                 lr=self.learning_rate,
                 momentum=self.momentum,
                 dampening=self.dampening,
@@ -382,13 +433,100 @@ class ForceTrainer:
 
         elif self.optimizer_type.lower() == "adamw":
             return torch.optim.AdamW(
-                self.model.parameters(),
+                params,
                 lr=self.learning_rate,
                 weight_decay=self.weight_decay
             )
 
         else:
             raise ValueError(f"Unsupported optimizer type: {self.optimizer_type}")
+
+    # ------------------------------------------------------------------ #
+    # Transfer learning (cond4): LP-FT + discriminative LR + weight init
+    # ------------------------------------------------------------------ #
+    def _backbone_module(self):
+        """Return the model's frame encoder, or None if it has no backbone."""
+        return getattr(self.model, "backbone", None)
+
+    def _set_backbone_requires_grad(self, requires_grad: bool) -> None:
+        """Toggle requires_grad over all backbone parameters."""
+        backbone = self._backbone_module()
+        if backbone is None:
+            return
+        for param in backbone.parameters():
+            param.requires_grad = requires_grad
+
+    def _transfer_param_groups(self):
+        """Discriminative-LR param groups: backbone at a scaled LR, rest at base."""
+        backbone = self._backbone_module()
+        backbone_ids = (
+            {id(p) for p in backbone.parameters()} if backbone is not None else set()
+        )
+        backbone_params = [
+            p for p in self.model.parameters() if id(p) in backbone_ids
+        ]
+        other_params = [
+            p for p in self.model.parameters() if id(p) not in backbone_ids
+        ]
+        groups = [{"params": other_params, "lr": self.learning_rate}]
+        if backbone_params:
+            groups.append({
+                "params": backbone_params,
+                "lr": self.learning_rate * self.backbone_lr_scale,
+            })
+        return groups
+
+    def _unfreeze_backbone(self) -> None:
+        """Unfreeze the whole backbone, or only the configured ConvNeXt blocks."""
+        backbone = self._backbone_module()
+        if backbone is None:
+            return
+        stages = self.finetune_stages
+        features = getattr(getattr(backbone, "model", None), "features", None)
+        if not stages or features is None:
+            self._set_backbone_requires_grad(True)
+            return
+        # Surgical fine-tuning: unfreeze only the selected feature blocks.
+        for idx in stages:
+            if 0 <= int(idx) < len(features):
+                for param in features[int(idx)].parameters():
+                    param.requires_grad = True
+
+    def _apply_transfer_phase(self, epoch: int) -> None:
+        """At the end of the linear-probe phase, unfreeze the backbone once."""
+        if not self.transfer_enabled or self._backbone_unfrozen:
+            return
+        if epoch >= self.lp_epochs:
+            self._unfreeze_backbone()
+            self._backbone_unfrozen = True
+            trainable = sum(
+                p.numel() for p in self.model.parameters() if p.requires_grad
+            )
+            self.logger.info(
+                "[transfer] epoch %d: unfroze backbone (stages=%s); "
+                "trainable params now %s",
+                epoch + 1, self.finetune_stages or "all", f"{trainable:,}",
+            )
+
+    def _load_init_checkpoint(self, ckpt_path: str) -> None:
+        """Initialize model weights from a checkpoint (NOT a resume).
+
+        Loads only the model_state_dict with strict=False so a synt-pretrained
+        single-image checkpoint can seed a real fine-tune (cond4), or a
+        single-image backbone can seed a sequence model. Optimizer, scheduler,
+        epoch counter, and history all start fresh.
+        """
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError(
+                f"transfer.init_from_checkpoint not found: {ckpt_path}"
+            )
+        ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
+        state = ckpt.get("model_state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
+        result = self.model.load_state_dict(state, strict=False)
+        self.logger.info(
+            "[transfer] initialized weights from %s (missing=%d, unexpected=%d)",
+            ckpt_path, len(result.missing_keys), len(result.unexpected_keys),
+        )
 
     def _create_scheduler(self, scheduler_cfg: dict[str, Any]):
         """Create the configured learning rate scheduler."""
@@ -510,11 +648,41 @@ class ForceTrainer:
             )
         
         raise ValueError(f"Unsupported scheduler type: {self.scheduler_type}")
-    
+
+    def _final_pred(self, outputs):
+        """Final-stage prediction for metric accumulation.
+
+        The sequence model returns a list of per-stage (B, T, 3) tensors (deep
+        supervision); the last element is the refined prediction. The single
+        image model returns a (B, 3) tensor directly.
+        """
+        if self.is_sequence_model and isinstance(outputs, (list, tuple)):
+            return outputs[-1]
+        return outputs
+
+    def _compute_metrics(self, predictions, targets):
+        """Dispatch to the per-frame sequence metrics or the single-image ones."""
+        metric_fn = (
+            compute_sequence_metrics if self.is_sequence_model else compute_all_metrics
+        )
+        return metric_fn(
+            predictions,
+            targets,
+            force_normalization=self.force_normalization if self.normalize_forces else None,
+            include_denormalized=self.normalize_forces,
+            loss_fn=self.loss_fn if self.supports_component_monitoring else None,
+        )
+
     def train_epoch(self):
         """Train the model for one epoch"""
         # Set model to training mode
         self.model.train()
+        # During the linear-probe phase keep the frozen backbone in eval mode so
+        # its features are deterministic (no stochastic depth) while the head trains.
+        if self.transfer_enabled and not self._backbone_unfrozen:
+            backbone = self._backbone_module()
+            if backbone is not None:
+                backbone.eval()
 
         if len(self.train_loader) == 0:
             msg = (
@@ -602,7 +770,7 @@ class ForceTrainer:
                     accum_count = 0
 
             epoch_loss += loss.item() * self.grad_accum_steps
-            all_predictions.append(outputs.detach().cpu().float())
+            all_predictions.append(self._final_pred(outputs).detach().cpu().float())
             all_targets.append(targets.detach().cpu().float())
 
             pbar.set_postfix({"loss": loss.item() * self.grad_accum_steps})
@@ -625,13 +793,7 @@ class ForceTrainer:
         all_targets = torch.cat(all_targets, dim=0)
 
         # Calculate metrics for the epoch
-        metrics = compute_all_metrics(
-            all_predictions,
-            all_targets,
-            force_normalization=self.force_normalization if self.normalize_forces else None,
-            include_denormalized=self.normalize_forces,
-            loss_fn=self.loss_fn if self.supports_component_monitoring else None
-        )
+        metrics = self._compute_metrics(all_predictions, all_targets)
         metrics['loss'] = epoch_loss
 
         if self.supports_component_monitoring:
@@ -676,9 +838,9 @@ class ForceTrainer:
                     loss = self.loss_fn(outputs, targets)
 
                 val_loss += loss.item()
-                all_predictions.append(outputs.detach().cpu().float())
+                all_predictions.append(self._final_pred(outputs).detach().cpu().float())
                 all_targets.append(targets.detach().cpu().float())
-                
+
                 pbar.set_postfix({"loss": loss.item()})
         
         # End-of-validation cleanup can synchronize to reclaim cache deterministically.
@@ -689,13 +851,7 @@ class ForceTrainer:
         all_predictions = torch.cat(all_predictions, dim=0)
         all_targets = torch.cat(all_targets, dim=0)
         
-        metrics = compute_all_metrics(
-            all_predictions, 
-            all_targets,
-            force_normalization=self.force_normalization if self.normalize_forces else None,
-            include_denormalized=self.normalize_forces,
-            loss_fn=self.loss_fn if self.supports_component_monitoring else None
-        )
+        metrics = self._compute_metrics(all_predictions, all_targets)
         metrics["loss"] = val_loss
 
         if self.supports_component_monitoring:
@@ -717,9 +873,18 @@ class ForceTrainer:
                 os.makedirs(dist_dir, exist_ok=True)
                 vis_path = os.path.join(dist_dir, f"force_distance_epoch_{self.epoch+1}.png")
 
+                # The distance histogram is per-sample; flatten the (B, T, 3)
+                # sequence tensors to (B*T, 3) so frames are pooled.
+                if self.is_sequence_model:
+                    hist_targets = all_targets.reshape(-1, all_targets.shape[-1])
+                    hist_predictions = all_predictions.reshape(-1, all_predictions.shape[-1])
+                else:
+                    hist_targets = all_targets
+                    hist_predictions = all_predictions
+
                 limits = plot_force_distance_histogram(
-                    all_targets,
-                    all_predictions,
+                    hist_targets,
+                    hist_predictions,
                     vis_path,
                     title=f"Epoch {self.epoch+1} - Force Distance Distribution",
                     xlim=self._distance_hist_limits,
@@ -819,7 +984,10 @@ class ForceTrainer:
             for epoch in range(self.epoch, self.epochs):
                 self.epoch = epoch
                 epoch_start_time = time.time()
-                
+
+                # Transfer (cond4): unfreeze the backbone once the probe ends.
+                self._apply_transfer_phase(epoch)
+
                 # Train and validate
                 self.train_epoch()
                 val_metrics = self.validate()
