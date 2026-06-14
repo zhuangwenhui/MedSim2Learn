@@ -12,10 +12,25 @@ real_visual_force_dataset:
   used_by: "Deform_post/configs/kidney_twin.yaml (real_data_root)"
   access: read-only
 
+real_origin_data:
+  path: "D:/Data Processpor/Origin_data"
+  role: >-
+    Purified real corpus (Data Processpor pipeline): visual_data/NN.mp4 +
+    force_data/NN.csv for 32 sequences, frame i <-> force row i (alignment
+    pre-validated). The image source for the KiDKNet REAL datasets (real_full ->
+    real_merged). NOTE: 04.mp4 is BLACK at source (corrupt) -> seq04 is excluded
+    from all experiments (see DataFlow/Deform_post/_excluded/blacklist.txt).
+  used_by: "Deform_post/dpost/config.py (real_origin_root); main.py realbuild"
+  access: read-only
+
 toolchain:
-  vcpkg:  { path: "D:/dev/vcpkg",                     role: "CGAL etc. (ShapeReconstruction)" }
-  tetgen: { path: "D:/dev/tetgen-1.6.0",              role: "tetrahedralization (DeformSim)" }
-  gmsh:   { path: "D:/dev/gmsh-4.15.2-Windows64-sdk", role: "meshing dependency" }
+  # vcpkg supplies CGAL + yaml-cpp for ShapeReconstruction, resolved at build
+  # time through the VCPKG_ROOT environment variable (currently D:/dev/vcpkg) --
+  # the path below is informational, not read directly. TetGen is vendored
+  # in-repo at third_party/tetgen-1.6.0 (built by both ShapeReconstruction and
+  # DeformSim), so it is no longer an external dependency; gmsh was unused and
+  # has been removed from D:/dev.
+  vcpkg: { path: "D:/dev/vcpkg", role: "CGAL + yaml-cpp (ShapeReconstruction), via $VCPKG_ROOT" }
 
 python_env:
   path: "C:/Users/space/anaconda3/envs/MedLearning/python.exe"

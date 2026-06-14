@@ -274,7 +274,11 @@ target_include_directories(mvrmesh_pose_tests PRIVATE ${MVRMESH_TEST_INCLUDE_DIR
 add_test(NAME mvrmesh_pose COMMAND mvrmesh_pose_tests)
 
 set(MVRMESH_SAMPLE_INPUT "")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
+# The kidney sample input lives under the workspace DataFlow/ data tier; fall
+# back to the legacy in-repo originalData/ path for older checkouts.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../DataFlow/ShapeReconstruction/originalData/MVR/kidney.mvr")
+    set(MVRMESH_SAMPLE_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/../DataFlow/ShapeReconstruction/originalData/MVR/kidney.mvr")
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
     set(MVRMESH_SAMPLE_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/originalData/MVR/kidney.mvr")
 endif()
 
@@ -298,7 +302,12 @@ if(NOT MVRMESH_SAMPLE_INPUT STREQUAL "")
             -o "${CMAKE_CURRENT_BINARY_DIR}/kidney_robust"
     )
 
-    set(MVRMESH_PLATE_BASELINE "${CMAKE_CURRENT_SOURCE_DIR}/../DeformSim/plate.ply")
+    # The DeformSim plate baseline fixture lives under DataFlow/; fall back to
+    # the legacy in-repo DeformSim/plate.ply for older checkouts.
+    set(MVRMESH_PLATE_BASELINE "${CMAKE_CURRENT_SOURCE_DIR}/../DataFlow/DeformSim/fixtures/plate.ply")
+    if(NOT EXISTS "${MVRMESH_PLATE_BASELINE}")
+        set(MVRMESH_PLATE_BASELINE "${CMAKE_CURRENT_SOURCE_DIR}/../DeformSim/plate.ply")
+    endif()
     if(NOT EXISTS "${MVRMESH_PLATE_BASELINE}")
         set(MVRMESH_PLATE_BASELINE "")
     endif()

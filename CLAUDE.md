@@ -20,6 +20,18 @@ Maintain with `python -m graphify update <sub-project-path>` after non-trivial c
 
 Pipeline data lives under `DataFlow/<stage>/`, never inside the source module directories. Each stage writes its own subdirectory; the next stage reads from it via config/CLI/env (no hardcoded deep paths). `DataFlow/` is git-ignored as a single unit. Read-only external corpora and toolchain deps are referenced by absolute path in `data_sources.yaml` (repo root), not copied in. `build/` is not pipeline data — keep it out of `DataFlow/`.
 
+### DataFlow/Deform_post layout (4 tiers — keep raw separate from regenerable)
+
+Logical sizes are inflated by hardlinks (merged dirs share inodes with the per-sequence `.pt`); the only truly expensive/irreproducible bytes are ~15 GB. Keep these tiers so a human can tell "what would hurt to lose" from "what regenerates in seconds":
+
+- `inputs/` — hand-authored primary inputs: `annotations/` (FEM freeze+contact JSON), `cameras/` (saved camera profiles). Not cheaply regenerable; treat as source.
+- `primary/` — the only expensive on-disk products: `twin_full/` (FEM `.ply` meshes + 800px renders) and `real_full/` (256px real renders + `labels.csv`; its per-sequence serialized `.pt` now lives in `preprocessed/sources/real`). **Keep them siblings in the same parent** — `main.py` derives `real_full` from `dirname(out_root)`, and `dpost/config.py` `out_root` defaults to `primary/twin_full`.
+- `preprocessed/` — regenerable caches organized by DOMAIN. `sources/<domain>/` holds the per-sequence serialized `.pt` (`real/`, `synt/{twin,gen}/`); `datasets/<domain>/` holds the assembled KiDKNet `data_dir`s (`real/`, `synt/{twin,gen}/`, `mixed/`). `gen/` holds synthetic sequences outside the paired real↔twin set — algorithmic forcegen, or twin renders whose real-image pair is unusable (currently `twin_seq04`: real forces are valid but `04.mp4` is black, so its twin is parked here as augmentation, not in the paired `twin/`). `mixed/` exists only under `datasets/` (there is no per-sequence mixed source). Batches are same-volume hardlinks: `datasets/real` + the real half of `datasets/mixed` link `sources/real`; `datasets/synt/twin` + the synt half of `datasets/mixed` link `sources/synt/twin`. Superseded sets are deleted outright (they regenerate via `assemble`).
+- `feature_cache/` — ConvNeXt feature caches, materialized on demand by `dknet.data.feature_cache.precompute_features`.
+- `_excluded/` — data blacklist. The maintainer removes the actual invalid files; the only tracked artefact is `blacklist.txt` (one record per dropped item: `name` + `reason`), the durable audit record of what was excluded and why (e.g. seq04: source `04.mp4` is black). Do not re-add bulk bad-data copies here.
+
+Moving a `datasets/<domain>` dir is a **three-place edit**, never a bare `mv`: (1) the KiDKNet config `data_dir`, (2) the absolute `data_dir` baked inside each split JSON (validated char-for-char — a mismatch raises), (3) feature-cache `source_data_dir`. Prefer **re-authoring the splits** with the new path (deterministic; `author_cv_splits.py` re-bakes cv5) over `mv`+hand-patching JSON. Directory renames on the same disk preserve inodes/hardlinks (zero byte movement), so a restructure = rename + re-author splits + re-point configs. CV splits authored by `KiDKNet/scripts/author_cv_splits.py` (5-fold, paired by id, leakage-guarded); `Deform_post/dpost/dataset/assemble.py` (by-sequence) + `KiDKNet/scripts/author_paired_splits.py` author the legacy fixed splits.
+
 ## Global rules (apply to every sub-project)
 
 ### Communication

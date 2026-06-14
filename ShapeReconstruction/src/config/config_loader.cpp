@@ -74,8 +74,10 @@ void warn_unknown_keys(const YAML::Node& node,
         "[--mesh-quality-fix true|false] "
         "[--canonicalize-pose true|false] "
         "[--pose-flip true|false]\n"
-        "Default input root for relative paths: <project_root>/originalData\n"
-        "Default output (without --output): <project_root>/outPut/PLY/<input_stem>.ply"
+        "Default input root for relative paths: "
+        "<workspace>/DataFlow/ShapeReconstruction/originalData\n"
+        "Default output (without --output): "
+        "<workspace>/DataFlow/ShapeReconstruction/outputs/PLY/<input_stem>.ply"
     );
 }
 

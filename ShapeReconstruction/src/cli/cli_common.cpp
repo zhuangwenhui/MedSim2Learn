@@ -45,8 +45,11 @@ std::filesystem::path infer_project_root_from_input(
 }
 
 bool looks_like_project_root(const std::filesystem::path& path) {
-    return std::filesystem::exists(path / "originalData") &&
-           std::filesystem::exists(path / "CMakeLists.txt");
+    // The module root holds the build definition and the mvrmesh headers. The
+    // raw input/output data moved to the workspace DataFlow/ tier, so the
+    // legacy originalData/ directory is no longer a reliable sentinel.
+    return std::filesystem::exists(path / "CMakeLists.txt") &&
+           std::filesystem::exists(path / "include" / "mvrmesh");
 }
 
 std::filesystem::path find_project_root_upward(std::filesystem::path start) {
@@ -77,9 +80,24 @@ std::filesystem::path find_project_root_upward(std::filesystem::path start) {
     return {};
 }
 
-// Candidate order for a relative input: cwd-relative, <root>/<input>, then
-// <root>/originalData/<input>; the first existing candidate wins, otherwise
-// the cwd-relative guess is returned for the caller's existence check.
+// The workspace DataFlow stage dir for ShapeReconstruction inputs/outputs,
+// derived from the module root (<ws>/ShapeReconstruction -> <ws>/DataFlow/
+// ShapeReconstruction). If the supplied root already sits inside DataFlow (a
+// degraded inference from a DataFlow input path), it is returned unchanged so
+// the DataFlow segment is not doubled.
+std::filesystem::path dataflow_stage_dir(
+    const std::filesystem::path& project_root) {
+    if (to_lower_ascii(project_root.parent_path().filename().string()) ==
+        "dataflow") {
+        return project_root;
+    }
+    return project_root.parent_path() / "DataFlow" / "ShapeReconstruction";
+}
+
+// Candidate order for a relative input: cwd-relative, <root>/<input>, the
+// DataFlow originalData/ root, then the legacy <root>/originalData/; the first
+// existing candidate wins, otherwise the cwd-relative guess is returned for the
+// caller's existence check.
 std::filesystem::path resolve_input_path(
     const std::filesystem::path& input,
     const std::filesystem::path& project_root) {
@@ -100,6 +118,13 @@ std::filesystem::path resolve_input_path(
             return project_candidate;
         }
 
+        const std::filesystem::path dataflow_candidate =
+            dataflow_stage_dir(project_root) / "originalData" / input;
+        if (std::filesystem::exists(dataflow_candidate)) {
+            return dataflow_candidate;
+        }
+
+        // Legacy in-repo input root, kept for older checkouts.
         const std::filesystem::path original_data_candidate =
             project_root / "originalData" / input;
         if (std::filesystem::exists(original_data_candidate)) {
@@ -120,7 +145,9 @@ std::vector<std::filesystem::path> default_outputs_for_input(
         project_root.empty() ? infer_project_root_from_input(in_path)
                              : project_root;
     const std::string stem = in_path.stem().string();
-    return {root / "outPut" / "PLY" / (stem + ".ply")};
+    // Default outputs route to the workspace DataFlow/ tier, never the source
+    // tree.
+    return {dataflow_stage_dir(root) / "outputs" / "PLY" / (stem + ".ply")};
 }
 
 }  // namespace

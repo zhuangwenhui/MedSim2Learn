@@ -57,7 +57,7 @@ warning; `nan`/`inf` are rejected.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `SIM2LEARN_PARAM_PLY_PATH` | `./plate.ply` | input surface PLY (ascii, triangles) |
+| `SIM2LEARN_PARAM_PLY_PATH` | (required) | input surface PLY (ascii, triangles); canonical fixture `DataFlow/DeformSim/fixtures/plate.ply` |
 | `SIM2LEARN_PARAM_ANNOTATION_PATH` | `./annotation.json` | freeze + contact-seed JSON (0-based indices) |
 | `SIM2LEARN_PARAM_FORCE_LIST_CSV` | empty | replay mode: bare `fx,fy,fz` rows replace sampling |
 | `SIM2LEARN_PARAM_NUM_VECTOR` | 100 | force vectors per contact seed |

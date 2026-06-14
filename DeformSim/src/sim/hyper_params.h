@@ -19,7 +19,10 @@ struct SimHyperParams {
     float material_young = 1.0f;
     float material_poisson = 0.40f;
 
-    std::string ply_path = "./plate.ply";
+    // Input surface PLY; required at runtime via SIM2LEARN_PARAM_PLY_PATH.
+    // The in-repo fixture moved to the workspace DataFlow/ tier; the canonical
+    // path is DataFlow/DeformSim/fixtures/plate.ply (no in-repo default).
+    std::string ply_path = "";
     std::string annotation_path = "./annotation.json";
     // Optional explicit force list (bare "fx,fy,fz" CSV, no header). When set,
     // these vectors replace random+cone sampling for exact per-frame replay.

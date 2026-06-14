@@ -10,6 +10,20 @@ endif()
 set(TETGEN_ROOT "${MVRMESH_TETGEN_DEFAULT_ROOT}" CACHE PATH
     "Root directory of the TetGen 1.6 source (workspace third_party by default)")
 
+# Self-heal a stale cached TETGEN_ROOT: a value persisted from a prior configure
+# may point at a location that no longer holds the TetGen sources (e.g. the
+# pre-vendoring D:/dev checkout). Rather than fail the whole configure, fall back
+# to the resolved default. An explicit, VALID -DTETGEN_ROOT is left untouched.
+if(NOT EXISTS "${TETGEN_ROOT}/predicates.cxx"
+   AND EXISTS "${MVRMESH_TETGEN_DEFAULT_ROOT}/predicates.cxx")
+    message(STATUS
+        "TETGEN_ROOT '${TETGEN_ROOT}' lacks TetGen sources; using vendored "
+        "'${MVRMESH_TETGEN_DEFAULT_ROOT}'")
+    set(TETGEN_ROOT "${MVRMESH_TETGEN_DEFAULT_ROOT}" CACHE PATH
+        "Root directory of the TetGen 1.6 source (workspace third_party by default)"
+        FORCE)
+endif()
+
 set(MVRMESH_REQUIRED_TETGEN_SOURCES
     "${TETGEN_ROOT}/predicates.cxx"
     "${TETGEN_ROOT}/tetgen.cxx"

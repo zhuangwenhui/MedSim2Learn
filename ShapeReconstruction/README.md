@@ -8,7 +8,7 @@ C++20 surface reconstruction stage of MedSim2Learn: reads `.mvr` volumetric data
 
 ShapeReconstruction is the **mesh production + FEM pre-flight** stage of the [MedSim2Learn](../) workflow. It serves four goals:
 
-- **G1 (input/output convention)**: reads `.mvr` from `originalData/MVR/`, writes `.ply` to `outPut/PLY/`
+- **G1 (input/output convention)**: reads `.mvr` from `DataFlow/ShapeReconstruction/originalData/MVR/`, writes `.ply` to `DataFlow/ShapeReconstruction/outputs/PLY/` (workspace data tier; legacy in-repo `originalData/`/`outPut/` still accepted as a fallback)
 - **G2 (repair input)**: removes self-intersections, duplicate polygons, degenerate faces (CGAL Stage 1)
 - **G3 (mesh control)**: increases or regularizes triangle count via configurable algorithms (`--adaptive-remesh`, `--uniform-subdivide`, `--taubin-smooth`, `--sdf-reconstruct`, `--cgal-mesh`)
 - **G4 (FEM pressure preview)**: standalone tool projects DeformSim's K/L matrix memory + DGETRI/DGEMV flops + output disk for any candidate `.ply`
@@ -61,18 +61,18 @@ The default mesh path on `kidney.mvr` (no flags = direct boundary extraction):
 
 ```powershell
 cd d:\MedSim2Learn\ShapeReconstruction
-& ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe originalData\MVR\kidney.mvr
+& ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr
 ```
 
-Output: `outPut\PLY\kidney.ply` (424 vertices, 500 triangles).
+Output: `..\DataFlow\ShapeReconstruction\outputs\PLY\kidney.ply` (424 vertices, 500 triangles).
 
 Then evaluate FEM pressure:
 
 ```powershell
 & ..\build\ShapeReconstruction\vs2022-x64\Debug\check_fem_pressure.exe `
-    outPut\PLY\kidney.ply -o outPut\PLY\kidney_pressure.json
+    ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney.ply -o ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_pressure.json
 
-Get-Content outPut\PLY\kidney_pressure.json
+Get-Content ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_pressure.json
 ```
 
 Expected JSON keys: `v_surface=424`, `v_tet=424`, `expansion_ratio=1.00`, `matrix_order_3v_tet=1272`, `memory_peak_bytes_kl=25887744` (~24.7 MiB), `tetgen_success=true`.
@@ -81,8 +81,8 @@ To generate a shape-preserving denser candidate for separate pressure testing:
 
 ```powershell
 & ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe `
-    originalData\MVR\kidney.mvr `
-    -o outPut\PLY\kidney_uniform_iter1.ply `
+    ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr `
+    -o ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_uniform_iter1.ply `
     --uniform-subdivide `
     --uniform-iterations 1
 ```
@@ -93,14 +93,14 @@ This keeps the input shape vertices fixed and splits each triangle into four tri
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File scripts\run_pressure_matrix.ps1 `
-    -InputMvr originalData\MVR\kidney.mvr `
-    -OutDir outPut\REPORT `
+    -InputMvr ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr `
+    -OutDir ..\DataFlow\ShapeReconstruction\outputs\REPORT `
     -CliExe ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe `
     -PressureExe ..\build\ShapeReconstruction\vs2022-x64\Debug\check_fem_pressure.exe `
-    -BaselinePly ..\DeformSim\plate.ply
+    -BaselinePly ..\DataFlow\DeformSim\fixtures\plate.ply
 ```
 
-This runs 6 mesh algorithm candidates on the kidney input and writes a Markdown comparison report at `outPut\REPORT\pressure_matrix.md` with V_surf, V_tet, memory, DGETRI, DGEMV, and output disk per row, including the DeformSim plate.ply baseline.
+This runs 6 mesh algorithm candidates on the kidney input and writes a Markdown comparison report at `..\DataFlow\ShapeReconstruction\outputs\REPORT\pressure_matrix.md` with V_surf, V_tet, memory, DGETRI, DGEMV, and output disk per row, including the DeformSim plate.ply baseline.
 
 ### Run the accepted uniform Taubin main-flow mesh
 
@@ -108,8 +108,8 @@ The accepted mesh-in-place race result is now exposed through `mvr_to_mesh_cli`:
 
 ```powershell
 & ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe `
-    originalData\MVR\kidney.mvr `
-    -o outPut\PLY\kidney_uniform_taubin.ply `
+    ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr `
+    -o ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_uniform_taubin.ply `
     --uniform-subdivide `
     --uniform-iterations 2 `
     --taubin-smooth
@@ -123,8 +123,8 @@ The accepted closed FEM-budget reconstruction path is now exposed through `mvr_t
 
 ```powershell
 & ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe `
-    originalData\MVR\kidney.mvr `
-    -o outPut\PLY\kidney_sdf_reconstruct.ply `
+    ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr `
+    -o ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_sdf_reconstruct.ply `
     --sdf-reconstruct
 ```
 
@@ -134,8 +134,8 @@ To reproduce the historical highest-precision SDF + CGAL remesh reference path c
 
 ```powershell
 & ..\build\ShapeReconstruction\vs2022-x64\Debug\mvr_to_mesh_cli.exe `
-    originalData\MVR\kidney.mvr `
-    -o outPut\PLY\kidney_sdf96_highest_precision.ply `
+    ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr `
+    -o ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_sdf96_highest_precision.ply `
     --sdf-reconstruct `
     --sdf-resolution 96 `
     --sdf-target-edge-length 0
@@ -155,8 +155,8 @@ Historical tracks and cleanup records are preserved in `maintainLogs/2026-05-05-
 
 | Flag | Default | Range / Type | Effect |
 |---|---|---|---|
-| `<input.mvr>` | required | path | Positional. Searched cwd -> `<project_root>/` -> `<project_root>/originalData/`. |
-| `-o <base>`, `--output <base>` | `<root>/outPut/PLY/<stem>.ply` | path | Output base path; extension must be `.ply` or `.PLY`. |
+| `<input.mvr>` | required | path | Positional. Searched cwd -> `<project_root>/` -> `<workspace>/DataFlow/ShapeReconstruction/originalData/` -> legacy `<project_root>/originalData/`. |
+| `-o <base>`, `--output <base>` | `<workspace>/DataFlow/ShapeReconstruction/outputs/PLY/<stem>.ply` | path | Output base path; extension must be `.ply` or `.PLY`. |
 | `--config <yaml>`, `-c <yaml>` | none | path | YAML config file. Three-layer merge: hardcoded defaults -> YAML -> CLI overrides. |
 | `--mode <name>` | `direct_surface` | string | Surface mode name. One of: `direct_surface`, `adaptive_remesh`, `uniform_subdivide`, `uniform_taubin`, `sdf_reconstruct`. |
 | `--adaptive-remesh` | off | flag | Enable curvature-driven midpoint subdivision. |
@@ -228,7 +228,7 @@ Two modes share argument parsing:
 | `-BaselinePly` | "" | Optional plate.ply for matrix baseline row. |
 | `-NSamples` | 22500 | Forwarded to `check_fem_pressure --n-samples`. |
 
-The script currently runs 6 built-in candidates: `direct`, `adaptive_iter1`, `adaptive_iter3`, `cgal_default`, `cgal_L005` (target_edge_length 0.05), `cgal_L010` (target_edge_length 0.10). It does not include `--uniform-subdivide`. If you need uniform candidates, run a uniform `mvr_to_mesh_cli` command first (for example `mvr_to_mesh_cli.exe originalData\MVR\kidney.mvr --uniform-subdivide -o outPut\PLY\kidney_uniform.ply`) and then add the generated `.ply` files manually to the matrix list (or extend `$candidates` in this script).
+The script currently runs 6 built-in candidates: `direct`, `adaptive_iter1`, `adaptive_iter3`, `cgal_default`, `cgal_L005` (target_edge_length 0.05), `cgal_L010` (target_edge_length 0.10). It does not include `--uniform-subdivide`. If you need uniform candidates, run a uniform `mvr_to_mesh_cli` command first (for example `mvr_to_mesh_cli.exe ..\DataFlow\ShapeReconstruction\originalData\MVR\kidney.mvr --uniform-subdivide -o ..\DataFlow\ShapeReconstruction\outputs\PLY\kidney_uniform.ply`) and then add the generated `.ply` files manually to the matrix list (or extend `$candidates` in this script).
 
 Per-candidate failures (e.g., `cgal_L005` may fail CGAL precondition on certain inputs) are warned and skipped; the report still produces with the surviving rows.
 
@@ -327,7 +327,7 @@ For kidney.mvr specifically, `cgal_L005` (target 0.05) fails CGAL's `protect_con
 
 ## 5. DeformSim Integration
 
-ShapeReconstruction's output `.ply` is consumed by the `DeformSim` sibling project as the deforming object input. DeformSim's reference input is `DeformSim/plate.ply`, a 2D plate mesh with V_surf = 1922, F = 3840.
+ShapeReconstruction's output `.ply` is consumed by the `DeformSim` sibling project as the deforming object input. DeformSim's reference fixture is `DataFlow/DeformSim/fixtures/plate.ply`, a 2D plate mesh with V_surf = 1922, F = 3840.
 
 ### 5.1 Format contract
 
