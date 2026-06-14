@@ -23,11 +23,15 @@ THICKNESS_MM = 52.0
 
 
 def _find_sim_ply_dir(seq_dir):
-    """Return the latest DeformedSample_ComplexObject* dir under <seq_dir>/sim."""
-    cands = sorted(glob.glob(os.path.join(seq_dir, "sim", "DeformedSample_ComplexObject*")))
+    """Return the latest DeformedSample_* dir under <seq_dir>/sim.
+
+    Matches any "DeformedSample_*" output, decoupled from the retired
+    "ComplexObject" project name still embedded in the exe's folder prefix.
+    """
+    cands = sorted(glob.glob(os.path.join(seq_dir, "sim", "DeformedSample_*")))
     if not cands:
         raise FileNotFoundError(
-            f"no sim/DeformedSample_ComplexObject* dir under {seq_dir}")
+            f"no sim/DeformedSample_* dir under {seq_dir}")
     return cands[-1]
 
 
@@ -222,11 +226,13 @@ def _render_plot_background(fmag, F, maxu, meta, fps, plot_size):
 
 
 def _twin_sync_mp4(seq_dir, fmag, F, maxu, meta, fps, sample_ids):
-    """Write <seq_dir>/twin_sync.mp4: side-by-side render | force-cursor plot.
+    """Write <seq_dir>/twin_sync.mp4: render | force-cursor plot, readout below.
 
     Left = the rendered PNG for the frame; right = the pre-rendered static force
-    plot with a moving vertical cursor and a live text overlay. cv2 'mp4v' at
-    `fps`. Returns (path, n_frames_written).
+    plot with a moving vertical cursor. The live numeric readout is a two-row
+    strip BELOW the two panels (off the plot image, so it never occludes the
+    waveform): row 1 = Frame / t / max|u|, row 2 = Fx / Fy / Fz / |F|. cv2 'mp4v'
+    at `fps`. Returns (path, n_frames_written).
     """
     import cv2
 
@@ -248,8 +254,12 @@ def _twin_sync_mp4(seq_dir, fmag, F, maxu, meta, fps, sample_ids):
     bg_bgr = cv2.cvtColor(bg, cv2.COLOR_RGB2BGR)
     bg_h, bg_w = bg_bgr.shape[:2]
 
+    content_h = max(panel, bg_h)
+    # The dynamic readout sits in a strip BELOW the panels (two rows), off the
+    # force-plot image so the waveform is never occluded.
+    strip_h = 64
     total_w = panel + bg_w
-    total_h = max(panel, bg_h)
+    total_h = content_h + strip_h
     out_path = os.path.join(seq_dir, "twin_sync.mp4")
     fourcc = cv2.VideoWriter.fourcc(*"mp4v")
     vw = cv2.VideoWriter(out_path, fourcc, float(fps), (total_w, total_h))
@@ -258,6 +268,7 @@ def _twin_sync_mp4(seq_dir, fmag, F, maxu, meta, fps, sample_ids):
 
     t = np.arange(n) / float(fps)
     font = cv2.FONT_HERSHEY_SIMPLEX
+    idw = len(str(n))
     n_written = 0
     try:
         for i, sid in enumerate(sample_ids):
@@ -275,22 +286,18 @@ def _twin_sync_mp4(seq_dir, fmag, F, maxu, meta, fps, sample_ids):
             cx = max(0, min(bg_w - 1, cx))
             cv2.line(plot, (cx, cur_top), (cx, cur_bot), (0, 0, 0), 1)
             frame[0:bg_h, panel:panel + bg_w] = plot
-            # Live text overlay (top-left of the plot panel).
+            # Bottom strip: two-row numeric readout, off the plot image.
+            # Row 1: Frame / t / max|u|;  row 2: Fx / Fy / Fz / |F|.
+            cv2.line(frame, (0, content_h), (total_w, content_h), (80, 80, 80), 1)
             fx, fy, fz = F[i]
-            lines = [
-                f"Frame {i:5d}/{n}",
-                f"t   = {t[i]:7.3f} s",
-                f"Fx  = {fx:+.4f}",
-                f"Fy  = {fy:+.4f}",
-                f"Fz  = {fz:+.4f}",
-                f"|F| = {fmag[i]:.4f} N",
-                f"max|u|= {maxu[i]:.3f} mm",
-            ]
-            ty = 20
-            for ln in lines:
-                cv2.putText(frame, ln, (panel + 8, ty), font, 0.42,
-                            (0, 0, 0), 1, cv2.LINE_AA)
-                ty += 16
+            row1 = (f"Frame {i:>{idw}}/{n}     t = {t[i]:7.3f} s     "
+                    f"max|u| = {maxu[i]:7.3f} mm")
+            row2 = (f"Fx = {fx:+.4f}     Fy = {fy:+.4f}     "
+                    f"Fz = {fz:+.4f}     |F| = {fmag[i]:.4f} N")
+            cv2.putText(frame, row1, (14, content_h + 26), font, 0.5,
+                        (255, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(frame, row2, (14, content_h + 52), font, 0.5,
+                        (255, 255, 255), 1, cv2.LINE_AA)
             vw.write(frame)
             n_written += 1
     finally:

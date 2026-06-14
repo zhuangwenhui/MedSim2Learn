@@ -2,10 +2,12 @@
 # {workspace} expands to the repo root, {dataflow} to <workspace>/DataFlow.
 # CLI flags override individual values; see `python main.py --help`.
 
+# External read-only corpus; canonical path is
+# data_sources.yaml[real_visual_force_dataset].path -- keep in sync.
 real_data_root: "D:/Image2Force Data/Real Visual-force Paired Data"
 mesh: "{dataflow}/ShapeReconstruction/meshes/kidney_anat.ply"
-annotation: "{dataflow}/Deform_post/annotations/kidney_anat_contact_k1.json"
-out_root: "{dataflow}/Deform_post/twin_full"
+annotation: "{dataflow}/Deform_post/inputs/annotations/kidney_anat_contact_k1.json"
+out_root: "{dataflow}/Deform_post/primary/twin_full"
 exe: "{workspace}/build/DeformSim/vs2022-x64/Release/LVBasicFramework.exe"
 mkl_bin: "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/bin"
 compiler_bin: "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
@@ -48,8 +50,8 @@ sim:
   seed: 20260530
 
 serialize:
-  # 224x224 keeps production .pt around 1 GB/seq (raw 800 px was ~13 GB/seq).
-  resize: [224, 224]
+  # 256x256 matches the real corpus and the experiment datasets (raw 800 px ~13 GB/seq).
+  resize: [256, 256]
 
 batch:
   max_parallel: 1

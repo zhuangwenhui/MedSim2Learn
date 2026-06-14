@@ -11,7 +11,6 @@ run_status.json the batch driver can inspect.
 import csv
 import json
 import os
-import shutil
 
 import numpy as np
 import open3d as o3d
@@ -190,14 +189,11 @@ def run_sequence(recipe, seq, out_dir, subsample=None, with_artifacts=True,
         stage = "serialize"
         _write_status(out_dir, stage, "running")
         print("=== Stage 4: serialize ===")
-        # DataPreprocessor wants exactly one CSV next to labels.csv, so the
-        # labels get an isolated directory (forces_model.csv stays in out_dir).
-        labels_dir = os.path.join(out_dir, "labels_only")
-        os.makedirs(labels_dir, exist_ok=True)
-        labels_iso = os.path.join(labels_dir, "labels.csv")
-        shutil.copyfile(os.path.join(out_dir, "labels.csv"), labels_iso)
-        serialize_labels_dataset(png_dir, labels_iso, data_dir,
-                                 resize=recipe.serialize.resize)
+        # serialize_labels_dataset reads the explicit labels.csv, so the other
+        # CSVs already in out_dir (forces_model.csv, maxu.csv) no longer force an
+        # isolated labels_only/ copy.
+        serialize_labels_dataset(png_dir, os.path.join(out_dir, "labels.csv"),
+                                 data_dir, resize=recipe.serialize.resize)
 
         if with_artifacts:
             stage = "artifacts"

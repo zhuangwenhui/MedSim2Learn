@@ -13,6 +13,7 @@ maps onto one dpost module:
              -> artifacts -> cleanup), config-driven
   batch      many sequences via `run` subprocesses, throttled, with batch_log.csv
   assemble   per-sequence .pt outputs -> merged KiDKNet data_dir + splits
+  realbuild  real videos (Data Processpor) -> image-force .pt per sequence
   selftest   run every module's self-test
 
 Defaults come from configs/kidney_twin.yaml (override with --config); explicit
@@ -185,6 +186,20 @@ def _build_parser():
                              "(see `assemble --help` via the module for full flags)")
     pg.add_argument("rest", nargs=argparse.REMAINDER,
                     help="Arguments forwarded to dpost.dataset.assemble")
+
+    # --- realbuild ------------------------------------------------------
+    prb = sub.add_parser(
+        "realbuild",
+        help="Real videos (Data Processpor Origin_data) -> image-force .pt per seq")
+    add_config(prb)
+    prb.add_argument("--seqs", default="01..32",
+                     help="Comma list and/or inclusive ranges, e.g. '01..32'")
+    prb.add_argument("--out-root", type=str, default=None,
+                     help="Default: <dataflow>/Deform_post/real_full")
+    prb.add_argument("--size", type=int, default=256,
+                     help="Square output size (matches the synt render spec)")
+    prb.add_argument("--no-mask", action="store_true",
+                     help="Disable the circular endoscope FOV mask")
 
     # --- selftest -------------------------------------------------------
     sub.add_parser("selftest", help="Run every module's self-test")
@@ -444,6 +459,34 @@ def _cmd_assemble(args):
     raise SystemExit(asm.main(rest))
 
 
+def _cmd_realbuild(args):
+    from dpost.realvideo import build_sequence
+    from dpost.simrun.batch import expand_seq_list
+
+    recipe = _recipe_from(args)
+    origin = recipe.resolved("real_origin_root")
+    vis_dir = os.path.join(origin, "visual_data")
+    frc_dir = os.path.join(origin, "force_data")
+    out_root = args.out_root or os.path.join(
+        os.path.dirname(recipe.resolved("out_root")), "real_full")
+    os.makedirs(out_root, exist_ok=True)
+
+    seqs = expand_seq_list(args.seqs)
+    total, built = 0, []
+    for seq in seqs:
+        mp4 = os.path.join(vis_dir, f"{seq}.mp4")
+        csv = os.path.join(frc_dir, f"{seq}.csv")
+        if not (os.path.isfile(mp4) and os.path.isfile(csv)):
+            print(f"[skip] seq {seq}: missing source ({mp4} / {csv})")
+            continue
+        n = build_sequence(seq, mp4, csv, os.path.join(out_root, f"seq{seq}"),
+                           size=args.size, mask=not args.no_mask)
+        total += n
+        built.append(seq)
+    print(f"realbuild: {len(built)} sequence(s), {total} frames @ {args.size}px "
+          f"-> {out_root}")
+
+
 def _cmd_selftest(_args):
     from dpost import annotate as ann_mod
     from dpost import artifacts as artifacts_mod
@@ -453,8 +496,10 @@ def _cmd_selftest(_args):
     from dpost.dataset import serialize as serialize_mod
     from dpost.forces import gen as forcegen_mod
     from dpost.forces import real as forces_mod
+    from dpost.realvideo import _self_test as realvideo_self_test
     from dpost.simrun import batch as batch_mod
 
+    realvideo_self_test()
     forces_mod._self_test()
     forcegen_mod._self_test()
     profile_mod._self_test()
@@ -488,6 +533,7 @@ def main(argv=None):
         "forcegen": _cmd_forcegen,
         "camera": _cmd_camera,
         "assemble": _cmd_assemble,
+        "realbuild": _cmd_realbuild,
         "selftest": _cmd_selftest,
     }
     handler = handlers.get(args.cmd)

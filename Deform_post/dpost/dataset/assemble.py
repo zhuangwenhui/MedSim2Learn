@@ -93,6 +93,7 @@ class ReadySequence:
 def discover_ready_sequences(
     twin_roots: Sequence[Path],
     only_seqs: Optional[Sequence[str]] = None,
+    prefixes: Optional[Sequence[str]] = None,
 ) -> Tuple[List[ReadySequence], List[str]]:
     """Find READY sequence directories under the supplied twin roots.
 
@@ -116,7 +117,8 @@ def discover_ready_sequences(
     seen_ids: Dict[str, Path] = {}
     allow = set(only_seqs) if only_seqs else None
 
-    for root in twin_roots:
+    for idx, root in enumerate(twin_roots):
+        prefix = prefixes[idx] if prefixes else None
         if not root.exists():
             skipped.append(f"{root} (root does not exist)")
             continue
@@ -125,7 +127,8 @@ def discover_ready_sequences(
                 continue
             if not entry.name.lower().startswith("seq"):
                 continue
-            if allow is not None and entry.name not in allow:
+            seq_id = f"{prefix}_{entry.name}" if prefix else entry.name
+            if allow is not None and seq_id not in allow:
                 skipped.append(f"{entry} (excluded by --only-seqs)")
                 continue
             batch_path = entry / "dataset" / BATCH_FILENAME
@@ -143,19 +146,20 @@ def discover_ready_sequences(
                 )
                 continue
 
-            if entry.name in seen_ids:
+            if seq_id in seen_ids:
                 # Sequence ids must be unique across roots so global indexing
-                # and split assignment stay unambiguous.
+                # and split assignment stay unambiguous; use --prefixes when
+                # roots share seq dir names (e.g. real/synt both 'seq01').
                 raise ValueError(
-                    f"Duplicate sequence id '{entry.name}' found in both "
-                    f"{seen_ids[entry.name]} and {root}. Sequence ids must be "
-                    "unique across twin roots."
+                    f"Duplicate sequence id '{seq_id}' found in both "
+                    f"{seen_ids[seq_id]} and {root}. Use --prefixes to "
+                    "disambiguate same-named seq dirs across roots."
                 )
-            seen_ids[entry.name] = root
+            seen_ids[seq_id] = root
 
             ready.append(
                 ReadySequence(
-                    seq_id=entry.name,
+                    seq_id=seq_id,
                     root=root,
                     batch_path=batch_path,
                     metadata_path=metadata_path,
@@ -416,13 +420,15 @@ def assemble(
     seed: int,
     limit_per_seq: Optional[int],
     only_seqs: Optional[List[str]] = None,
+    prefixes: Optional[List[str]] = None,
 ) -> Dict:
     """Run the full assembly + split authoring pipeline.
 
     Returns:
         A summary dict describing the merged dataset and split assignment.
     """
-    ready, skipped = discover_ready_sequences(twin_roots, only_seqs=only_seqs)
+    ready, skipped = discover_ready_sequences(
+        twin_roots, only_seqs=only_seqs, prefixes=prefixes)
     if not ready:
         raise RuntimeError("No READY sequences discovered; nothing to assemble.")
 
@@ -470,18 +476,28 @@ def assemble(
     with open(out_dir / "sequence_index.json", "w", encoding="utf-8") as handle:
         json.dump(sequence_index_payload, handle, indent=2)
 
+    # Propagate the real image_size / original_image_size / normalization from a
+    # representative sequence's metadata instead of hardcoding (real is 256px,
+    # twin is 224px); dataset_name follows the output directory.
+    rep_meta = {}
+    try:
+        with open(ready[0].metadata_path, "r", encoding="utf-8") as handle:
+            rep_meta = yaml.safe_load(handle) or {}
+    except OSError:
+        rep_meta = {}
+
     # Write metadata.yaml (KiDKNet-compatible; loose batch_size).
     metadata = {
         "total_samples": dataset_size,
         "batch_size": representative_batch_size,
-        "normalize_images": False,
-        "normalize_forces": False,
-        "force_normalization": None,
-        "image_size": [224, 224],
-        "original_image_size": [800, 800],
+        "normalize_images": bool(rep_meta.get("normalize_images", False)),
+        "normalize_forces": bool(rep_meta.get("normalize_forces", False)),
+        "force_normalization": rep_meta.get("force_normalization"),
+        "image_size": rep_meta.get("image_size", [224, 224]),
+        "original_image_size": rep_meta.get("original_image_size", [800, 800]),
         "n_sequences": len(seq_order),
         "sequences": seq_order,
-        "dataset_name": "twin_merged",
+        "dataset_name": out_dir.name,
         "creation_time": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
     with open(out_dir / "metadata.yaml", "w", encoding="utf-8") as handle:
@@ -670,6 +686,11 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
         help="Comma-separated twin root dir(s), e.g. "
              "'D:\\...\\DataFlow\\Deform_post\\twin_full'.",
     )
+    parser.add_argument(
+        "--prefixes", type=str, default=None,
+        help="Comma-separated id prefix per --twin-roots entry (e.g. "
+             "'real,synt'); disambiguates same-named seq dirs across roots, "
+             "yielding ids like 'real_seq01'.")
     parser.add_argument("--out-dir", type=str,
                         help="Output merged data_dir.")
     parser.add_argument("--split-out", type=str,
@@ -709,6 +730,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
 
     twin_roots = [Path(p.strip()) for p in args.twin_roots.split(",") if p.strip()]
+    prefixes = ([p.strip() for p in args.prefixes.split(",")]
+                if args.prefixes else None)
+    if prefixes is not None and len(prefixes) != len(twin_roots):
+        print(f"[error] --prefixes count {len(prefixes)} != --twin-roots count "
+              f"{len(twin_roots)}", file=sys.stderr)
+        return 2
     summary = assemble(
         twin_roots=twin_roots,
         out_dir=Path(args.out_dir),
@@ -719,6 +746,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         seed=args.seed,
         limit_per_seq=args.limit_per_seq,
         only_seqs=_parse_seq_list(args.only_seqs) or None,
+        prefixes=prefixes,
     )
     print()
     print(f"[done] assembled {summary['n_ready']} sequences, "

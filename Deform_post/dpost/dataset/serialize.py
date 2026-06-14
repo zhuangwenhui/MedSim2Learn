@@ -47,6 +47,10 @@ class DataPreprocessor:
 
     def __init__(self):
         self.dataset_dir = None
+        # Explicit labels CSV path; when set, it is read directly instead of
+        # scanning dataset_dir for the single CSV (so forces_model.csv / maxu.csv
+        # may sit beside labels.csv without forcing an isolated copy).
+        self.label_csv = None
         self.image_dir = None
         self.output_dir = None
         self.batch_size = 2000
@@ -68,8 +72,13 @@ class DataPreprocessor:
         self._tensor_cache = {}
 
     def set_dataset_directory(self, dataset_dir):
-        """Set the directory holding the (single) force label CSV."""
+        """Set the directory holding the force label CSV (used for naming)."""
         self.dataset_dir = dataset_dir
+        return self
+
+    def set_label_csv(self, label_csv):
+        """Set the explicit labels CSV path, bypassing the single-CSV-dir scan."""
+        self.label_csv = label_csv
         return self
 
     def set_image_directory(self, image_dir):
@@ -130,19 +139,27 @@ class DataPreprocessor:
         return self
 
     def _load_force_data(self):
-        """Load the single force CSV -> {SampleID: (fx, fy, fz)}."""
-        assert self.dataset_dir is not None, "dataset_dir not set"
-        csv_files = [f for f in os.listdir(self.dataset_dir) if f.endswith(".csv")]
-        if not csv_files:
-            raise FileNotFoundError(
-                "No CSV file found in the dataset directory."
-            )
-        elif len(csv_files) > 1:
-            raise ValueError(
-                "Multiple CSV files found. Ensure only one CSV file exists."
-            )
+        """Load the force CSV -> {SampleID: (fx, fy, fz)}.
 
-        csv_path = os.path.join(self.dataset_dir, csv_files[0])
+        Prefers the explicit ``label_csv`` when set; otherwise falls back to the
+        single CSV in ``dataset_dir`` (the legacy single-CSV-dir contract).
+        """
+        if self.label_csv is not None:
+            csv_path = self.label_csv
+            if not os.path.isfile(csv_path):
+                raise FileNotFoundError(f"labels CSV not found: {csv_path}")
+        else:
+            assert self.dataset_dir is not None, "dataset_dir not set"
+            csv_files = [f for f in os.listdir(self.dataset_dir) if f.endswith(".csv")]
+            if not csv_files:
+                raise FileNotFoundError(
+                    "No CSV file found in the dataset directory."
+                )
+            elif len(csv_files) > 1:
+                raise ValueError(
+                    "Multiple CSV files found. Ensure only one CSV file exists."
+                )
+            csv_path = os.path.join(self.dataset_dir, csv_files[0])
 
         try:
             df = pd.read_csv(csv_path, engine="pyarrow")
@@ -408,22 +425,19 @@ class DataPreprocessor:
 def serialize_labels_dataset(png_dir, labels_csv, out_data_dir, resize=None):
     """Serialize PNG dir + labels.csv to preprocessed_batch_*.pt.
 
-    DataPreprocessor expects exactly ONE CSV in its dataset dir with columns
-    SampleID,force_x,force_y,force_z; the directory holding labels.csv must
-    contain no other CSV (forces_model.csv belongs elsewhere). Images stay raw
-    /255 floats (no normalization), matching the historical replay datasets.
+    Reads forces from the EXPLICIT ``labels_csv`` (columns SampleID,force_x,
+    force_y,force_z), so its directory may also hold other CSVs (forces_model.csv,
+    maxu.csv) without forcing an isolated labels-only copy. Images stay raw /255
+    floats (no normalization), matching the historical replay datasets.
     """
-    dataset_dir = os.path.dirname(os.path.abspath(labels_csv))
-    csvs = [f for f in os.listdir(dataset_dir) if f.endswith(".csv")]
-    if csvs != [os.path.basename(labels_csv)]:
-        raise ValueError(
-            f"DataPreprocessor needs exactly one CSV in {dataset_dir}; found {csvs}. "
-            f"Keep only labels.csv there (forces_model.csv belongs elsewhere)."
-        )
+    labels_csv = os.path.abspath(labels_csv)
+    if not os.path.isfile(labels_csv):
+        raise FileNotFoundError(f"labels CSV not found: {labels_csv}")
     os.makedirs(out_data_dir, exist_ok=True)
 
     dp = DataPreprocessor()
-    dp.set_dataset_directory(dataset_dir)
+    dp.set_dataset_directory(os.path.dirname(labels_csv))
+    dp.set_label_csv(labels_csv)
     dp.set_image_directory(png_dir)
     dp.set_output_directory(out_data_dir)
     dp.set_resize(bool(resize), tuple(resize) if resize else None)

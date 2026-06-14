@@ -73,8 +73,9 @@ class SimConfig:
 
 @dataclasses.dataclass
 class SerializeConfig:
-    # 224x224 keeps production .pt around 1 GB/seq (raw 800 px was ~13 GB/seq).
-    resize: tuple = (224, 224)
+    # 256x256 matches the real corpus and the experiment datasets (datasets/*);
+    # raw 800 px was ~13 GB/seq.
+    resize: tuple = (256, 256)
 
 
 @dataclasses.dataclass
@@ -87,12 +88,18 @@ class BatchConfig:
 class RecipeConfig:
     """One fully-resolved experiment recipe."""
 
+    # External read-only corpus; canonical path lives in
+    # data_sources.yaml[real_visual_force_dataset].path -- keep the two in sync.
     real_data_root: str = "D:/Image2Force Data/Real Visual-force Paired Data"
+    # Purified real corpus (Data Processpor pipeline): visual_data/NN.mp4 +
+    # force_data/NN.csv, frame i <-> force row i (alignment pre-validated).
+    # Canonical path: data_sources.yaml[real_origin_data].path -- keep in sync.
+    real_origin_root: str = "D:/Data Processpor/Origin_data"
     mesh: str = "{dataflow}/ShapeReconstruction/meshes/kidney_anat.ply"
-    annotation: str = "{dataflow}/Deform_post/annotations/kidney_anat_contact_k1.json"
-    out_root: str = "{dataflow}/Deform_post/twin_full"
+    annotation: str = "{dataflow}/Deform_post/inputs/annotations/kidney_anat_contact_k1.json"
+    out_root: str = "{dataflow}/Deform_post/primary/twin_full"
     exe: str = "{workspace}/build/DeformSim/vs2022-x64/Release/LVBasicFramework.exe"
-    cameras_dir: str = "{dataflow}/Deform_post/cameras"
+    cameras_dir: str = "{dataflow}/Deform_post/inputs/cameras"
     mkl_bin: str = "C:/Program Files (x86)/Intel/oneAPI/mkl/latest/bin"
     compiler_bin: str = "C:/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
     fps: float = DEFAULT_FPS

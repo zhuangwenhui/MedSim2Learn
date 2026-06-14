@@ -1,8 +1,8 @@
 """Run one DeformSim exact replay as a subprocess.
 
 The exe is configured exclusively through SIM2LEARN_PARAM_* environment
-variables and writes its timestamped "DeformedSample_ComplexObject_*" folder
-relative to its working directory, so it is launched from inside `sim_dir`.
+variables and writes its timestamped "DeformedSample_*" folder relative to its
+working directory, so it is launched from inside `sim_dir`.
 At runtime the exe only needs the Intel MKL and compiler runtime DLLs on
 PATH (the Visual Studio environment that the build scripts import is a
 compile-time concern and is not replicated here).
@@ -58,12 +58,14 @@ def run_deformsim_replay(exe, mesh_path, annotation_path, sim_dir,
     # Fall back to the newest dir (e.g. when re-running into a pre-populated sim_dir).
     existing = _deformed_dirs(sim_dir)
     if not existing:
-        raise RuntimeError(f"no DeformedSample_ComplexObject* dir under {sim_dir}")
+        raise RuntimeError(f"no DeformedSample_* dir under {sim_dir}")
     newest = max(existing, key=lambda d: os.path.getmtime(os.path.join(sim_dir, d)))
     return os.path.join(sim_dir, newest)
 
 
 def _deformed_dirs(sim_dir):
+    # Match any "DeformedSample_*" output (decoupled from the retired
+    # "ComplexObject" project name baked into the exe's folder prefix).
     return [d for d in os.listdir(sim_dir)
-            if d.startswith("DeformedSample_ComplexObject")
+            if d.startswith("DeformedSample_")
             and os.path.isdir(os.path.join(sim_dir, d))]
