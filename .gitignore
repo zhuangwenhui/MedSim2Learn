@@ -133,6 +133,7 @@ Testing/
 
 # KiDKNet training/evaluation artifacts
 /KiDKNet/configs/dataset_split.json
+/KiDKNet/configs/_legacy/
 /KiDKNet/outputs/
 
 docs/

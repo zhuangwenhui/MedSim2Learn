@@ -1,7 +1,7 @@
-# Graph Report - DeformSim  (2026-06-12)
+# Graph Report - DeformSim  (2026-06-14)
 
 ## Corpus Check
-- 33 files · ~24,019 words
+- 33 files · ~24,050 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
