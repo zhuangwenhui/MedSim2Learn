@@ -137,3 +137,6 @@ Testing/
 /KiDKNet/outputs/
 
 docs/
+
+# Server-run handoff scratch (session-local, not tracked)
+/_SERVER_RUN_HANDOFF.md

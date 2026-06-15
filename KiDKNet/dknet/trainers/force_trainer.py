@@ -159,6 +159,9 @@ class ForceTrainer:
                 f"Validation loader batches: {len(self.val_loader)}, "
                 f"batch size: {self.val_loader.batch_size}"
             )
+
+        # Optional Weights & Biases tracking (opt-in via config["wandb"]).
+        self._init_wandb()
     
     # Currently disable GPU memory logging methods for cleaner output
     # The methods can be re-enabled if detailed memory tracking is needed later
@@ -967,6 +970,76 @@ class ForceTrainer:
             except OSError as e:
                 self.logger.warning(f"Failed to remove old checkpoint {name}: {e}")
     
+    def _init_wandb(self):
+        """Optionally start a Weights & Biases run (opt-in via config['wandb']).
+
+        Behavior-preserving: when the config has no 'wandb' block or its
+        'enabled' is false this is a no-op. Any failure (import/network/auth)
+        is swallowed with a warning so experiment tracking can never abort a
+        multi-day GPU run. The run dir lives under the per-experiment output
+        dir so parallel folds never share W&B state.
+        """
+        self.wandb_run = None
+        wb = (self.config.get("wandb") or {})
+        if not wb.get("enabled"):
+            return
+        try:
+            import wandb
+            self.wandb_run = wandb.init(
+                project=wb.get("project", "kidknet"),
+                entity=wb.get("entity"),
+                group=wb.get("group"),
+                name=wb.get("name", self.experiment_name),
+                dir=self.exp_output_dir,
+                config=self.config,
+                mode=wb.get("mode", "online"),
+            )
+            self.logger.info(
+                f"W&B tracking enabled: project={wb.get('project')} "
+                f"group={wb.get('group')} name={wb.get('name', self.experiment_name)}"
+            )
+        except Exception as e:  # noqa: BLE001
+            self.wandb_run = None
+            self.logger.warning(f"W&B init failed ({e}); continuing without tracking.")
+
+    def _wandb_log_epoch(self, train_metrics, val_metrics, epoch_time):
+        """Stream one epoch's train/val metrics + LR to W&B (no-op if disabled)."""
+        if not self.wandb_run:
+            return
+        try:
+            payload = {
+                "epoch": self.epoch + 1,
+                "epoch_time_sec": epoch_time,
+                "best_val_loss": self.best_val_metric,
+                "lr": self.optimizer.param_groups[0]["lr"],
+            }
+            for k, v in (train_metrics or {}).items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    payload[f"train/{k}"] = v
+            for k, v in (val_metrics or {}).items():
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    payload[f"val/{k}"] = v
+            self.wandb_run.log(payload, step=self.epoch)
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"W&B log failed ({e}); continuing.")
+
+    def _finish_wandb(self):
+        """Record best-epoch summary and close the W&B run (no-op if disabled)."""
+        if not self.wandb_run:
+            return
+        try:
+            self.wandb_run.summary["best_epoch"] = self.best_epoch + 1
+            self.wandb_run.summary["best_val_loss"] = self.best_val_metric
+            if self.val_metrics_history:
+                for k, v in self.val_metrics_history[self.best_epoch].items():
+                    if isinstance(v, (int, float)) and not isinstance(v, bool):
+                        self.wandb_run.summary[f"best/val/{k}"] = v
+            self.wandb_run.finish()
+        except Exception as e:  # noqa: BLE001
+            self.logger.warning(f"W&B finish failed ({e}); continuing.")
+        finally:
+            self.wandb_run = None
+
     def train(self):
         """Main training loop"""
         self.logger.info(f"Starting training for {self.epochs} epochs")
@@ -989,7 +1062,7 @@ class ForceTrainer:
                 self._apply_transfer_phase(epoch)
 
                 # Train and validate
-                self.train_epoch()
+                train_metrics = self.train_epoch()
                 val_metrics = self.validate()
                 
                 # Step the LR scheduler
@@ -1021,6 +1094,9 @@ class ForceTrainer:
                 
                 # Save checkpoint
                 self.save_checkpoint(is_best)
+
+                # Stream this epoch's metrics to W&B (no-op if disabled)
+                self._wandb_log_epoch(train_metrics, val_metrics, epoch_time)
                 
                 # Early stopping
                 if (self.epoch - self.best_epoch) >= self.early_stopping_patience:
@@ -1038,3 +1114,4 @@ class ForceTrainer:
             if monitor_started and self.memory_monitor:
                 self.memory_monitor.stop()
                 self.logger.info("Memory monitoring stopped")
+            self._finish_wandb()

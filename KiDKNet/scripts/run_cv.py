@@ -267,6 +267,15 @@ def run(args: argparse.Namespace) -> int:
             cfg, fold_out, split_path = build_run_config(
                 cond, base_cfg, fold, splits_dir, cv_out, init_ckpt
             )
+            if args.wandb:
+                cfg["wandb"] = {
+                    "enabled": True,
+                    "project": args.wandb_project,
+                    "entity": args.wandb_entity,
+                    "group": cond,
+                    "name": f"{cond}_fold{fold}",
+                    "mode": args.wandb_mode,
+                }
             split_ok = split_path.exists()
             if not split_ok:
                 problems.append(f"{cond}/fold{fold}: split file missing: {split_path}")
@@ -336,6 +345,12 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="skip a (cond,fold) that already has a completed experiment + eval report")
     p.add_argument("--dry-run", action="store_true",
                    help="build + validate the full plan without training/evaluating")
+    p.add_argument("--wandb", action="store_true",
+                   help="enable Weights & Biases tracking for every (cond,fold) run")
+    p.add_argument("--wandb-project", default="kidknet-cv5", help="W&B project name")
+    p.add_argument("--wandb-entity", default=None, help="W&B entity (team or user)")
+    p.add_argument("--wandb-mode", default="online",
+                   choices=["online", "offline", "disabled"], help="W&B mode")
     return p.parse_args(argv)
 
 

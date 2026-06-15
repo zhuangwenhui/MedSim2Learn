@@ -127,4 +127,4 @@ cross_validation:
 
 logging:
   keep_best: true
-  keep_last: 5
+  keep_last: 1
