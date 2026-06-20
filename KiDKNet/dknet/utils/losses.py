@@ -176,6 +176,9 @@ class MagnitudeAngleLoss(nn.Module):
         reduction: str = 'mean',
         magnitude_kwargs: Optional[Dict[str, Any]] = None,
         angle_kwargs: Optional[Dict[str, Any]] = None,
+        weighting: str = 'fixed',
+        uncertainty_init: float = 0.0,
+        uncertainty_clamp: float = 10.0,
     ) -> None:
         """
         Args:
@@ -202,6 +205,20 @@ class MagnitudeAngleLoss(nn.Module):
         self.normalize_losses = bool(normalize_losses)
         self.epsilon = _ensure_numeric(epsilon, 1e-8, "epsilon")
         self.reduction = reduction
+        # Loss-weighting scheme: 'fixed' (lambda) or 'uncertainty' (Kendall).
+        self.weighting = str(weighting).lower()
+        if self.weighting not in ('fixed', 'uncertainty'):
+            raise ValueError(
+                "weighting must be 'fixed' or 'uncertainty', got "
+                f"{weighting!r}"
+            )
+        self.use_uncertainty_weighting = (self.weighting == 'uncertainty')
+        self.uncertainty_init = _ensure_numeric(
+            uncertainty_init, 0.0, "uncertainty_init"
+        )
+        self.uncertainty_clamp = abs(
+            _ensure_numeric(uncertainty_clamp, 10.0, "uncertainty_clamp")
+        )
         
         if not isinstance(magnitude_kwargs, dict):
             magnitude_kwargs = {}
@@ -220,6 +237,17 @@ class MagnitudeAngleLoss(nn.Module):
             self.register_buffer('magnitude_loss_ema', torch.tensor(1.0))
             self.register_buffer('angle_loss_ema', torch.tensor(1.0))
             self.ema_momentum = 0.99
+
+        # Kendall homoscedastic uncertainty weighting: two learnable scalar
+        # log-variances. Registered ONLY when enabled so the state_dict /
+        # parameter list stay byte-identical for the default 'fixed' path.
+        if self.use_uncertainty_weighting:
+            self.log_var_magnitude = nn.Parameter(
+                torch.tensor(float(self.uncertainty_init))
+            )
+            self.log_var_angle = nn.Parameter(
+                torch.tensor(float(self.uncertainty_init))
+            )
     
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -253,13 +281,31 @@ class MagnitudeAngleLoss(nn.Module):
                 self.angle_loss_ema + self.epsilon
             )
             
+            mag_term = normalized_magnitude_loss
+            ang_term = normalized_angle_loss
+        else:
+            mag_term = magnitude_loss
+            ang_term = angle_loss
+
+        if self.use_uncertainty_weighting:
+            # Kendall homoscedastic: exp(-s)*L + s, per task, summed. Scalars
+            # broadcast over [B]; correct under reduction='mean' (the default
+            # and the value SequenceMagnitudeAngleLoss forces).
+            s_m = self.log_var_magnitude.clamp(
+                -self.uncertainty_clamp, self.uncertainty_clamp
+            )
+            s_a = self.log_var_angle.clamp(
+                -self.uncertainty_clamp, self.uncertainty_clamp
+            )
             combined_loss = (
-                self.lambda_magnitude * normalized_magnitude_loss
-                + self.lambda_angle * normalized_angle_loss
+                torch.exp(-s_m) * mag_term + s_m
+                + torch.exp(-s_a) * ang_term + s_a
             )
         else:
-            combined_loss = (self.lambda_magnitude * magnitude_loss + 
-                           self.lambda_angle * angle_loss)
+            combined_loss = (
+                self.lambda_magnitude * mag_term
+                + self.lambda_angle * ang_term
+            )
         
         if self.reduction == 'mean':
             return combined_loss.mean()
@@ -352,26 +398,38 @@ class MagnitudeAngleLoss(nn.Module):
             angle_loss = self.angle_loss_fn(pred, target).mean()
         return magnitude_loss.item(), angle_loss.item()
     
-    def get_normalization_stats(self) -> Dict[str, float | bool]:
+    def get_normalization_stats(self) -> Dict[str, float | bool | str]:
         """
         Return current normalization statistics.
         
         Returns:
             dict: Normalization statistics
         """
+        stats: Dict[str, float | bool | str]
         if self.normalize_losses:
-            return {
+            stats = {
                 'magnitude_loss_ema': self.magnitude_loss_ema.item(),
                 'angle_loss_ema': self.angle_loss_ema.item(),
                 'lambda_magnitude': self.lambda_magnitude,
                 'lambda_angle': self.lambda_angle
             }
         else:
-            return {
+            stats = {
                 'normalize_losses': False,
                 'lambda_magnitude': self.lambda_magnitude,
                 'lambda_angle': self.lambda_angle
             }
+        if self.use_uncertainty_weighting:
+            s_m = float(self.log_var_magnitude.detach().clamp(
+                -self.uncertainty_clamp, self.uncertainty_clamp))
+            s_a = float(self.log_var_angle.detach().clamp(
+                -self.uncertainty_clamp, self.uncertainty_clamp))
+            stats['weighting'] = 'uncertainty'
+            stats['log_var_magnitude'] = s_m
+            stats['log_var_angle'] = s_a
+            stats['weight_magnitude'] = float(torch.exp(torch.tensor(-s_m)))
+            stats['weight_angle'] = float(torch.exp(torch.tensor(-s_a)))
+        return stats
 
 
 #==============================================================#
@@ -468,7 +526,7 @@ class SequenceMagnitudeAngleLoss(nn.Module):
             target.reshape(-1, target.shape[-1]),
         )
 
-    def get_normalization_stats(self) -> Dict[str, float | bool]:
+    def get_normalization_stats(self) -> Dict[str, float | bool | str]:
         """Delegate normalization stats to the per-frame loss."""
         stats = self.frame_loss.get_normalization_stats()
         stats['lambda_smooth'] = self.lambda_smooth

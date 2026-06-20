@@ -317,8 +317,6 @@ class ForceTrainer:
                 self.finetune_stages or "all",
             )
 
-        self.optimizer = self._create_optimizer()
-        
         # Sequence (clip-to-per-frame) vs single-image model. The sequence model
         # returns a LIST of (B, T, 3) stage outputs and is scored per-frame.
         self.is_sequence_model = (
@@ -330,13 +328,20 @@ class ForceTrainer:
                 "loss over (B, T, 3) stage outputs."
             )
 
-        # Loss function setup
+        # Loss function setup (built BEFORE the optimizer so any learnable loss
+        # parameters -- e.g. uncertainty-weighting log-variances -- can be folded
+        # into the optimizer below). Moved to device so loss params/buffers live
+        # on the same device as the model.
         loss_cfg = train_cfg.get("loss", {})
         self.loss_type = loss_cfg.get("type", "COMBINED")
         loss_kwargs = {k: v for k, v in loss_cfg.items() if k != "type"}
-        self.loss_fn = ForceLoss.get_loss(self.loss_type, **loss_kwargs)
+        self.loss_fn = ForceLoss.get_loss(self.loss_type, **loss_kwargs).to(self.device)
         # Check if the loss function supports component monitoring
         self.supports_component_monitoring = hasattr(self.loss_fn, 'get_component_losses')
+
+        # Build the optimizer now that the loss exists; _create_optimizer folds
+        # in self.loss_fn.parameters() when the loss carries learnable params.
+        self.optimizer = self._create_optimizer()
         if self.supports_component_monitoring:
             self.logger.info(f"Loss function {self.loss_type} supports component monitoring")
         else:
@@ -413,10 +418,24 @@ class ForceTrainer:
         scaled (usually smaller) learning rate (discriminative LR); otherwise all
         parameters share one group.
         """
-        params = (
-            self._transfer_param_groups() if self.transfer_enabled
-            else self.model.parameters()
-        )
+        # Learnable loss parameters (e.g. uncertainty-weighting log-variances);
+        # empty for the default param-less losses, so this stays byte-identical.
+        _loss_mod = getattr(self, "loss_fn", None)
+        loss_params = list(_loss_mod.parameters()) if _loss_mod is not None else []
+        if self.transfer_enabled:
+            params = list(self._transfer_param_groups())
+            if loss_params:
+                params = params + [
+                    {"params": loss_params, "lr": self.learning_rate,
+                     "weight_decay": 0.0}
+                ]
+        elif loss_params:
+            params = [
+                {"params": list(self.model.parameters())},
+                {"params": loss_params, "weight_decay": 0.0},
+            ]
+        else:
+            params = self.model.parameters()
         if self.optimizer_type.lower() == "adam":
             return torch.optim.Adam(
                 params,
@@ -925,7 +944,11 @@ class ForceTrainer:
             "loss_component_history": self.loss_component_history,
             # Save loss function type and configuration
             "loss_type": self.loss_type,
-            "supports_component_monitoring": self.supports_component_monitoring
+            "supports_component_monitoring": self.supports_component_monitoring,
+            # Persist loss-module state (EMA buffers + any learnable loss params,
+            # e.g. uncertainty-weighting log-variances). Additive; the model-only
+            # load path ignores it, so old checkpoints still load.
+            "loss_state_dict": self.loss_fn.state_dict(),
         }
         
         self._persist_checkpoints(checkpoint, is_best)

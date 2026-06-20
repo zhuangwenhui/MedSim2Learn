@@ -106,6 +106,7 @@ def _best_model(exp_dir: Path) -> Path:
 def build_run_config(
     cond: str, base_cfg: dict, fold: int, splits_dir: Path, cv_out: Path,
     init_ckpt: Optional[str], augment: bool = False,
+    loss_weighting: Optional[str] = None,
 ) -> Tuple[dict, Path, Path]:
     """Return (overridden config, fold output dir, fold split path) for one run."""
     spec = CONDITIONS[cond]
@@ -140,6 +141,12 @@ def build_run_config(
             "blur_p": 0.2, "blur_sigma": [0.1, 1.5],
             "gamma": [0.8, 1.2], "noise_std": 0.02,
         }
+
+    if loss_weighting is not None:
+        # RQ3: select the loss task-weighting scheme (fixed lambda vs learned
+        # homoscedastic uncertainty). Pair with configs that have
+        # normalize_losses=false for a clean Kendall ablation.
+        cfg.setdefault("training", {}).setdefault("loss", {})["weighting"] = loss_weighting
     return cfg, fold_out, split_path
 
 
@@ -278,7 +285,7 @@ def run(args: argparse.Namespace) -> int:
                     continue
             cfg, fold_out, split_path = build_run_config(
                 cond, base_cfg, fold, splits_dir, cv_out, init_ckpt,
-                augment=args.augment,
+                augment=args.augment, loss_weighting=args.loss_weighting,
             )
             if args.wandb:
                 cfg["wandb"] = {
@@ -358,6 +365,8 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="skip a (cond,fold) that already has a completed experiment + eval report")
     p.add_argument("--augment", action="store_true",
                    help="enable train-only LABEL-SAFE photometric augmentation (Phase-0)")
+    p.add_argument("--loss-weighting", choices=["fixed", "uncertainty"], default=None,
+                   help="RQ3: override training.loss.weighting (fixed lambda vs learned uncertainty)")
     p.add_argument("--dry-run", action="store_true",
                    help="build + validate the full plan without training/evaluating")
     p.add_argument("--wandb", action="store_true",
