@@ -109,8 +109,11 @@ def get_dataloaders(
     # Allow interactive dataset selection when users enable it.
     enable_dataset_selection = config["data"].get("enable_dataset_selection", True)
 
-    # Apply the same transform across all splits because data are preprocessed.
-    transform = get_transforms(config)
+    # Train gets (optional, config-gated) LABEL-SAFE photometric augmentation;
+    # val/test stay clean. With the default config both are identical to the old
+    # single transform, so behavior is unchanged unless augmentation is enabled.
+    train_transform = get_transforms(config, train=True)
+    eval_transform = get_transforms(config, train=False)
 
     # Read caching strategy options; defaults prefer full caching.
     loading_strategy = config["data"]["loading_strategy"]
@@ -269,36 +272,38 @@ def get_dataloaders(
         stride = int(seq_cfg.get("stride", window_length))
         include_tail = bool(seq_cfg.get("include_tail", True))
         # Features are pre-encoded (and pre-normalized at precompute time), so no
-        # image transform is applied in feature mode.
-        seq_transform = None if feature_mode else transform
+        # image transform is applied in feature mode. Otherwise train gets the
+        # augmenting transform and val/test get the clean one.
+        seq_train_transform = None if feature_mode else train_transform
+        seq_eval_transform = None if feature_mode else eval_transform
         logger.info(
             "Sequence mode (%s): window_length=%d stride=%d include_tail=%s",
             "feature" if feature_mode else "image",
             window_length, stride, include_tail,
         )
 
-        def _build_sequence(indices):
+        def _build_sequence(indices, seq_tf):
             return SequenceDataset(
                 frame_source=dataset,
                 subset_indices=indices,
                 seq_ranges=seq_ranges,
                 window_length=window_length,
                 stride=stride,
-                transform=seq_transform,
+                transform=seq_tf,
                 include_tail=include_tail,
             )
 
-        train_dataset = _build_sequence(train_indices)
-        val_dataset = _build_sequence(val_indices)
-        test_dataset = _build_sequence(test_indices)
+        train_dataset = _build_sequence(train_indices, seq_train_transform)
+        val_dataset = _build_sequence(val_indices, seq_eval_transform)
+        test_dataset = _build_sequence(test_indices, seq_eval_transform)
         logger.info(
             "Sequence windows - Train: %d, Val: %d, Test: %d",
             len(train_dataset), len(val_dataset), len(test_dataset),
         )
     else:
-        train_dataset = SubsetDataset(dataset, train_indices, transform=transform)
-        val_dataset = SubsetDataset(dataset, val_indices, transform=transform)
-        test_dataset = SubsetDataset(dataset, test_indices, transform=transform)
+        train_dataset = SubsetDataset(dataset, train_indices, transform=train_transform)
+        val_dataset = SubsetDataset(dataset, val_indices, transform=eval_transform)
+        test_dataset = SubsetDataset(dataset, test_indices, transform=eval_transform)
 
     prefetch_arg = prefetch_factor if num_workers > 0 else None
     persistent_arg = persistent_workers if num_workers > 0 else False

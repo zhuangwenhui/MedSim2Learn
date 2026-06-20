@@ -221,7 +221,7 @@ Last updated: 2026-06-21 · Owner: WENHUIZ · Status: planning → Phase 0 (meas
 **严格分阶段、设决策门(gate),不要"一次全上"。** 每阶段产出数值 + 图(§9)。
 
 **Phase 0 — 修测量仪器(前置,~数天,无 GPU 风险)** — 没有它后续比较都不可信:
-- 加**标注安全的光度增广**(KiDKNet `transforms.py`,config 门控,默认行为不变)。
+- 加**标注安全的光度增广**(KiDKNet `transforms.py`,config 门控,默认行为不变)。 **[DONE 2026-06-21]** `PhotometricAugment` + `loader.py` train/eval transform 分离;GPU-free 测试全过(默认禁用→行为不变、标注安全无几何改动、bf16 round-trip);未提交;待 GPU 启用。
 - 扩大/稳定验证集(3-序列 val 是头号噪声源):或改 test-only CV、固定 epoch / EMA 选择,去掉 best-epoch 挑选。
 - 力目标归一化/对齐;重跑 c1–c8 基线。
 - **Gate 0:** c1 fold std 明显下降、跨 fold best-epoch 收敛 → 进入 Phase 1。
@@ -354,7 +354,8 @@ Last updated: 2026-06-21 · Owner: WENHUIZ · Status: planning → Phase 0 (meas
 - **2026-06-16** — 域差量化:外观差为主因(100% 可分,~6× 多样性差)。写 `RESEARCH_DIRECTION.md`,确立
   "修测量 → 闭外观差(数据侧) → 架构最后"的方向;新增 `analyze_domain_gap.py`/`kshot_transfer.py`。
 - **2026-06-21** — 用户用 `/goal` 设定四大科研目标(RQ1–4)+ scaling-law 探问;5 簇文献检索完成;
-  建立本北极星文档 `RESEARCH_GOAL.md`(整合技术栈 + 路线图 + 可视化规范)。**下一步:执行 Phase 0(修测量)。**
+  建立本北极星文档 `RESEARCH_GOAL.md`(整合技术栈 + 路线图 + 可视化规范);commit `adf29a6`提交文档+诊断脚本。
+- **2026-06-21 (Phase 0 起步)** — 实现 train-only 标注安全光度增广(`transforms.py` `PhotometricAugment` + `loader.py` train/eval transform 分离),GPU-free 测试全过(默认禁用、行为不变)。未提交。下一个 GPU-free 单元:RQ3 损失改造(学习式不确定性加权,替代固定 λ)。待 GPU 授权后:启用增广重跑 c1–c4 + 扫验证集扩大/力归一化。
 
 > **决策待定(需用户拍板的方向选择):**
 > - Phase 0 与 Phase 1 是否现在就开跑(需 GPU,与同事共享)?
