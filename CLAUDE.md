@@ -52,6 +52,19 @@ Moving a `datasets/<domain>` dir is a **three-place edit**, never a bare `mv`: (
 - Resource-sensitive changes (GPU memory, RAM, I/O, throughput, concurrency) must be tested for the resource concern itself, with results recorded, before being declared safe. Guard against OOM, data loss, and performance regression first.
 - For performance optimization, isolate one variable at a time, validate independently, and combine only proven-beneficial changes.
 
+### Experiment lifecycle & records (no dead code; traceable results)
+Experiments change code only to test an idea - don't let trials rot into dead code, and keep
+results traceable after the temporary code/data is gone.
+- **Ledger:** every experiment gets `experiments/<YYYY-MM-DD>_<slug>/README.md` (from
+  `experiments/TEMPLATE.md`) - purpose, exact commit SHA + config, command, results (numbers +
+  figure paths + W&B), verdict, disposition - committed; heavy data stays in git-ignored
+  `DataFlow/`/W&B. Add a row to `experiments/INDEX.md`.
+- **Code disposition is mandatory at conclusion:** KEEP -> merge + make default; LOSE -> revert/
+  remove the code (the record keeps config + results); PARK -> keep gated-off **with an expiry**
+  in `INDEX.md`, then confirm-or-revert. No indefinite dormant code.
+- **Scripts:** one-off experiment scripts live under `experiments/<id>/`; `KiDKNet/scripts/` is
+  for reusable infrastructure only.
+
 ### Verification (first-hand evidence only)
 - Never claim "validation successful", "tests pass", or "fix verified" without running the command and observing output. If verification was not performed or was inconclusive, say so.
 - Do not suppress negative results; report failures with stderr and non-zero exit codes.

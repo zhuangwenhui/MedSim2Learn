@@ -133,6 +133,27 @@ When optimizing code or adding features:
 
 ---
 
+### Experiment Lifecycle and Records
+
+Experiments add or change code only to test an idea. To stop trials from rotting into
+dead code, and to keep results traceable after temporary code/data is gone, every
+experiment is registered and its code has a mandatory disposition.
+
+- **Ledger.** Each experiment gets `experiments/<YYYY-MM-DD>_<slug>/README.md` (copy
+  `experiments/TEMPLATE.md`): purpose, the exact commit SHA + config used, the command,
+  results (numbers + figure paths + W&B run), verdict, and disposition. Heavy data and
+  figures stay in the git-ignored `DataFlow/` tree or in W&B; the README is committed.
+  Add a row to `experiments/INDEX.md`.
+- **Code disposition is mandatory at conclusion.** Trial code is config-gated, default-off,
+  and (for rival approaches) developed in an isolated worktree.
+  - **KEEP** (win) -> merge to trunk, make default, document.
+  - **LOSE** -> revert/remove the code; the record retains config + results, so nothing is lost.
+  - **PARK** (inconclusive) -> keep config-gated/off but register an **expiry date** in
+    `experiments/INDEX.md`; at expiry, confirm-and-KEEP or revert. No indefinite dormant code.
+- **Script placement.** One-off experiment scripts (diagnostics, plotters) live under their
+  `experiments/<id>/`. `KiDKNet/scripts/` is reserved for reusable infrastructure (data
+  assembly, train/eval launchers, cross-experiment report/figure generators).
+
 ## Software Development Workflow Principles
 
 - Keep changes small, self-contained, and reviewable. See Google Engineering Practices on small CLs: https://google.github.io/eng-practices/review/developer/small-cls.html

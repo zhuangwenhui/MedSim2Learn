@@ -105,7 +105,7 @@ def _best_model(exp_dir: Path) -> Path:
 
 def build_run_config(
     cond: str, base_cfg: dict, fold: int, splits_dir: Path, cv_out: Path,
-    init_ckpt: Optional[str], augment: bool = False,
+    init_ckpt: Optional[str],
     loss_weighting: Optional[str] = None,
 ) -> Tuple[dict, Path, Path]:
     """Return (overridden config, fold output dir, fold split path) for one run."""
@@ -129,18 +129,6 @@ def build_run_config(
             )
         # init_ckpt may be a real path or a PENDING marker (dry-run); store as-is.
         transfer["init_from_checkpoint"] = init_ckpt
-
-    if augment:
-        # Phase-0: train-only LABEL-SAFE photometric augmentation (applied by
-        # dknet.data.transforms.get_transforms(train=True)). Use a separate
-        # --cv-out so the no-aug baselines are preserved for the A/B comparison.
-        aug = cfg.setdefault("data", {}).setdefault("augmentation", {})
-        aug["photometric"] = {
-            "enabled": True, "p": 0.8,
-            "brightness": 0.3, "contrast": 0.3, "saturation": 0.3, "hue": 0.05,
-            "blur_p": 0.2, "blur_sigma": [0.1, 1.5],
-            "gamma": [0.8, 1.2], "noise_std": 0.02,
-        }
 
     if loss_weighting is not None:
         # RQ3: select the loss task-weighting scheme (fixed lambda vs learned
@@ -285,7 +273,7 @@ def run(args: argparse.Namespace) -> int:
                     continue
             cfg, fold_out, split_path = build_run_config(
                 cond, base_cfg, fold, splits_dir, cv_out, init_ckpt,
-                augment=args.augment, loss_weighting=args.loss_weighting,
+                loss_weighting=args.loss_weighting,
             )
             if args.wandb:
                 cfg["wandb"] = {
@@ -363,8 +351,6 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--python", default=None, help="python interpreter for subprocess (default sys.executable)")
     p.add_argument("--skip-existing", action="store_true",
                    help="skip a (cond,fold) that already has a completed experiment + eval report")
-    p.add_argument("--augment", action="store_true",
-                   help="enable train-only LABEL-SAFE photometric augmentation (Phase-0)")
     p.add_argument("--loss-weighting", choices=["fixed", "uncertainty"], default=None,
                    help="RQ3: override training.loss.weighting (fixed lambda vs learned uncertainty)")
     p.add_argument("--dry-run", action="store_true",
