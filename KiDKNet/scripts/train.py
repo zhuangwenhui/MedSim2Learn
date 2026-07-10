@@ -284,6 +284,29 @@ def main(args, config=None):
         logger.error(f"Failed to setup trainer: {e}")
         sys.exit(1)
 
+    # Track B UDA (Option B, inductive): attach an unlabeled real target loader so
+    # train_epoch adds the CORAL alignment term. Default OFF -> unchanged path.
+    adapt_cfg = (config.get("training", {}) or {}).get("adaptation", {}) or {}
+    if adapt_cfg.get("enabled", False):
+        if config["model"].get("name") == "sequence_forcenet":
+            logger.warning(
+                "adaptation.enabled ignored: CORAL applies to single-frame models only."
+            )
+        else:
+            from dknet.data.loader import get_target_domain_loader
+            base_ds = train_loader.dataset.dataset  # SubsetDataset -> base ForceDataset
+            target_loader = get_target_domain_loader(
+                config, args.split_file, base_ds,
+                transform=getattr(train_loader.dataset, "transform", None),
+            )
+            if target_loader is not None:
+                trainer.target_train_loader = target_loader
+                trainer.coral_weight = float(adapt_cfg.get("coral_weight", 0.0))
+                logger.info(
+                    "UDA enabled: coral_weight=%s, target batches=%s",
+                    trainer.coral_weight, len(target_loader),
+                )
+
     try:
         logger.info(f"Output directory: {experiment_dir}")
         logger.info(f"Starting training process...")

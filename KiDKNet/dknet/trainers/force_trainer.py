@@ -20,6 +20,7 @@ from ..utils.losses import ForceLoss
 from ..utils.metrics import compute_all_metrics, compute_sequence_metrics
 from ..utils.visualization import TrainingVisualizer, plot_force_distance_histogram
 from ..utils.memory_monitor import MemoryMonitor
+from ..utils.uda import coral_loss
 
 def _fmt(value: Any, width: int, precision: int) -> str:
     """Format a numeric value for tabular display; returns 'N/A' on failure."""
@@ -80,6 +81,11 @@ class ForceTrainer:
             raise ValueError("Training and validation data loaders must be provided to ForceTrainer.")
         self.train_loader: DataLoader = train_loader
         self.val_loader: DataLoader = val_loader
+        # Track B UDA (default OFF). scripts/train.py sets these after construction
+        # when training.adaptation.enabled; left as no-ops otherwise so the default
+        # training path is byte-identical (coral_weight 0.0 -> encoder-CORAL skipped).
+        self.target_train_loader: Optional[DataLoader] = None
+        self.coral_weight: float = 0.0
         # Get force vector normalization information (Already synchronized with dataloader)
         self.normalize_forces = self.config["data"].get("normalize_forces", False)
         self.force_normalization = self.config["data"].get("force_normalization", None)
@@ -695,6 +701,24 @@ class ForceTrainer:
             loss_fn=self.loss_fn if self.supports_component_monitoring else None,
         )
 
+    def _forward_loss(self, images, targets, tgt_images):
+        """Task loss, plus the CORAL domain-alignment term when UDA is active.
+
+        When active, one encoder forward yields both the source prediction and
+        feature; CORAL(source_feat, target_feat) is computed in float32 (covariance
+        stability under AMP) and added as coral_weight * CORAL. When inactive this
+        is the exact original forward+loss, so the default path is byte-identical.
+        """
+        if getattr(self, "_coral_active", False) and tgt_images is not None:
+            outputs, feat_src = self.model(images, return_features=True)
+            loss = self.loss_fn(outputs, targets)
+            feat_tgt = self.model.backbone(tgt_images)
+            loss = loss + self.coral_weight * coral_loss(feat_src.float(), feat_tgt.float())
+        else:
+            outputs = self.model(images)
+            loss = self.loss_fn(outputs, targets)
+        return outputs, loss
+
     def train_epoch(self):
         """Train the model for one epoch"""
         # Set model to training mode
@@ -719,6 +743,21 @@ class ForceTrainer:
         prefetch_stream = None
         if self.prefetch_to_gpu:
             prefetch_stream = torch.cuda.Stream(device=self.device)
+
+        # Track B UDA: cycle an unlabeled target-domain iterator alongside the
+        # source loader (single-frame conditions only; sequence models feed cached
+        # features and are excluded). Inactive by default -> no behavioural change.
+        self._coral_active = (
+            self.coral_weight > 0
+            and self.target_train_loader is not None
+            and not self.is_sequence_model
+        )
+        target_iter = iter(self.target_train_loader) if self._coral_active else None
+        if self._coral_active:
+            self.logger.info(
+                "UDA CORAL active: coral_weight=%s, target batches=%s",
+                self.coral_weight, len(self.target_train_loader),
+            )
 
         # Initialize data iterator and prefetch first batch
         data_iter = iter(self.train_loader)
@@ -759,13 +798,22 @@ class ForceTrainer:
             images = batch['image']
             targets = batch['force']
 
+            # Fetch (and cycle) an unlabeled target-domain batch for CORAL.
+            tgt_images = None
+            if target_iter is not None:
+                try:
+                    tgt_batch = next(target_iter)
+                except StopIteration:
+                    target_iter = iter(self.target_train_loader)
+                    tgt_batch = next(target_iter)
+                tgt_images = tgt_batch['image'].to(self.device, non_blocking=True)
+
             if accum_count == 0:
                 self.optimizer.zero_grad(set_to_none=True)
 
             if self.use_amp:
                 with autocast(device_type=self.device.type, dtype=self.amp_dtype):
-                    outputs = self.model(images)
-                    loss = self.loss_fn(outputs, targets)
+                    outputs, loss = self._forward_loss(images, targets, tgt_images)
                     loss = loss / self.grad_accum_steps
 
                 grad_scaler = self.grad_scaler
@@ -781,8 +829,7 @@ class ForceTrainer:
                     grad_scaler.update()
                     accum_count = 0
             else:
-                outputs = self.model(images)
-                loss = self.loss_fn(outputs, targets)
+                outputs, loss = self._forward_loss(images, targets, tgt_images)
                 loss = loss / self.grad_accum_steps
                 loss.backward()
 

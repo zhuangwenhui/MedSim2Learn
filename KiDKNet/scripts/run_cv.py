@@ -107,6 +107,7 @@ def build_run_config(
     cond: str, base_cfg: dict, fold: int, splits_dir: Path, cv_out: Path,
     init_ckpt: Optional[str],
     loss_weighting: Optional[str] = None,
+    coral_weight: Optional[float] = None,
 ) -> Tuple[dict, Path, Path]:
     """Return (overridden config, fold output dir, fold split path) for one run."""
     spec = CONDITIONS[cond]
@@ -135,6 +136,15 @@ def build_run_config(
         # homoscedastic uncertainty). Pair with configs that have
         # normalize_losses=false for a clean Kendall ablation.
         cfg.setdefault("training", {}).setdefault("loss", {})["weighting"] = loss_weighting
+
+    if coral_weight is not None:
+        # Track B UDA: enable CORAL feature alignment. Single-frame conditions
+        # only (the trainer no-ops it for sequence models). Target = unlabeled
+        # real twins of the fold's non-test sequences (inductive, leakage-safe).
+        cfg.setdefault("training", {})["adaptation"] = {
+            "enabled": True, "method": "coral",
+            "coral_weight": float(coral_weight), "target_domain": "real",
+        }
     return cfg, fold_out, split_path
 
 
@@ -274,6 +284,7 @@ def run(args: argparse.Namespace) -> int:
             cfg, fold_out, split_path = build_run_config(
                 cond, base_cfg, fold, splits_dir, cv_out, init_ckpt,
                 loss_weighting=args.loss_weighting,
+                coral_weight=args.coral_weight,
             )
             if args.wandb:
                 cfg["wandb"] = {
@@ -353,6 +364,9 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="skip a (cond,fold) that already has a completed experiment + eval report")
     p.add_argument("--loss-weighting", choices=["fixed", "uncertainty"], default=None,
                    help="RQ3: override training.loss.weighting (fixed lambda vs learned uncertainty)")
+    p.add_argument("--coral-weight", type=float, default=None,
+                   help="Track B UDA: enable CORAL feature alignment with this weight "
+                        "(single-frame conditions only; sequence models no-op it)")
     p.add_argument("--dry-run", action="store_true",
                    help="build + validate the full plan without training/evaluating")
     p.add_argument("--wandb", action="store_true",

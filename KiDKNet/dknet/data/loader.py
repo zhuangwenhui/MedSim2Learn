@@ -5,6 +5,7 @@ the Deform_post pipeline (main.py serialize).
 """
 
 import os
+import json
 import torch
 import logging
 from pathlib import Path
@@ -343,3 +344,65 @@ def get_dataloaders(
     logger.info("Batch size: %s", batch_size)
 
     return train_loader, val_loader, test_loader
+
+
+def get_target_domain_loader(
+    config: Dict[str, Any],
+    split_file: str,
+    base_dataset,
+    transform=None,
+) -> Optional[DataLoader]:
+    """Build an UNLABELED real-domain loader for Track B UDA (default OFF).
+
+    Inductive Option B: the adaptation target is the real twins of the fold's
+    NON-test sequences (i.e. the ``real_`` counterparts of the c2 split's
+    train/val ``synt_`` sequences), which are disjoint from the fold's real
+    ``test_sequences`` by construction. Only ``batch['image']`` is used downstream
+    (no force labels). Reuses ``base_dataset`` (the mixed ForceDataset already
+    built for the train/val loaders) so no second dataset copy is materialised.
+
+    Returns None when adaptation is disabled or no adapt frames resolve, so the
+    caller's default (non-UDA) path is unchanged.
+    """
+    adapt_cfg = (config.get("training", {}) or {}).get("adaptation", {}) or {}
+    if not adapt_cfg.get("enabled", False):
+        return None
+
+    from .sequence_dataset import load_sequence_ranges  # local import: avoid cycle
+
+    with open(split_file, "r", encoding="utf-8") as fh:
+        split = json.load(fh)
+    non_test = list(split.get("train_sequences", [])) + list(split.get("val_sequences", []))
+    test_seqs = set(split.get("test_sequences", []))
+    prefix = str(adapt_cfg.get("target_domain", "real"))
+    adapt_seqs = [s.replace("synt_", f"{prefix}_") for s in non_test]
+    overlap = set(adapt_seqs) & test_seqs
+    if overlap:  # leakage guard: adapt pool must never touch the scored test set
+        raise ValueError(f"UDA adapt pool overlaps test_sequences: {sorted(overlap)}")
+
+    ranges = load_sequence_ranges(base_dataset.data_dir)
+    adapt_indices = [
+        i for s in adapt_seqs if s in ranges for i in range(ranges[s][0], ranges[s][1])
+    ]
+    if not adapt_indices:
+        logger.warning("UDA target loader: no adapt frames resolved; adaptation disabled.")
+        return None
+
+    num_workers = _get_num_workers(config)
+    loader = DataLoader(
+        SubsetDataset(base_dataset, adapt_indices, transform=transform),
+        batch_size=config["training"]["batch_size"],
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=config.get("general", {}).get("pin_memory", True),
+        prefetch_factor=(config["data"]["loader"].get("prefetch_factor", 2)
+                         if num_workers > 0 else None),
+        persistent_workers=(config["data"]["loader"].get("persistent_workers", True)
+                            if num_workers > 0 else False),
+        drop_last=True,
+    )
+    logger.info(
+        "UDA target loader: %d unlabeled real frames over %d seqs, %d batches",
+        len(adapt_indices), len(adapt_seqs), len(loader),
+    )
+    return loader

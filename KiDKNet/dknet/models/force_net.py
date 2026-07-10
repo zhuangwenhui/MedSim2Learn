@@ -56,17 +56,26 @@ class ForceNet(nn.Module):
         # Set model name
         self.name = f"forcenet_{backbone_name}"
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, return_features: bool = False):
         """
         Forward pass for force prediction.
 
         Args:
             x: Input image tensor of shape (B, C, H, W)
+            return_features: when True, also return the pre-head backbone feature
+                (B, F) so a domain-adaptation term (e.g. CORAL) can reuse the same
+                forward instead of running the encoder twice. Default False keeps
+                the return type and the default training path byte-identical.
 
         Returns:
-            torch.Tensor: Predicted force vector of shape (B, 3)
+            torch.Tensor: Predicted force vector (B, 3); or (pred, feature) when
+            ``return_features`` is True.
         """
-        return self.head(self.backbone(x))
+        feat = self.backbone(x)
+        pred = self.head(feat)
+        if return_features:
+            return pred, feat
+        return pred
 
     def get_parameter_groups(self, weight_decay: float = 1e-4) -> List[Dict[str, Any]]:
         """
