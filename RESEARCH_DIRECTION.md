@@ -1,5 +1,13 @@
 # Research direction — sim2real FEM-augmented force prediction (2026-06-16)
 
+> **⚠ 生效覆盖(2026-07-03 re-scope):** 项目已重定标为 **zero-real-label sim→real domain
+> adaptation**(只用合成 FEM 数据训练、训练集零真实力标签,再迁移到真实)。**`RESEARCH_GOAL.md`
+> §11 的 2026-07-03 条目覆盖本文档中所有"合成增强"(augmentation)框架与渲染环境(Linux
+> headless-GL block)的措辞**——凡本文与该条目冲突处以该条目为准:c2=baseline/c1=ceiling、
+> 主指标 gap-closed %、推理 I/O 固定为图像进→3D 力向量出、所有渲染在 Windows 机上执行(可检视)、
+> 外观只是可组合因子之一(另有视角/接触点多样性 + 力真实性)。本文以下诊断的**事实**仍有效,
+> 但**框架措辞**以 `RESEARCH_GOAL.md` §11 为准。
+
 Working note (uncommitted). Synthesis of the 8-condition x 5-fold CV results + a
 grounded read of the synthetic data-generation pipeline. Question answered:
 **improve the model, improve the data, or both — and in what order?**

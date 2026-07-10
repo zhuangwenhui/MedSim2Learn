@@ -1,0 +1,18 @@
+{
+  "coral_distance": 4.186992009636015e-05,
+  "within_source": 1.4455218272368953e-11,
+  "within_target": 3.0931897043728895e-08,
+  "within_mean": 1.5473176131000632e-08,
+  "gap_ratio": 2705.9680405546105,
+  "mean_l2": 16.483808517456055,
+  "rms_source": 0.028518011793494225,
+  "rms_target": 0.18162448704242706,
+  "rms_ratio": 0.15701633770799023,
+  "n_source": 52522,
+  "n_target": 52522,
+  "feature_dim": 1536,
+  "backbone": "convnext_large",
+  "synth_source": "/home/wenhui/MedSim2Learn/DataFlow/Deform_post/preprocessed/datasets/mixed[deformed_]",
+  "real_source": "/home/wenhui/MedSim2Learn/DataFlow/Deform_post/preprocessed/datasets/mixed[real_]",
+  "elapsed_sec": 691.1
+}
