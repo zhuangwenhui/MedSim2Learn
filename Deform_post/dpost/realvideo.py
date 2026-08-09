@@ -4,8 +4,10 @@ Source: the purified corpus under ``<real_origin_root>/{visual_data/NN.mp4,
 force_data/NN.csv}`` produced by the Data Processpor pipeline (step1 copy +
 step2 alignment check). Frame ``i`` of ``NN.mp4`` pairs 1:1 with row ``i`` of
 ``NN.csv`` (fx,fy,fz raw sensor Newtons); the alignment ``frame_count ==
-force_rows`` is assumed pre-validated (a mismatch only truncates to the shorter
-length, with a warning).
+force_rows`` is assumed pre-validated (a mismatch truncates to the shorter
+length with a warning, is recorded in a per-sequence ``alignment.json``
+sidecar, and aborts when ``strict=True`` and the gap exceeds
+``ALIGN_TOL_FRAMES``).
 
 Each frame is center-cropped to the square endoscope field of view, masked to
 the inscribed circle, and resized to ``size`` (default 256) so the real and
@@ -15,6 +17,7 @@ so the existing ``assemble`` step merges real and synt the same way.
 """
 
 import csv as _csv
+import json
 import os
 import shutil
 
@@ -22,6 +25,11 @@ import cv2
 import numpy as np
 
 from .dataset.serialize import serialize_labels_dataset
+
+# Frame/force mismatch (frames vs CSV rows) tolerated by strict extraction;
+# larger gaps abort because a silent truncation can shift the frame<->force
+# alignment of the whole sequence.
+ALIGN_TOL_FRAMES = 2
 
 
 def circular_square_crop(frame, size, mask=True):
@@ -64,10 +72,29 @@ def load_forces(csv_path):
     return np.asarray(rows, dtype=np.float32)
 
 
-def extract_sequence(seq_id, mp4_path, csv_path, out_seq_dir, size=256, mask=True):
+def _write_alignment(out_seq_dir, n_frames, n_forces, paired):
+    """Write the per-sequence ``alignment.json`` frame/force pairing sidecar."""
+    payload = {
+        "n_frames": int(n_frames),
+        "n_forces": int(n_forces),
+        "paired": int(paired),
+        "dropped": int(max(n_frames, n_forces) - paired),
+    }
+    with open(os.path.join(out_seq_dir, "alignment.json"), "w",
+              encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2)
+
+
+def extract_sequence(seq_id, mp4_path, csv_path, out_seq_dir, size=256,
+                     mask=True, strict=False):
     """Extract one real sequence to ``png/`` + ``labels.csv`` (frame i <-> force i).
 
-    Returns ``(n_written, png_dir, labels_path)``.
+    Writes an ``alignment.json`` sidecar (``n_frames``, ``n_forces``,
+    ``paired``, ``dropped``) recording the frame/force pairing outcome so a
+    truncation can never pass silently. ``strict=True`` raises when the
+    frame/force mismatch exceeds ``ALIGN_TOL_FRAMES`` (before extracting
+    anything); the default pairing math -- first ``min(n_frames, n_forces)``
+    pairs -- is unchanged. Returns ``(n_written, png_dir, labels_path)``.
     """
     forces = load_forces(csv_path)
     cap = cv2.VideoCapture(mp4_path)
@@ -75,9 +102,17 @@ def extract_sequence(seq_id, mp4_path, csv_path, out_seq_dir, size=256, mask=Tru
         raise RuntimeError(f"cannot open video: {mp4_path}")
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     n = min(n_frames, len(forces))
+    os.makedirs(out_seq_dir, exist_ok=True)
     if n_frames != len(forces):
         print(f"  [warn] seq {seq_id}: frame_count {n_frames} != force_rows "
               f"{len(forces)}; pairing first {n}")
+        if strict and abs(n_frames - len(forces)) > ALIGN_TOL_FRAMES:
+            cap.release()
+            # Record the rejected mismatch (nothing paired) before raising.
+            _write_alignment(out_seq_dir, n_frames, len(forces), paired=0)
+            raise ValueError(
+                f"seq {seq_id}: frame/force mismatch |{n_frames} - "
+                f"{len(forces)}| exceeds tolerance {ALIGN_TOL_FRAMES} (strict)")
 
     png_dir = os.path.join(out_seq_dir, "png")
     os.makedirs(png_dir, exist_ok=True)
@@ -100,13 +135,16 @@ def extract_sequence(seq_id, mp4_path, csv_path, out_seq_dir, size=256, mask=Tru
             writer.writerow([sid, f"{fx:.9g}", f"{fy:.9g}", f"{fz:.9g}"])
             written += 1
     cap.release()
+    _write_alignment(out_seq_dir, n_frames, len(forces), paired=written)
     return written, png_dir, labels_path
 
 
-def build_sequence(seq_id, mp4_path, csv_path, out_seq_dir, size=256, mask=True):
+def build_sequence(seq_id, mp4_path, csv_path, out_seq_dir, size=256,
+                   mask=True, strict=False):
     """Extract + serialize one real sequence to ``out_seq_dir`` (png/labels/dataset)."""
     written, png_dir, labels_path = extract_sequence(
-        seq_id, mp4_path, csv_path, out_seq_dir, size=size, mask=mask)
+        seq_id, mp4_path, csv_path, out_seq_dir, size=size, mask=mask,
+        strict=strict)
     data_dir = os.path.join(out_seq_dir, "dataset")
     serialize_labels_dataset(png_dir, labels_path, data_dir, resize=None)
     print(f"real seq {seq_id}: {written} frames @ {size}px -> {data_dir}")

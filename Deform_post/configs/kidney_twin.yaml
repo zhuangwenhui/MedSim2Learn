@@ -52,6 +52,10 @@ sim:
 serialize:
   # 256x256 matches the real corpus and the experiment datasets (raw 800 px ~13 GB/seq).
   resize: [256, 256]
+  # F3 opt-in coverage assertion: raise when any PNG lacks a labels.csv row
+  # instead of the historical warn-and-drop (the coverage line + dropped-stem
+  # manifest are emitted either way).
+  require_full_coverage: false
 
 batch:
   max_parallel: 1

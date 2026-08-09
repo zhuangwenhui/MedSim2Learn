@@ -11,6 +11,7 @@ metadata fields) is kept byte-compatible with the historical .pt outputs.
 
 import asyncio
 import concurrent.futures
+import csv
 import os
 import time
 
@@ -63,6 +64,8 @@ class DataPreprocessor:
         self.std = None
         self.normalize_forces = None
         self.force_normalization = None
+        # F3 opt-in: raise instead of warn-and-drop when a PNG has no label row.
+        self.require_full_coverage = False
 
         # Results
         self.metadata = None
@@ -136,6 +139,17 @@ class DataPreprocessor:
         self.normalize_forces = normalize_forces
         if normalize_forces and scale_values:
             self.force_normalization = scale_values
+        return self
+
+    def set_require_full_coverage(self, require_full_coverage):
+        """Opt in to the F3 coverage assertion (matched PNGs == total PNGs).
+
+        When enabled, any PNG without a matching labels row (or that fails
+        processing) aborts serialization with a RuntimeError before the
+        metadata.yaml sidecar is written, so a partial dataset can never look
+        READY downstream. Default off preserves the historical warn-and-drop.
+        """
+        self.require_full_coverage = bool(require_full_coverage)
         return self
 
     def _load_force_data(self):
@@ -275,6 +289,9 @@ class DataPreprocessor:
         batch = []
         batch_count = 0
         matched_total = 0
+        # (stem, reason) for every PNG that did not make it into a batch; the
+        # basis of the F3 coverage line + dropped-stem manifest.
+        dropped = []
 
         # Auto-detect image channels from first image
         first_image_path = (
@@ -343,9 +360,11 @@ class DataPreprocessor:
             tasks = [process_image_async(fname) for fname in chunk]
             results = await asyncio.gather(*tasks)
 
-            for result, error in results:
+            # gather() preserves task order, so results align with chunk.
+            for fname, (result, error) in zip(chunk, results):
                 if error:
                     progress_bar.write(f"[Warning] {error}")
+                    dropped.append((os.path.splitext(fname)[0], error))
                     continue
                 if result:
                     batch.append(result)
@@ -360,6 +379,26 @@ class DataPreprocessor:
             progress_bar.update(chunk_processed)
 
         progress_bar.close()
+
+        # F3 coverage report: every PNG either matched a label row or is in
+        # `dropped`; a mismatch here means downstream index ranges would shift.
+        print(f"[INFO] coverage: matched {matched_total} / "
+              f"{len(image_files)} PNGs, dropped {len(dropped)}")
+        manifest_path = None
+        if dropped:
+            manifest_path = os.path.join(self.output_dir, "dropped_stems.csv")
+            with open(manifest_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(["stem", "reason"])
+                writer.writerows(dropped)
+            print(f"[INFO] dropped-stem manifest -> {manifest_path}")
+        if self.require_full_coverage and matched_total != len(image_files):
+            # Abort BEFORE the final batch flush and metadata.yaml write so the
+            # partial output can never be consumed as a READY dataset.
+            raise RuntimeError(
+                f"serialize coverage assertion failed: matched {matched_total}"
+                f" != {len(image_files)} PNGs"
+                + (f"; see {manifest_path}" if manifest_path else ""))
 
         if batch:
             await self._save_batch_async(batch, batch_count)
@@ -422,13 +461,16 @@ class DataPreprocessor:
         return self.results
 
 
-def serialize_labels_dataset(png_dir, labels_csv, out_data_dir, resize=None):
+def serialize_labels_dataset(png_dir, labels_csv, out_data_dir, resize=None,
+                             require_full_coverage=False):
     """Serialize PNG dir + labels.csv to preprocessed_batch_*.pt.
 
     Reads forces from the EXPLICIT ``labels_csv`` (columns SampleID,force_x,
     force_y,force_z), so its directory may also hold other CSVs (forces_model.csv,
     maxu.csv) without forcing an isolated labels-only copy. Images stay raw /255
     floats (no normalization), matching the historical replay datasets.
+    ``require_full_coverage`` opts in to the F3 coverage assertion (raise when
+    any PNG lacks a label row instead of the historical warn-and-drop).
     """
     labels_csv = os.path.abspath(labels_csv)
     if not os.path.isfile(labels_csv):
@@ -443,6 +485,7 @@ def serialize_labels_dataset(png_dir, labels_csv, out_data_dir, resize=None):
     dp.set_resize(bool(resize), tuple(resize) if resize else None)
     dp.set_image_normalization(False)
     dp.set_force_normalization(False)
+    dp.set_require_full_coverage(require_full_coverage)
     dp.serialize()
     res = dp.get_results()
     assert res is not None, "serialize() did not populate results"

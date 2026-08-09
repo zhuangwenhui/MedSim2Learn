@@ -103,6 +103,9 @@ def _build_parser():
     pr.add_argument("--camera", required=True)
     pr.add_argument("--out-png-dir", required=True)
     pr.add_argument("--size", type=int, default=None)
+    pr.add_argument("--yes", action="store_true",
+                    help="Skip the interactive preview confirmation gate "
+                         "(unattended batch); the preview PNG is still written")
 
     # --- serialize ------------------------------------------------------
     ps = sub.add_parser("serialize",
@@ -293,11 +296,41 @@ def _cmd_simulate(args):
 
 
 def _cmd_render(args):
-    from dpost.render import render_fixed_camera_sequence
+    from dpost.render import (
+        interactive_render_confirmation,
+        render_fixed_camera_sequence,
+        render_preview_frame,
+    )
 
-    n_ok = render_fixed_camera_sequence(
+    # F1 preview + confirm gate: render ONE mid-sequence deformed PLY through
+    # the chosen camera so a human confirms the view before the batch. The
+    # preview lives NEXT TO the PNG dir (never inside it: PNG stems must keep
+    # pairing 1:1 with labels.csv rows).
+    ply_files = sorted(
+        f for f in os.listdir(args.ply_dir) if f.lower().endswith(".ply"))
+    if not ply_files:
+        raise SystemExit(f"no PLY files in {args.ply_dir}")
+    mid_ply = os.path.join(args.ply_dir, ply_files[len(ply_files) // 2])
+    run_dir = os.path.dirname(os.path.abspath(args.out_png_dir))
+    os.makedirs(run_dir, exist_ok=True)
+    preview_png = os.path.join(run_dir, "render_preview.png")
+    std = render_preview_frame(mid_ply, args.camera, preview_png,
+                               size=args.size)
+    print(f"preview: {os.path.basename(mid_ply)} (pixel std {std:.4f}) "
+          f"-> {preview_png}")
+    if not args.yes and interactive_render_confirmation() != "y":
+        raise SystemExit(
+            f"render aborted at preview gate; inspect {preview_png} and "
+            "re-pick the camera if the view is wrong")
+
+    n_ok, n_failed = render_fixed_camera_sequence(
         args.ply_dir, args.camera, args.out_png_dir, size=args.size)
-    print(f"render: {n_ok} PNGs -> {args.out_png_dir}")
+    print(f"render: {n_ok} PNGs -> {args.out_png_dir}"
+          + (f" ({n_failed} failed)" if n_failed else ""))
+    if n_failed:
+        raise SystemExit(
+            f"render: {n_failed} frame(s) failed; see "
+            + os.path.join(run_dir, "render_errors", "error_log.csv"))
 
 
 def _cmd_serialize(args):

@@ -76,6 +76,11 @@ class SerializeConfig:
     # 256x256 matches the real corpus and the experiment datasets (datasets/*);
     # raw 800 px was ~13 GB/seq.
     resize: tuple = (256, 256)
+    # F3 opt-in coverage assertion: raise when any PNG lacks a labels.csv row
+    # (matched != total) instead of the historical warn-and-drop. Default off
+    # preserves current behavior; the coverage line + dropped-stem manifest
+    # are emitted either way.
+    require_full_coverage: bool = False
 
 
 @dataclasses.dataclass

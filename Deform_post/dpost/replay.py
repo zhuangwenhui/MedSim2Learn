@@ -119,6 +119,26 @@ def _write_status(out_dir, stage, status, error=""):
         json.dump(payload, fh, indent=2)
 
 
+def reconcile_sequence_counts(ply_dir, png_dir, labels_csv):
+    """Hard count reconciliation before serialize (the F3 synthetic-path guard).
+
+    Asserts #PLY == #PNG == #label-rows for one sequence and raises ValueError
+    on any mismatch, so unpaired frames can never be dropped silently (a drop
+    would shift every downstream split index built from metadata
+    total_samples). Returns ``(n_ply, n_png, n_rows)`` when consistent.
+    """
+    n_ply = sum(1 for f in os.listdir(ply_dir) if f.lower().endswith(".ply"))
+    n_png = sum(1 for f in os.listdir(png_dir) if f.lower().endswith(".png"))
+    with open(labels_csv, "r", newline="") as fh:
+        n_rows = sum(1 for _ in csv.DictReader(fh))
+    if not (n_ply == n_png == n_rows):
+        raise ValueError(
+            f"sequence count mismatch: {n_ply} PLYs ({ply_dir}) vs "
+            f"{n_png} PNGs ({png_dir}) vs {n_rows} label rows ({labels_csv}); "
+            "refusing to serialize (check render_errors/error_log.csv)")
+    return n_ply, n_png, n_rows
+
+
 def run_sequence(recipe, seq, out_dir, subsample=None, with_artifacts=True,
                  keep_intermediate=None):
     """One sequence end to end: prep -> sim -> render -> serialize (-> artifacts).
@@ -183,17 +203,30 @@ def run_sequence(recipe, seq, out_dir, subsample=None, with_artifacts=True,
         _write_status(out_dir, stage, "running")
         print("=== Stage 3: render ===")
         camera_path = os.path.join(out_dir, "camera.json")
-        n_png = render_fixed_camera_sequence(ply_dir, camera_path, png_dir)
-        print(f"render: {n_png} PNGs -> {png_dir}")
+        n_png, n_render_failed = render_fixed_camera_sequence(
+            ply_dir, camera_path, png_dir)
+        print(f"render: {n_png} PNGs -> {png_dir}"
+              + (f" ({n_render_failed} failed)" if n_render_failed else ""))
+        if n_render_failed:
+            # F2 isolated the failures for inspection, but a production
+            # sequence with missing frames must not proceed to serialize.
+            raise RuntimeError(
+                f"render: {n_render_failed} frame(s) failed; see "
+                + os.path.join(out_dir, "render_errors", "error_log.csv"))
 
         stage = "serialize"
         _write_status(out_dir, stage, "running")
         print("=== Stage 4: serialize ===")
+        # F3: refuse to serialize unless #PLY == #PNG == #label-rows.
+        reconcile_sequence_counts(ply_dir, png_dir,
+                                  os.path.join(out_dir, "labels.csv"))
         # serialize_labels_dataset reads the explicit labels.csv, so the other
         # CSVs already in out_dir (forces_model.csv, maxu.csv) no longer force an
         # isolated labels_only/ copy.
-        serialize_labels_dataset(png_dir, os.path.join(out_dir, "labels.csv"),
-                                 data_dir, resize=recipe.serialize.resize)
+        serialize_labels_dataset(
+            png_dir, os.path.join(out_dir, "labels.csv"), data_dir,
+            resize=recipe.serialize.resize,
+            require_full_coverage=recipe.serialize.require_full_coverage)
 
         if with_artifacts:
             stage = "artifacts"
