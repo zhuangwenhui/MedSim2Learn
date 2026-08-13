@@ -1,0 +1,983 @@
+schema_version: medsim-handoff-state/v1
+handoff_id: 2026-08-09_data-improve
+updated_at: 2026-08-10T02:42:32+09:00
+status: active
+
+roots:
+  workspace:
+    resolution: git_toplevel
+    host_hint: 'D:\MedSim2Learn'
+  verification:
+    resolution: environment_or_host_hint
+    environment_variable: MEDSIM_VERIFICATION_ROOT
+    host_hint: 'D:\MedSim2Learn-C1-verification'
+  r19:
+    resolution: environment_or_host_hint
+    environment_variable: MEDSIM_R19_WORKTREE
+    host_hint: 'D:\MedSim2Learn-C1-R19-Triplanar-Continuity'
+  r23:
+    resolution: environment_or_host_hint
+    environment_variable: MEDSIM_R23_WORKTREE
+    host_hint: 'D:\MedSim2Learn-C1-R23-Implicit-Vessel-Width'
+  r24:
+    resolution: environment_or_host_hint
+    environment_variable: MEDSIM_R24_WORKTREE
+    host_hint: 'D:\MedSim2Learn-C1-R24-Exemplar-Source-Quality'
+  r25:
+    resolution: prospective_same_drive_sibling
+    environment_variable: MEDSIM_R25_WORKTREE
+    host_hint: 'D:\MedSim2Learn-C1-R25-Procedural-Tissue-Microtexture'
+    branch: codex/dataimprove-c1-r25-procedural-tissue-microtexture
+    base_commit: 80bdd8c74dece2a514be8485868e7b6a3ae59495
+    creation_authorized_only_after: T-004
+  training_integration:
+    resolution: environment_or_host_hint
+    environment_variable: MEDSIM_TRAINING_INTEGRATION_WORKTREE
+    host_hint: 'D:\MedSim2Learn-C1-R12-Training-Integration'
+
+repository:
+  workspace_branch: master
+  workspace_head: fe95b640332aaf7562be8d9d2f71d003dd176bb2
+  cached_origin_master: 296bcfbd910bbaefa8def428da8a79bd9a83b03c
+  upstream_note: local_cache_only_no_fetch_performed
+  worktree_dirty: true
+  staged_count: 0
+  preexisting_untracked:
+    - RESEARCH_DIRECTION.md
+    - RESEARCH_GOAL.md
+    - _paper09_extract.txt
+  handoff_changes:
+    modified:
+      - CLAUDE.md
+    created:
+      - handoff/current.yaml
+      - handoff/2026-08-09_data-improve/HANDOFF.md
+      - handoff/2026-08-09_data-improve/STATE.yaml
+  local_branch_count: 41
+  worktree_count: 37
+  clean_worktree_count: 12
+  dirty_worktree_count: 25
+  inventory_snapshot_before_handoff:
+    tracked_dirty_worktree_count: 0
+  current_workspace_tracked_changes:
+    - CLAUDE.md
+
+state_update_policy:
+  effective_after: current_handoff_delivery
+  mutable_fields:
+    - updated_at
+    - tasks.status
+    - tasks.blocker
+    - checkpoints
+    - state_history
+  immutable_completed_checkpoint_entries: true
+  before_each_update:
+    - compute_previous_state_sha256
+    - append_previous_state_sha256_to_state_history
+  never_rewrite_failure_or_superseded_artifacts: true
+state_history:
+  - previous_state_sha256: 12dcbcd7a496f7b3e930f2e3e413d5c0a1c87b39e85b47f028373db2efb6f840
+    superseded_at: 2026-08-09T18:25:40+09:00
+    change: T-001_read_only_preflight_rerun_completed
+  - previous_state_sha256: 655fd2943b9b7fa0a10fb3764b851070f24c58a47db677673bea11d0c90de5b9
+    superseded_at: 2026-08-09T18:47:33+09:00
+    change: T-002_design_and_literature_ledger_delivered
+  - previous_state_sha256: a3308ec9964d41d60e3858489ee65714d03dc36c2685b83a2df32510e6a4dfda
+    superseded_at: 2026-08-09T19:24:53+09:00
+    change: T-003_independent_review_approved_after_two_revision_rounds
+  - previous_state_sha256: d899f072cf138b6566ae42742621c8735a61840b5ed21ead94a1d98aee2cf964
+    superseded_at: 2026-08-09T19:45:51+09:00
+    change: T-004_repository_owner_approval_recorded_with_conditions
+  - previous_state_sha256: 667782153d2c670e242fece91b81c9868062ca28d0321d997c13cd62b7186c6f
+    superseded_at: 2026-08-09T20:29:55+09:00
+    change: M5_v3_infeasibility_found_design_v4_revision_review_approved
+  - previous_state_sha256: 1b87bb42cee8ea93e66e6d1ab9572395af78673f256b1c40781854cbaef11861
+    superseded_at: 2026-08-09T20:39:32+09:00
+    change: T-005_sixteen_image_preview_published_all_mechanical_gates_pass
+  - previous_state_sha256: 87774e973aa77e0c815d7346623f87175aaca0f6658b15711af415c0639c7ca4
+    superseded_at: 2026-08-09T20:59:14+09:00
+    change: T-006_independent_verification_pass_terminal_eligible
+  - previous_state_sha256: 15320ac90343cebf740abbe28ffcb8a554c67bc9acbcf9a2d0fabaa038a4ba2d
+    superseded_at: 2026-08-09T21:09:30+09:00
+    change: T-007_final_review_approved_terminal_confirmed
+  - previous_state_sha256: 2907f06eadca885ae2752f139320b6b52948245aeda1126d820780f4cd0990e9
+    superseded_at: 2026-08-10T02:40:24+09:00
+    change: T-008_commit_approval_recorded_scope_frozen
+  - previous_state_sha256: decbf2109c4fe20ada83f9e16f8aaa5fc982e76bd344461d07823fbb55d06c30
+    superseded_at: 2026-08-10T02:42:32+09:00
+    change: T-009_route_closed_single_compressed_commit_9c74cf0
+
+authority:
+  rules:
+    root: workspace
+    rel: AGENTS.md
+  claude_entry:
+    root: workspace
+    rel: CLAUDE.md
+  role_definitions: AGENTS.md#collaboration-protocol
+  state_authority: handoff/2026-08-09_data-improve/STATE.yaml
+  precedence:
+    - user_current_instruction
+    - AGENTS.md
+    - CLAUDE.md
+    - active_handoff_scope
+
+documents:
+  - id: D-001
+    kind: contract
+    path: {root: workspace, rel: AGENTS.md}
+    status: authoritative
+  - id: D-002
+    kind: handoff
+    path: {root: workspace, rel: handoff/2026-08-09_data-improve/HANDOFF.md}
+    status: authoritative
+  - id: D-003
+    kind: result
+    path:
+      root: verification
+      rel: r23-implicit-vessel-width/report/result.json
+    sha256: 54e3d09d6e423d97a4a6c6599ca1e3780f1f0313ac58c56b513420e161a9b0a7
+    status: authoritative
+  - id: D-004
+    kind: result
+    path:
+      root: verification
+      rel: r24-exemplar-source-quality/report/v2-zh-v1/result.json
+    sha256: 3e8d57ae5431d68e2b50f46aa00b6567e553a30ab323a6a0352b36ee1185376a
+    status: authoritative
+  - id: D-005
+    kind: result
+    path:
+      root: verification
+      rel: r24-exemplar-source-quality/report/v2/result.json
+    sha256: 4bfae2d4d270dd27a53d33b2e73bf04ecf68c55f1e2745a409cc9a5c43a85f32
+    status: superseded_by_D-004_for_language_only
+  - id: D-006
+    kind: report
+    path:
+      root: verification
+      rel: r24-exemplar-source-quality/report/v2/report.md
+    sha256: 033aa49dfcf34e0414729563be3757ca58ab2b26e0c201e28b2fadf6f31e1bac
+    status: preserved_language_incident
+  - id: D-007
+    kind: result
+    path:
+      root: r24
+      rel: Deform_post/research/data_improve/2026-08-08-c1-r24-exemplar-source-quality-result.md
+    sha256: 5aec058c1e7481370a5480eacbb05d996526921b313dd44f949829f2e7d59367
+    status: authoritative
+  - id: D-008
+    kind: review
+    path:
+      root: verification
+      rel: r24-exemplar-source-quality/reviews/final-admin-independent-v2.md
+    sha256: 58b9f71243b5f04a4b0444bd0533ebe9a0d8854b1f54e9d4ebbcb38292e08b5b
+    status: authoritative
+  - id: D-009
+    kind: result
+    path:
+      root: r19
+      rel: Deform_post/research/data_improve/2026-08-07-c1-r19-triplanar-continuity-result.md
+    sha256: 1c720b6d7751828117c10fb5aa550fedf49947270d620787db5c8cda7e01cb5d
+    status: authoritative
+
+facts:
+  - id: F-GIT-001
+    key: master_head
+    value: fe95b640332aaf7562be8d9d2f71d003dd176bb2
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    source_command: git rev-parse master
+    claim_boundary: local_ref_without_fetch
+  - id: F-GIT-002
+    key: data_improve_head
+    value: 09f21a505c78ce8e9701a410467d42cd4fe5a587
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    source_command: git rev-parse DataImprove
+    claim_boundary: local_ref_without_fetch
+  - id: F-GIT-003
+    key: coral_supplied_tip
+    value: 95b765f4fdcdc176a410f920e964514cfd346cc1
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    source_command: git cat-file -e 95b765f4fdcdc176a410f920e964514cfd346cc1
+    claim_boundary: commit_exists_no_local_branch_points_exactly_here
+  - id: F-GIT-004
+    key: coral_training_integration_head
+    value: 60979102e24f5e1608c169961dd5fd8a2deea4b2
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    source_command: git rev-parse codex/dataimprove-c1-r12-training-integration
+    claim_boundary: local_ref_without_fetch
+  - id: F-GIT-005
+    key: r19_continuity_base
+    value:
+      branch: codex/dataimprove-c1-r19-triplanar-continuity
+      commit: 80bdd8c74dece2a514be8485868e7b6a3ae59495
+      clean: true
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    claim_boundary: recommended_base_for_new_independent_texture_route
+  - id: F-GIT-006
+    key: r23_closed_branch
+    value:
+      branch: codex/dataimprove-c1-r23-implicit-vessel-width
+      commit: 9d3011fdd4f0266c9f58366ef92fee986725d7b2
+      clean: true
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    claim_boundary: committed_vessel_route
+  - id: F-GIT-007
+    key: r24_closed_branch
+    value:
+      branch: codex/dataimprove-c1-r24-exemplar-source-quality
+      commit: e103a15fcc574f5be0862bddf3e7536afb42303f
+      clean: true
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    claim_boundary: committed_exemplar_source_quality_route
+  - id: F-GIT-008
+    key: r23_r24_relationship
+    value:
+      merge_base: 80bdd8c74dece2a514be8485868e7b6a3ae59495
+      r23_contains_r24: false
+      r24_contains_r23: false
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    claim_boundary: git_ancestry_not_experiment_logic
+  - id: F-GIT-009
+    key: worktree_inventory
+    value:
+      local_branches: 41
+      worktrees: 37
+      clean: 12
+      dirty: 25
+      tracked_dirty: 0
+    evidence_class: first_hand
+    verified_at: 2026-08-09T16:20:00+09:00
+    claim_boundary: local_snapshot_before_handoff_writes_without_fetch
+  - id: F-EXP-001
+    key: pbr_environment_result
+    value: windows_native_pass_after_headless_environment_failure
+    evidence_class: first_hand
+    source:
+      path: {root: verification, rel: r2-pbr-env/kill-gate-v2-summary.json}
+    claim_boundary: environment_compatibility_only_no_gap_or_training_claim
+  - id: F-EXP-002
+    key: seq04_status
+    value: permanently_invalid_and_excluded
+    evidence_class: first_hand
+    source:
+      path: {root: workspace, rel: DataFlow/Deform_post/_excluded/blacklist.txt}
+    claim_boundary: exclude_seq04_from_all_current_experiments
+  - id: F-EXP-003
+    key: r7_terminal
+    value: INCONCLUSIVE
+    evidence_class: first_hand
+    source:
+      path: {root: verification, rel: r7-lighting-task-screen/report/result.json}
+    claim_boundary: no_lighting_winner_claim
+  - id: F-EXP-004
+    key: r8_terminal
+    value: TRADEOFF
+    evidence_class: first_hand
+    source:
+      path: {root: verification, rel: r8-texture-task-screen/report/result.json}
+    claim_boundary: no_texture_winner_or_global_failure_claim
+  - id: F-EXP-005
+    key: r19_terminal
+    value: R19_SURFACE_CONTINUITY_ELIGIBLE
+    evidence_class: first_hand
+    source:
+      document_id: D-009
+    claim_boundary: registered_continuity_views_only_no_gap_or_training_claim
+  - id: F-EXP-006
+    key: r20_terminal
+    value: R20_BOTH_DIVERSITY_LIMITED
+    evidence_class: first_hand
+    source:
+      path: {root: verification, rel: r20-texture-diversity/report/result.json}
+    claim_boundary: arm_c_color_only_limited_arm_e_source_boundary_limited
+  - id: F-EXP-007
+    key: r21_terminal
+    value: R21_SCALE_OR_REPRESENTATION_LIMITED
+    evidence_class: first_hand
+    source:
+      path: {root: verification, rel: r21-procedural-vessels/report/result.json}
+    claim_boundary: continuous_tree_but_scale_not_visually_resolved
+  - id: F-EXP-008
+    key: r22_terminal
+    value: R22_SOURCE_CONTRAST_INCOHERENT
+    evidence_class: first_hand
+    source:
+      path: {root: verification, rel: r22-vessel-contrast/report/result.json}
+    claim_boundary: exact_roi_annotation_failure_not_all_vessel_colour_methods
+  - id: F-EXP-009
+    key: r23_terminal
+    value: R23_SCALE_SELECTED_CONTROLLED_DIFFUSE_ACCEPTED
+    evidence_class: first_hand
+    source:
+      document_id: D-003
+    claim_boundary: frozen_four_view_visual_acceptance_only
+  - id: F-EXP-010
+    key: r23_selected_scale
+    value:
+      label: small
+      surface_ratio: 0.012
+      root_diameter_mm: 1.3188666
+    evidence_class: first_hand
+    source:
+      document_id: D-003
+    claim_boundary: engineering_visual_scale_not_physiological_truth
+  - id: F-EXP-011
+    key: r24_terminal
+    value: R24_V2_CONTINUITY_PASS_DIVERSITY_LIMITED
+    evidence_class: first_hand
+    source:
+      document_id: D-004
+    claim_boundary: selected_six_sources_and_sixty_registered_views_only
+  - id: F-EXP-012
+    key: appearance_gap_reduced_claimed
+    value: false
+    evidence_class: first_hand
+    source:
+      document_id: D-004
+    claim_boundary: no_texture_route_has_closed_gap_evidence
+  - id: F-EXP-013
+    key: training_benefit_claimed
+    value: false
+    evidence_class: first_hand
+    source:
+      document_id: D-004
+    claim_boundary: no_r17_to_r24_generation_route_training_claim
+
+fable5_policy:
+  intended_model: claude-fable-5
+  minimum_claude_code_version: 2.1.170
+  task_classification:
+    - non_clinical_software_engineering
+    - computer_graphics
+    - synthetic_data_generation
+    - machine_learning_domain_gap_research
+  explicitly_out_of_scope:
+    - diagnosis
+    - treatment
+    - clinical_decision_making
+    - patient_specific_advice
+    - wet_lab_protocols
+    - pathogens
+    - genetic_engineering
+    - biological_manufacturing
+  allowed_default_data:
+    - source_code
+    - synthetic_meshes
+    - synthetic_renders
+    - derived_non_identifying_images
+    - frozen_aggregate_statistics
+    - formal_verification_artifacts
+  prohibited_without_human_data_governance_confirmation:
+    - PHI
+    - patient_identifiers
+    - unredacted_clinical_records
+    - reidentifiable_raw_video
+  retention_notice:
+    days: 30
+    zero_data_retention_available: false
+  refusal_handling:
+    evasion_prohibited: true
+    sequence:
+      - preserve_refusal_as_checkpoint
+      - restate_true_non_clinical_scope
+      - narrow_to_code_rendering_statistics_or_documentation
+      - accept_platform_automatic_safety_routing_without_prompt_manipulation
+      - never_rewrite_or_split_the_prompt_to_induce_a_fallback
+      - require_human_authorization_before_manually_changing_models
+      - preserve_the_same_true_scope_and_limits_on_any_authorized_model
+      - hand_to_human_if_no_compliant_route_is_authorized
+  cost_strategy:
+    main_model_work:
+      - architecture
+      - scientific_claim_boundary
+      - plan_review
+      - final_review
+    delegate_work:
+      - repository_search
+      - hash_calculation
+      - test_execution
+      - static_checks
+      - manifest_replay
+  official_sources:
+    - https://platform.claude.com/docs/en/about-claude/models/introducing-claude-fable-5-and-claude-mythos-5
+    - https://support.claude.com/en/articles/15424964-claude-fable-5-on-your-plan
+    - https://www.anthropic.com/claude/fable
+    - https://www.anthropic.com/news/updating-our-usage-policy
+
+roles:
+  main:
+    actor: claude-fable-5
+    task_ids: [T-001, T-009]
+  research_improve:
+    actor: unassigned_subagent
+    task_ids: [T-002, T-005]
+  test:
+    actor: unassigned_subagent
+    task_ids: [T-006]
+  review:
+    actor: unassigned_subagent
+    task_ids: [T-003, T-007]
+  human:
+    actor: repository_owner
+    task_ids: [T-004, T-008]
+
+tasks:
+  - id: T-001
+    title: Handoff and Fable 5 read-only preflight
+    owner_role: main
+    status: done
+    depends_on: []
+    inputs: [D-001, D-002, F-GIT-005, F-GIT-006, F-GIT-007]
+    allowed_paths:
+      - {root: workspace, rel: AGENTS.md}
+      - {root: workspace, rel: CLAUDE.md}
+      - {root: workspace, rel: handoff}
+      - {root: verification, rel: .}
+      - {root: r19, rel: .}
+      - {root: r23, rel: .}
+      - {root: r24, rel: .}
+    forbidden_actions:
+      - git_write
+      - file_write_outside_handoff_state
+      - render
+      - train
+      - fetch
+      - push
+      - merge
+      - rebase
+      - rollback
+      - delete
+    acceptance:
+      - claude_code_version_is_at_least_2_1_170
+      - active_model_is_confirmed_or_C-H002_is_recorded
+      - all_handoff_yaml_parses
+      - r19_r23_r24_commits_match
+      - authoritative_results_exist_and_hash_match
+      - no_prohibited_data_is_opened_or_uploaded
+    outputs:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/STATE.yaml}
+    next_action: Mark T-001 done and T-002 ready only after all acceptance checks pass.
+    blocker: null
+  - id: T-002
+    title: Write literature-backed R25 procedural tissue microtexture specification
+    owner_role: research_improve
+    status: done
+    depends_on: [T-001]
+    inputs: [F-GIT-005, F-EXP-005, F-EXP-009, F-EXP-011]
+    allowed_paths:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve}
+      - {root: r19, rel: Deform_post/research/data_improve}
+      - {root: verification, rel: r19-triplanar-continuity}
+      - {root: verification, rel: r23-implicit-vessel-width}
+      - {root: verification, rel: r24-exemplar-source-quality}
+    forbidden_actions:
+      - product_code_write
+      - branch_create
+      - worktree_create
+      - render
+      - train
+      - git_commit
+      - medical_claim
+    acceptance:
+      - primary_literature_ledger_has_timestamp_and_direct_links
+      - specification_freezes_r19_geometry_cameras_background_lighting_and_base_colour
+      - only_variable_is_continuous_procedural_multiscale_tissue_microtexture
+      - patch_tiling_and_real_pixel_spatial_mapping_are_excluded
+      - sixteen_clean_preview_contract_is_exact
+      - stop_conditions_and_claim_boundary_are_explicit
+      - no_gap_or_training_claim_is_made
+    outputs:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/R25-DESIGN.md}
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/R25-LITERATURE.md}
+    next_action: Send the two documents to T-003 without implementation.
+    blocker: null
+  - id: T-003
+    title: Independent anti-hallucination and design review
+    owner_role: review
+    status: done
+    depends_on: [T-002]
+    inputs: [T-002]
+    allowed_paths:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve}
+      - {root: r19, rel: Deform_post}
+      - {root: verification, rel: r19-triplanar-continuity}
+    forbidden_actions:
+      - product_code_write
+      - formal_artifact_write
+      - render
+      - train
+      - git_write
+    acceptance:
+      - every_literature_claim_is_supported_by_a_primary_source
+      - project_specific_adaptations_are_labeled_as_adaptations
+      - single_variable_contract_is_executable
+      - sixteen_image_gate_is_replayable
+      - critical_and_important_findings_are_zero_or_resolved
+    outputs:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/R25-DESIGN-REVIEW.md}
+    next_action: Set T-004 ready only after an approved review.
+    blocker: null
+  - id: T-004
+    title: Human approval for R25 implementation and worktree creation
+    owner_role: human
+    status: done
+    depends_on: [T-003]
+    inputs: [T-002, T-003]
+    allowed_paths:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve}
+    forbidden_actions:
+      - implementation_before_approval
+      - implicit_git_authorization
+    acceptance:
+      - repository_owner_explicitly_approves_design
+      - repository_owner_explicitly_approves_same_drive_sibling_worktree
+      - branch_name_and_base_commit_are_frozen
+    outputs:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/STATE.yaml}
+    next_action: Set T-005 ready after approval is recorded.
+    blocker: null
+  - id: T-005
+    title: Implement the minimal R25 sixteen-image preview
+    owner_role: research_improve
+    status: done
+    depends_on: [T-004]
+    inputs: [F-GIT-005, T-002, T-003, T-004]
+    allowed_paths:
+      - {root: r25, rel: Deform_post}
+      - {root: verification, rel: r25-procedural-tissue-microtexture}
+    forbidden_actions:
+      - patch_tiling
+      - real_pixel_spatial_mapping
+      - add_r23_vessels
+      - change_geometry
+      - change_camera
+      - change_background
+      - change_lighting
+      - change_base_colour
+      - write_r19
+      - train
+      - gap_claim
+      - overwrite_artifact
+    acceptance:
+      - TDD_red_and_green_are_preserved
+      - base_plus_three_candidates_are_generated
+      - canonical_and_deformed_meshes_are_rendered
+      - z_plus_and_iso_plus_views_are_rendered
+      - exactly_sixteen_clean_images_exist
+      - clean_image_formula_is_4_variants_x_2_meshes_x_2_views
+      - clean_image_variants_are_base_candidate_1_candidate_2_candidate_3
+      - clean_image_meshes_are_canonical_and_deformed
+      - clean_image_views_are_z_plus_and_iso_plus
+      - diagnostics_are_separate_from_clean_images
+      - sheets_masks_and_diagnostics_do_not_count_toward_sixteen
+      - process_tree_peak_rss_is_below_500000000_bytes
+      - hash_manifest_and_receipt_close_exactly
+    outputs:
+      - {root: verification, rel: r25-procedural-tissue-microtexture/development-preview-v1}
+    next_action: Stop implementation and hand exact artifacts to T-006.
+    blocker: null
+  - id: T-006
+    title: Resource, continuity, structure and diversity verification
+    owner_role: test
+    status: done
+    depends_on: [T-005]
+    inputs: [T-005]
+    allowed_paths:
+      - {root: verification, rel: r25-procedural-tissue-microtexture}
+      - {root: r25, rel: Deform_post/tests}
+    forbidden_actions:
+      - product_code_write
+      - artifact_overwrite
+      - rerun_without_failure_diagnosis
+      - train
+    acceptance:
+      - all_sixteen_clean_images_decode_at_original_resolution
+      - no_seam_band_brick_chart_island_or_disconnected_stain_is_observed
+      - organ_gross_structure_is_preserved
+      - candidates_are_visually_distinguishable_from_base_and_each_other
+      - texture_has_coherent_multiscale_structure_not_unstructured_noise
+      - canonical_deformed_identity_contract_passes
+      - RSS_and_manifest_gates_pass
+    outputs:
+      - {root: verification, rel: r25-procedural-tissue-microtexture/tests}
+      - {root: verification, rel: r25-procedural-tissue-microtexture/report}
+    next_action: Hand the closed evidence to T-007 without changing code.
+    blocker: null
+  - id: T-007
+    title: Independent original-resolution final review
+    owner_role: review
+    status: done
+    depends_on: [T-006]
+    inputs: [T-006]
+    allowed_paths:
+      - {root: verification, rel: r25-procedural-tissue-microtexture}
+      - {root: r25, rel: Deform_post}
+    forbidden_actions:
+      - product_code_write
+      - artifact_overwrite
+      - train
+      - git_write
+    acceptance:
+      - every_clean_image_is_viewed_at_original_resolution
+      - terminal_matches_mechanical_and_visual_evidence
+      - unsupported_gap_training_and_medical_claims_are_false
+      - critical_and_important_findings_are_zero_or_resolved
+    outputs:
+      - {root: verification, rel: r25-procedural-tissue-microtexture/reviews/final.md}
+    next_action: Set T-008 ready only after approval; no commit is authorized yet.
+    blocker: null
+  - id: T-008
+    title: Human approval for one compressed R25 commit
+    owner_role: human
+    status: done
+    depends_on: [T-007]
+    inputs: [T-007]
+    allowed_paths:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve}
+    forbidden_actions:
+      - implicit_commit_authorization
+      - git_commit
+      - git_push
+      - git_merge
+    acceptance:
+      - repository_owner_explicitly_approves_the_final_diff
+      - repository_owner_explicitly_approves_one_compressed_commit
+      - commit_scope_and_message_are_frozen
+    outputs:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/STATE.yaml}
+    next_action: Set T-009 ready only after explicit commit approval is recorded.
+    blocker: null
+  - id: T-009
+    title: Close the R25 route and make one compressed commit
+    owner_role: main
+    status: done
+    depends_on: [T-008]
+    inputs: [T-007, T-008]
+    allowed_paths:
+      - {root: r25, rel: .}
+      - {root: verification, rel: r25-procedural-tissue-microtexture}
+      - {root: workspace, rel: handoff/2026-08-09_data-improve}
+    forbidden_actions:
+      - multiple_small_commits
+      - AI_authorship_footer
+      - push
+      - merge
+      - rebase
+      - rollback
+      - delete_worktree
+    acceptance:
+      - final_result_and_failure_checkpoint_are_written
+      - verification_roster_is_reconciled
+      - independent_review_is_approved
+      - commit_author_and_committer_equal_WENHUIZ_identity
+      - exactly_one_substantive_conventional_commit_is_created
+    outputs:
+      - {root: workspace, rel: handoff/2026-08-09_data-improve/STATE.yaml}
+    next_action: Return to the DFS queue; do not start broad Gap comparison automatically.
+    blocker: null
+
+checkpoints:
+  - id: C-F001
+    kind: failure
+    status: fail
+    title: seq04 source video is permanently invalid
+    impact: exclude_seq04_from_all_current_experiments
+    resume_condition: none_per_user_decision
+    artifact:
+      path: {root: workspace, rel: DataFlow/Deform_post/_excluded/blacklist.txt}
+    overwrite_allowed: false
+  - id: C-F002
+    kind: environment
+    status: pass_after_environment_adaptation
+    title: PBR headless failure and Windows native recovery
+    impact: PBR_direction_remains_technically_open
+    resume_condition: use_validated_Windows_native_context
+    artifact:
+      path: {root: verification, rel: r2-pbr-env/kill-gate-v2-summary.json}
+    overwrite_allowed: false
+  - id: C-F003
+    kind: representation
+    status: fail
+    title: R17 UV surface continuity limitation
+    impact: do_not_resume_UV_chart_mapping_for_whole_surface_texture
+    resume_condition: use_R19_object_space_continuity_base
+    artifact:
+      path: {root: verification, rel: r17-continuous-exemplar/formal-v1}
+    overwrite_allowed: false
+  - id: C-F004
+    kind: diversity
+    status: limited
+    title: R20 color-only and exemplar-source limitations
+    impact: global_colour_jitter_is_secondary_and_bad_source_boundaries_are_rejected
+    resume_condition: new_route_must_not_repeat_patch_source_mapping
+    artifact:
+      path: {root: verification, rel: r20-texture-diversity/report/result.json}
+    overwrite_allowed: false
+  - id: C-F005
+    kind: representation
+    status: limited
+    title: R21 vertex-colour scale visibility limitation
+    impact: do_not_use_vertex_clip_then_interpolate_for_subedge_width
+    resume_condition: use_continuous_field_or_fragment_level_representation
+    artifact:
+      path: {root: verification, rel: r21-procedural-vessels/report/result.json}
+    overwrite_allowed: false
+  - id: C-F006
+    kind: annotation
+    status: fail
+    title: R22 paired ROI semantics are incoherent
+    impact: do_not_reuse_R22_colour_candidates
+    resume_condition: use_R21_trusted_delta_or_new_blinded_annotation
+    artifact:
+      path: {root: verification, rel: r22-vessel-contrast/report/result.json}
+    overwrite_allowed: false
+  - id: C-F007
+    kind: lighting
+    status: pass_after_method_change
+    title: R23 direct lighting rejected and controlled diffuse accepted
+    impact: preserve_controlled_diffuse_as_R23_winner_setting
+    resume_condition: none_for_R25_because_R25_freezes_R19_lighting
+    artifact:
+      path: {root: verification, rel: r23-implicit-vessel-width/report/result.json}
+    overwrite_allowed: false
+  - id: C-F008
+    kind: source_gate
+    status: fail
+    title: R24 v1 positive-control calibration failed
+    impact: v1_cannot_support_model_surface_claims
+    resume_condition: use_preserved_v2_control_exclusion_contract
+    artifact:
+      path: {root: verification, rel: r24-exemplar-source-quality/reviews/source-gate-v1.md}
+    overwrite_allowed: false
+  - id: C-F009
+    kind: diversity
+    status: limited
+    title: R24 v2 continuity passed but visual diversity remained limited
+    impact: close_exemplar_source_quality_route_at_current_configuration
+    resume_condition: independent_non_patch_route_or_new_representation
+    artifact:
+      path: {root: verification, rel: r24-exemplar-source-quality/report/v2-zh-v1/result.json}
+      sha256: 3e8d57ae5431d68e2b50f46aa00b6567e553a30ab323a6a0352b36ee1185376a
+    overwrite_allowed: false
+  - id: C-F010
+    kind: orchestration
+    status: preserved_history
+    title: Historical cwd timeout fixture and language-contract failures
+    impact: distinguish_orchestration_failures_from_scientific_failures
+    resume_condition: register_no_clobber_correction_after_root_cause
+    artifact:
+      path: {root: verification, rel: r24-exemplar-source-quality/tests}
+    overwrite_allowed: false
+  - id: C-F011
+    kind: resource
+    status: inconclusive_event_with_active_guard
+    title: Host reboot occurred without a proven single-process cause
+    impact: enforce_process_tree_RSS_ceiling_for_future_rendering
+    resume_condition: serial_run_and_peak_RSS_below_500000000_bytes
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H001
+    kind: handoff_verification
+    status: pass
+    title: YAML parse and schema verification
+    observed_at: 2026-08-09T17:07:13+09:00
+    result:
+      pointer_schema: medsim-handoff-pointer/v1
+      state_schema: medsim-handoff-state/v1
+      ids_unique: true
+      task_dependencies_closed: true
+    artifact:
+      path: {root: workspace, rel: handoff/2026-08-09_data-improve/STATE.yaml}
+    overwrite_allowed: false
+  - id: C-H002
+    kind: model_preflight
+    status: fail
+    title: Claude Code version and Fable 5 identity verification
+    observed_at: 2026-08-09T17:06:09+09:00
+    result:
+      installed_claude_code_version: '2.1.131'
+      minimum_required_version: '2.1.170'
+      version_gate_passed: false
+      active_model_confirmed: false
+      powershell_launcher_status: blocked_by_host_execution_policy
+      cmd_launcher_status: works
+      corrected_probe_command: claude.cmd --version
+      host_execution_policy_changed: false
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H003
+    kind: refusal
+    status: not_observed
+    title: Fable 5 refusal or safety routing checkpoint
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H004
+    kind: handoff_verification
+    status: pass
+    title: Git scope and preexisting path-status verification
+    observed_at: 2026-08-09T17:07:13+09:00
+    result:
+      staged_count: 0
+      preexisting_paths_present_untracked_unstaged: true
+      byte_preservation_not_claimed_without_prior_hash_baseline: true
+      only_expected_handoff_scope_added: true
+    artifact:
+      path: {root: workspace, rel: handoff/2026-08-09_data-improve/HANDOFF.md}
+    overwrite_allowed: false
+  - id: C-H005
+    kind: handoff_verification
+    status: pass
+    title: Cross-reference and claim-boundary verification
+    observed_at: 2026-08-09T17:07:13+09:00
+    result:
+      missing_handoff_ids: 0
+      missing_task_dependencies: 0
+      placeholder_tokens: 0
+      missing_documents: 0
+      document_hash_mismatches: 0
+    artifact:
+      path: {root: workspace, rel: handoff/2026-08-09_data-improve/HANDOFF.md}
+    overwrite_allowed: false
+  - id: C-H006
+    kind: model_preflight
+    status: pass
+    title: Session runtime version and Fable 5 identity verification at T-001 rerun
+    observed_at: 2026-08-09T18:25:40+09:00
+    result:
+      session_runtime_claude_code_version: '2.1.222'
+      session_runtime_probe_command: '%CLAUDE_CODE_EXECPATH% --version'
+      session_runtime_execpath: 'C:\Users\space\AppData\Roaming\Claude\claude-code\2.1.222\claude.exe'
+      session_entrypoint: claude-desktop
+      minimum_required_version: '2.1.170'
+      version_gate_passed: true
+      active_model_id: claude-fable-5
+      active_model_confirmed: true
+      npm_cli_launcher_version_still: '2.1.131'
+      npm_cli_launcher_is_not_session_runtime: true
+      c_h002_probe_measured_stale_npm_cli_not_session_runtime: true
+      host_execution_policy_changed: false
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H007
+    kind: handoff_verification
+    status: pass
+    title: T-001 read-only preflight acceptance rerun
+    observed_at: 2026-08-09T18:25:40+09:00
+    result:
+      all_handoff_yaml_parse: true
+      state_ids_total: 56
+      state_ids_unique: true
+      task_dependencies_closed: true
+      r19_branch_commit_match: true
+      r23_branch_commit_match: true
+      r24_branch_commit_match: true
+      r19_r23_r24_worktrees_clean: true
+      document_hashes_matched: [D-003, D-004, D-005, D-006, D-007, D-008, D-009]
+      document_hash_mismatches: 0
+      r23_r24_merge_base_is_80bdd8c: true
+      r23_r24_mutual_containment: false
+      master_contains_r23_or_r24: false
+      r25_base_commit_exists: true
+      checkpoint_artifacts_exist: true
+      preexisting_untracked_files_not_opened: true
+      prohibited_data_opened_or_uploaded: false
+      git_writes_performed: false
+      worktree_global_inventory_not_reverified: true
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H008
+    kind: human_gate
+    status: pass
+    title: T-004 repository owner approval for R25 design and worktree
+    observed_at: 2026-08-09T19:45:51+09:00
+    result:
+      design_approved: true
+      same_drive_sibling_worktree_approved: true
+      branch_and_base_frozen_confirmed: true
+      approval_channel: user_message_in_active_claude_code_session
+      condition_1_worktree_norms: identical_to_prior_codex_worktrees_sibling_dir_same_drive_naming_pattern
+      condition_2_commit_policy: every_commit_needs_stated_necessity_and_docs_only_changes_must_not_become_commits
+      commit_gate_unchanged: T-008_remains_a_separate_human_gate
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H009
+    kind: design_gate_infeasibility
+    status: revised_and_approved
+    title: M5 v3 background clause proven structurally unsatisfiable at T-005
+    observed_at: 2026-08-09T20:29:55+09:00
+    result:
+      failing_clause: background_pixels_identical_to_r19_renders
+      root_cause: legacy_renderer_paints_foreground_rgb_on_1px_silhouette_rim_with_zero_depth
+      t005_masks_byte_identical_to_r19_frozen_masks: true
+      r19_own_renders_rim_pixel_counts_z_plus_iso_plus_canonical_deformed: [89, 82, 86, 85]
+      rim_counts_independently_reproduced_by_t003_review: true
+      design_revision: v4_mask_hash_plus_true_background_dilation_complement_plus_rim_exemption
+      review_verdict: APPROVED_critical_0_important_0_record_only_minors_3
+      t005_rerun_authorized_publish_target: development-preview-v1
+      failed_attempt_preserved_no_clobber: r25-procedural-tissue-microtexture/development-preview-v1-attempt
+    artifact:
+      path: {root: workspace, rel: handoff/2026-08-09_data-improve/R25-DESIGN-REVIEW.md}
+    overwrite_allowed: false
+  - id: C-H010
+    kind: human_gate
+    status: pass
+    title: T-008 repository owner approval for one compressed R25 commit
+    observed_at: 2026-08-10T02:40:24+09:00
+    result:
+      approval_channel: user_message_in_active_claude_code_session
+      approved_as_item_1_of_five_approvals: true
+      commit_scope_frozen:
+        - Deform_post/dpost/c1_r25_procedural_microtexture.py
+        - Deform_post/scripts/run_c1_r25_procedural_microtexture.py
+        - Deform_post/tests/test_c1_r25_procedural_microtexture.py
+        - Deform_post/research/data_improve/2026-08-09-c1-r25-procedural-tissue-microtexture-result.md
+        - Deform_post/graphify-out/GRAPH_REPORT.md
+      branch: codex/dataimprove-c1-r25-procedural-tissue-microtexture
+      necessity_stated_and_accepted: route_record_parity_and_reproducibility_code_change_not_docs_only
+      handoff_docs_excluded_per_owner_no_docs_only_commit_rule: true
+    artifact: null
+    overwrite_allowed: false
+  - id: C-H011
+    kind: route_closure
+    status: pass
+    title: R25 route closed with one compressed commit
+    observed_at: 2026-08-10T02:42:32+09:00
+    result:
+      commit: 9c74cf0
+      branch: codex/dataimprove-c1-r25-procedural-tissue-microtexture
+      author_committer: WENHUIZ_only_no_ai_footer
+      files_committed: 5
+      insertions: 3171
+      terminal: R25_MICROTEXTURE_ELIGIBLE
+      final_result_document: Deform_post/research/data_improve/2026-08-09-c1-r25-procedural-tissue-microtexture-result.md
+      simplify_pass_before_commit: assessed_no_edits_provenance_preserved
+      graphify_report_refreshed_in_commit: true
+      r25_worktree_clean_after_commit: true
+      verification_roster_reconciled: handoff_four_files_preserved_all_r25_artifacts_in_designated_verification_tree_scratch_diagnostics_session_temp_only
+      appearance_dfs_line_frozen_no_r26_planned: true
+    artifact: null
+    overwrite_allowed: false
+
+claim_boundary:
+  supported:
+    - R19_is_a_clean_surface_continuity_base
+    - R23_is_visually_accepted_within_its_frozen_small_scope
+    - R24_selected_sources_are_continuous_but_not_sufficiently_diverse
+    - R25_procedural_microtexture_is_a_reasonable_next_generation_hypothesis
+  unsupported:
+    - appearance_gap_is_reduced
+    - training_metrics_are_improved
+    - generated_textures_are_medically_or_physiologically_realistic
+    - R23_vessel_width_is_a_true_physiological_diameter
+    - R24_sources_cover_the_real_tissue_distribution
+    - DataImprove_contains_CORAL
+    - master_contains_the_R23_or_R24_route

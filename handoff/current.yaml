@@ -1,0 +1,10 @@
+schema_version: medsim-handoff-pointer/v1
+active_id: 2026-08-09_data-improve
+status: active
+entrypoint:
+  root: workspace
+  rel: handoff/2026-08-09_data-improve/HANDOFF.md
+state:
+  root: workspace
+  rel: handoff/2026-08-09_data-improve/STATE.yaml
+updated_at: 2026-08-09T17:07:13+09:00
