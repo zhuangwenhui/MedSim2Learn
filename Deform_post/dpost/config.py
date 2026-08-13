@@ -84,6 +84,90 @@ class SerializeConfig:
 
 
 @dataclasses.dataclass
+class AppearanceConfig:
+    """C1 appearance domain randomization, design v2 (texel-baked texture).
+
+    Disabled by default: OFF keeps the render pipeline byte-identical to the
+    legacy behavior. When enabled, each sequence draws its appearance from
+    numpy SeedSequence([seed, sequence_ordinal]) (see dpost.diversity), the
+    organ is ALWAYS coloured by one per-sequence texture baked from the R25
+    procedural field family on the canonical first frame (the v1 uniform
+    flat-paint mode was deleted at the 2026-08-10 visual gate), and the
+    per-frame photometric post-process chain runs after capture. Every
+    two-element field is a closed uniform draw interval.
+
+    Colour boxes are the empirical support of the real corpus (31 sequences
+    x 10 frames; derivation and full-precision numbers recorded in
+    _c1_scratch/real_color_anchor.json): albedo = bright-region (lum >= q60)
+    per-frame mean p05-p95, background = dark-region (lum <= q35) p05-p95,
+    both rounded to 4 decimals here.
+    """
+
+    enabled: bool = False
+    seed: int = 0
+    # Organ base albedo: real-corpus organ box (anchor JSON organ_bright_*).
+    albedo_r: tuple = (0.8180, 0.8605)
+    albedo_g: tuple = (0.6944, 0.7519)
+    albedo_b: tuple = (0.7423, 0.7866)
+    # R25 field family: equal-probability variant set + amplitude interval
+    # (v2-3: narrowed so colour excursions stay near the empirical support).
+    r25_variants: tuple = ("candidate-1", "candidate-2", "candidate-3")
+    r25_amplitude: tuple = (0.13, 0.18)
+    # Cavity background: real-corpus dark box (anchor JSON cavity_dark_*).
+    background_r: tuple = (0.3943, 0.4581)
+    background_g: tuple = (0.2834, 0.3359)
+    background_b: tuple = (0.3300, 0.3871)
+    # Per-frame numpy post-process chain (applied after capture, before PNG;
+    # v2-4 narrowed ranges, vignette floor kept above zero because real
+    # endoscope frames always carry one).
+    brightness: tuple = (0.92, 1.08)
+    contrast: tuple = (0.92, 1.08)
+    gamma: tuple = (0.90, 1.12)
+    vignette: tuple = (0.10, 0.35)
+    noise_sigma: tuple = (0.0, 0.008)
+    # Texture bake (v2-1): texel resolution, chart gutter dilation, and the
+    # extra texel-scale fine octave appended to every R25 variant ladder.
+    texture_size: int = 1024
+    gutter_px: int = 4
+    fine_octave: float = 0.08
+    # Global per-channel albedo multiplier fixed by the smoke colour gate
+    # (rendered organ-region mean must land in the anchor band); recorded in
+    # provenance. (1, 1, 1) means no calibration.
+    calibration_multiplier: tuple = (1.0, 1.0, 1.0)
+    # v3 vessel layer (design v3, 2026-08-10): the R23 implicit vessel field
+    # composited into the baked texture BEFORE the gutter. Only effective
+    # when `enabled` is True; the OFF path stays byte-identical regardless.
+    vessel_enabled: bool = True
+    # Frozen at the R23-accepted "small" scale: root vessel diameter =
+    # vessel_ratio x canonical surface extent (c1_r23 R23_RATIOS[0]).
+    vessel_ratio: float = 0.012
+    # R23 antialias half-width in millimetres around the vessel boundary
+    # (c1_r23 R23_ANTIALIAS_HALF_WIDTH_MM).
+    vessel_antialias_mm: float = 0.10
+    # Vessel colour box: real-corpus high-redness empirical support
+    # (_c1_scratch/real_vessel_anchor.json: 310 frames, per-frame mean RGB of
+    # the top-3% redness in-FOV pixels, p05-p95), rounded to 4 decimals as
+    # the other anchored boxes are. The tree growth parameters themselves
+    # are NOT knobs: they stay at the frozen R21 module constants and only
+    # the per-sequence tree seed varies the layout.
+    vessel_r: tuple = (0.6615, 0.7977)
+    vessel_g: tuple = (0.4189, 0.5587)
+    vessel_b: tuple = (0.4690, 0.6220)
+    # Path to an R16-schema UV sidecar npz for the canonical topology; empty
+    # generates the parametrization from the sequence's first frame with
+    # xatlas at prime time. {workspace}/{dataflow} placeholders are expanded.
+    uv_sidecar: str = ""
+
+
+@dataclasses.dataclass
+class DiversityConfig:
+    """Track C diversity factors, each config-gated and default OFF."""
+
+    appearance: AppearanceConfig = dataclasses.field(
+        default_factory=AppearanceConfig)
+
+
+@dataclasses.dataclass
 class BatchConfig:
     max_parallel: int = 1
     keep_intermediate: bool = False
@@ -113,6 +197,7 @@ class RecipeConfig:
     sim: SimConfig = dataclasses.field(default_factory=SimConfig)
     serialize: SerializeConfig = dataclasses.field(default_factory=SerializeConfig)
     batch: BatchConfig = dataclasses.field(default_factory=BatchConfig)
+    diversity: DiversityConfig = dataclasses.field(default_factory=DiversityConfig)
 
     def resolved(self, name) -> str:
         """Return a path field with {workspace}/{dataflow} expanded."""
@@ -178,3 +263,66 @@ def _validate(recipe):
         raise ValueError("sim.num_threads must be >= 1 and sim.mkl_threads >= 0")
     if recipe.batch.max_parallel < 1:
         raise ValueError("batch.max_parallel must be >= 1")
+    _validate_appearance(recipe.diversity.appearance)
+
+
+def _check_interval(name, value, lo_min=None, hi_max=None, lo_gt=None):
+    """Require a two-element (lo, hi) interval with lo <= hi inside bounds."""
+    if len(value) != 2:
+        raise ValueError(f"appearance.{name} must be a (lo, hi) pair")
+    lo, hi = float(value[0]), float(value[1])
+    if lo > hi:
+        raise ValueError(f"appearance.{name} needs lo <= hi, got {value}")
+    if lo_min is not None and lo < lo_min:
+        raise ValueError(f"appearance.{name} low bound {lo} below {lo_min}")
+    if hi_max is not None and hi > hi_max:
+        raise ValueError(f"appearance.{name} high bound {hi} above {hi_max}")
+    if lo_gt is not None and lo <= lo_gt:
+        raise ValueError(f"appearance.{name} low bound {lo} must be > {lo_gt}")
+
+
+def _validate_appearance(app):
+    if app.seed < 0:
+        raise ValueError(f"appearance.seed {app.seed} must be >= 0")
+    if not app.r25_variants or not all(
+            isinstance(v, str) and v for v in app.r25_variants):
+        raise ValueError(
+            "appearance.r25_variants must be a nonempty list of variant names")
+    for name in ("albedo_r", "albedo_g", "albedo_b",
+                 "background_r", "background_g", "background_b"):
+        _check_interval(name, getattr(app, name), lo_min=0.0, hi_max=1.0)
+    _check_interval("r25_amplitude", app.r25_amplitude, lo_min=0.0)
+    _check_interval("brightness", app.brightness, lo_gt=0.0)
+    _check_interval("contrast", app.contrast, lo_gt=0.0)
+    _check_interval("gamma", app.gamma, lo_gt=0.0)
+    _check_interval("vignette", app.vignette, lo_min=0.0, hi_max=1.0)
+    _check_interval("noise_sigma", app.noise_sigma, lo_min=0.0)
+    if app.texture_size < 16:
+        raise ValueError(
+            f"appearance.texture_size {app.texture_size} must be >= 16")
+    if app.gutter_px < 0:
+        raise ValueError(
+            f"appearance.gutter_px {app.gutter_px} must be >= 0")
+    if not app.fine_octave > 0.0:
+        raise ValueError(
+            f"appearance.fine_octave {app.fine_octave} must be > 0")
+    if len(app.calibration_multiplier) != 3 or any(
+            not float(m) > 0.0 for m in app.calibration_multiplier):
+        raise ValueError(
+            "appearance.calibration_multiplier must be three positive "
+            f"per-channel factors, got {app.calibration_multiplier!r}")
+    if not isinstance(app.uv_sidecar, str):
+        raise ValueError("appearance.uv_sidecar must be a path string")
+    if not isinstance(app.vessel_enabled, bool):
+        raise ValueError(
+            f"appearance.vessel_enabled must be a bool, got "
+            f"{app.vessel_enabled!r}")
+    if not 0.0 < app.vessel_ratio < 1.0:
+        raise ValueError(
+            f"appearance.vessel_ratio {app.vessel_ratio} outside (0, 1)")
+    if not app.vessel_antialias_mm > 0.0:
+        raise ValueError(
+            f"appearance.vessel_antialias_mm {app.vessel_antialias_mm} "
+            "must be > 0")
+    for name in ("vessel_r", "vessel_g", "vessel_b"):
+        _check_interval(name, getattr(app, name), lo_min=0.0, hi_max=1.0)

@@ -99,6 +99,7 @@ def _build_parser():
 
     # --- render ---------------------------------------------------------
     pr = sub.add_parser("render", help="Deformed PLYs -> PNGs with the fixed camera")
+    add_config(pr)
     pr.add_argument("--ply-dir", required=True)
     pr.add_argument("--camera", required=True)
     pr.add_argument("--out-png-dir", required=True)
@@ -106,6 +107,12 @@ def _build_parser():
     pr.add_argument("--yes", action="store_true",
                     help="Skip the interactive preview confirmation gate "
                          "(unattended batch); the preview PNG is still written")
+    pr.add_argument("--seq-ordinal", type=int, default=None,
+                    help="Sequence ordinal feeding the appearance DR "
+                         "per-sequence seed (required when "
+                         "diversity.appearance.enabled)")
+    pr.add_argument("--appearance-seed", type=int, default=None,
+                    help="Override diversity.appearance.seed from the recipe")
 
     # --- serialize ------------------------------------------------------
     ps = sub.add_parser("serialize",
@@ -296,6 +303,7 @@ def _cmd_simulate(args):
 
 
 def _cmd_render(args):
+    from dpost.diversity import make_painter, write_appearance_provenance
     from dpost.render import (
         interactive_render_confirmation,
         render_fixed_camera_sequence,
@@ -310,12 +318,35 @@ def _cmd_render(args):
         f for f in os.listdir(args.ply_dir) if f.lower().endswith(".ply"))
     if not ply_files:
         raise SystemExit(f"no PLY files in {args.ply_dir}")
-    mid_ply = os.path.join(args.ply_dir, ply_files[len(ply_files) // 2])
+    mid_idx = len(ply_files) // 2
+    mid_ply = os.path.join(args.ply_dir, ply_files[mid_idx])
     run_dir = os.path.dirname(os.path.abspath(args.out_png_dir))
     os.makedirs(run_dir, exist_ok=True)
+
+    # C1 appearance DR: draw once per sequence, record the draw before any
+    # pixel is produced, and prime the R25 colour basis on the sequence's
+    # FIRST frame so the preview shows exactly the batch colours.
+    recipe = _recipe_from(args)
+    app_cfg = recipe.diversity.appearance
+    if args.appearance_seed is not None:
+        app_cfg.seed = args.appearance_seed
+    painter = None
+    if app_cfg.enabled:
+        if args.seq_ordinal is None:
+            raise SystemExit(
+                "diversity.appearance is enabled: pass --seq-ordinal (the "
+                "per-sequence appearance seed component)")
+        painter = make_painter(app_cfg, args.seq_ordinal)
+        painter.prime_from_ply(os.path.join(args.ply_dir, ply_files[0]))
+        meta_path = write_appearance_provenance(run_dir, painter)
+        print(f"appearance: variant={painter.draw.r25_variant} "
+              f"seed={painter.draw.seed} ordinal={args.seq_ordinal} "
+              f"texture={painter.texture_sha256[:16]} -> {meta_path}")
+
     preview_png = os.path.join(run_dir, "render_preview.png")
     std = render_preview_frame(mid_ply, args.camera, preview_png,
-                               size=args.size)
+                               size=args.size, appearance=painter,
+                               appearance_frame_index=mid_idx)
     print(f"preview: {os.path.basename(mid_ply)} (pixel std {std:.4f}) "
           f"-> {preview_png}")
     if not args.yes and interactive_render_confirmation() != "y":
@@ -324,7 +355,8 @@ def _cmd_render(args):
             "re-pick the camera if the view is wrong")
 
     n_ok, n_failed = render_fixed_camera_sequence(
-        args.ply_dir, args.camera, args.out_png_dir, size=args.size)
+        args.ply_dir, args.camera, args.out_png_dir, size=args.size,
+        appearance=painter)
     print(f"render: {n_ok} PNGs -> {args.out_png_dir}"
           + (f" ({n_failed} failed)" if n_failed else ""))
     if n_failed:

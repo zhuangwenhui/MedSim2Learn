@@ -60,6 +60,7 @@ def render_fixed_camera_sequence(
     light_on=True,
     blank_std_tol=BLANK_STD_TOL,
     error_log_dir=None,
+    appearance=None,
 ):
     """Render one PNG per PLY in `ply_dir` with the SINGLE fixed camera.
 
@@ -82,6 +83,18 @@ def render_fixed_camera_sequence(
     failure usually cascades: the clip range is never seeded, so later frames
     render blank and fail too. Raises when no frame succeeds; otherwise
     returns ``(n_ok, n_failed)``.
+
+    `appearance` (an ``dpost.diversity.AppearancePainter``; None keeps the
+    legacy byte-identical behavior) applies the C1 v2 appearance
+    randomization: a drawn cavity background replaces `background`, the
+    painter is primed (UV basis + one baked texture) from the sorted
+    listing's FIRST PLY if the caller has not primed it already, each
+    frame's mesh is rebuilt after ``compute_vertex_normals()`` onto the
+    locked UV with the sequence texture (R16 ``triangle_uvs + textures``
+    path; a vertex-count or topology mismatch raises into the F2
+    isolation), and the per-frame photometric chain runs on the captured
+    buffer after the F1 blank guard, before the PNG write. Both fragile
+    camera invariants above are untouched.
     """
     os.makedirs(out_png_dir, exist_ok=True)
     cam = o3d.io.read_pinhole_camera_parameters(camera_json_path)
@@ -109,6 +122,17 @@ def render_fixed_camera_sequence(
     opt.background_color = np.array(list(background))
     opt.light_on = light_on
     opt.mesh_show_back_face = True
+    if appearance is not None:
+        # C1 appearance DR: drawn cavity background. MeshColorOption.Color
+        # is required for textured meshes too -- the legacy visualizer drops
+        # the texture under MeshColorOption.Default (verified empirically,
+        # _c1_scratch/probe_texture_behavior.py, 2026-08-10).
+        opt.background_color = np.array(list(appearance.background_rgb))
+        opt.mesh_color_option = o3d.visualization.MeshColorOption.Color
+        if not appearance.primed:
+            # The texture bakes from the sequence's canonical FIRST frame;
+            # a prime failure is a sequence-level error, not a frame one.
+            appearance.prime_from_ply(os.path.join(ply_dir, ply_files[0]))
 
     ctr = vis.get_view_control()
     n_ok = 0
@@ -120,6 +144,13 @@ def render_fixed_camera_sequence(
             if not mesh.has_vertices():
                 raise ValueError("empty mesh (unreadable or corrupt PLY)")
             mesh.compute_vertex_normals()
+            if appearance is not None:
+                # Rebuild the frame onto the locked UV with the sequence's
+                # baked texture (R16 triangle_uvs + textures path); a
+                # vertex-count or topology mismatch raises here and the F2
+                # isolation logs the frame instead of writing a
+                # wrongly-textured PNG.
+                mesh = appearance.textured_mesh(mesh)
             # Reset the bounding box ONLY on the first frame: this seeds the
             # visualizer's internal z-near/z-far clip range from a real geometry
             # (without it the offscreen frame is blank). For every later frame
@@ -145,6 +176,11 @@ def render_fixed_camera_sequence(
             buf = np.asarray(vis.capture_screen_float_buffer(do_render=True))
             stem = os.path.splitext(fname)[0]
             _assert_not_blank(buf, stem, blank_std_tol)
+            if appearance is not None:
+                # Per-frame photometric chain, seeded by this frame's index
+                # in the sorted PLY listing (after the F1 blank guard so a
+                # camera regression can never hide behind the post-process).
+                buf = appearance.postprocess(buf, i)
             arr = (np.clip(buf, 0, 1) * 255).astype(np.uint8)
             out_png = os.path.join(out_png_dir, stem + ".png")
             o3d.io.write_image(out_png, o3d.geometry.Image(arr))
@@ -173,6 +209,8 @@ def render_preview_frame(
     background=(1.0, 1.0, 1.0),
     light_on=True,
     blank_std_tol=BLANK_STD_TOL,
+    appearance=None,
+    appearance_frame_index=0,
 ):
     """Render ONE deformed PLY through the fixed camera to a preview PNG (F1).
 
@@ -182,6 +220,14 @@ def render_preview_frame(
     with allow_arbitrary=True). Used by the ``main.py render`` confirm gate to
     show a real mid-sequence deformation before batch rendering. Raises on a
     blank frame instead of writing it; returns the captured pixel std.
+
+    `appearance` mirrors the sequence renderer so the human gate sees the
+    real randomized look; `appearance_frame_index` selects the previewed
+    frame's own post-process draw (its index in the sorted PLY listing).
+    The painter must already be primed (the preview shows a MID-sequence
+    deformation, and the texture may only bake from the sequence's first
+    frame), so an unprimed painter raises instead of baking silently from
+    the wrong geometry.
     """
     cam = o3d.io.read_pinhole_camera_parameters(camera_json_path)
     w = cam.intrinsic.width if size is None else size
@@ -191,6 +237,9 @@ def render_preview_frame(
     if not mesh.has_vertices():
         raise ValueError(f"empty mesh (unreadable or corrupt PLY): {ply_path}")
     mesh.compute_vertex_normals()
+    if appearance is not None:
+        appearance.require_primed()
+        mesh = appearance.textured_mesh(mesh)
 
     # open3d's type stub omits .visualization (it exists at runtime).
     vis = o3d.visualization.Visualizer()  # type: ignore[attr-defined]
@@ -200,6 +249,9 @@ def render_preview_frame(
         opt.background_color = np.array(list(background))
         opt.light_on = light_on
         opt.mesh_show_back_face = True
+        if appearance is not None:
+            opt.background_color = np.array(list(appearance.background_rgb))
+            opt.mesh_color_option = o3d.visualization.MeshColorOption.Color
 
         ctr = vis.get_view_control()
         # The single preview frame is frame 0: reset the bounding box to seed
@@ -217,6 +269,8 @@ def render_preview_frame(
         buf = np.asarray(vis.capture_screen_float_buffer(do_render=True))
         stem = os.path.splitext(os.path.basename(ply_path))[0]
         std = _assert_not_blank(buf, stem, blank_std_tol)
+        if appearance is not None:
+            buf = appearance.postprocess(buf, appearance_frame_index)
         arr = (np.clip(buf, 0, 1) * 255).astype(np.uint8)
         o3d.io.write_image(out_png_path, o3d.geometry.Image(arr))
         vis.remove_geometry(mesh, reset_bounding_box=False)

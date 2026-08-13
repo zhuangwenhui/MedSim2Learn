@@ -60,3 +60,45 @@ serialize:
 batch:
   max_parallel: 1
   keep_intermediate: false
+
+# Track C diversity factors -- every factor is config-gated and OFF by
+# default (OFF keeps the render pipeline byte-identical to the legacy
+# behavior). C1 appearance domain randomization, design v2 (texel-baked
+# texture; the v1 flat/vertex-colour path was rejected at the 2026-08-10
+# visual gate) + v3 (R23 implicit vessel layer composited into the bake):
+# ranges from research/data_improve/2026-08-10-c1-appearance-dr-design.md
+# v2/v3 revisions. Colour boxes are the real-corpus empirical support
+# (_c1_scratch/real_color_anchor.json and real_vessel_anchor.json p05-p95).
+# Per-sequence draws seed from SeedSequence([seed, sequence ordinal]); the
+# R25 field module is dpost/c1_r25_procedural_microtexture.py (extracted by
+# file from commit 9c74cf0), the vessel modules are dpost/c1_r21/23_*.py
+# (extracted by file from commit 9d3011f) and the bake lives in
+# dpost/texture_bake.py.
+diversity:
+  appearance:
+    enabled: false
+    seed: 0
+    albedo_r: [0.8180, 0.8605]  # organ box (anchor organ_bright p05-p95)
+    albedo_g: [0.6944, 0.7519]
+    albedo_b: [0.7423, 0.7866]
+    r25_variants: [candidate-1, candidate-2, candidate-3]
+    r25_amplitude: [0.13, 0.18]
+    background_r: [0.3943, 0.4581]  # cavity box (anchor cavity_dark p05-p95)
+    background_g: [0.2834, 0.3359]
+    background_b: [0.3300, 0.3871]
+    brightness: [0.92, 1.08]    # per-frame numpy post-process chain (v2-4)
+    contrast: [0.92, 1.08]
+    gamma: [0.90, 1.12]
+    vignette: [0.10, 0.35]      # real endoscope frames always carry one
+    noise_sigma: [0.0, 0.008]
+    texture_size: 1024          # texel bake resolution
+    gutter_px: 4                # chart-border dilation against filter bleed
+    fine_octave: 0.08           # appended texel-scale octave wavelength
+    calibration_multiplier: [1.0, 1.0, 1.0]  # smoke colour-gate correction
+    vessel_enabled: true        # v3 vessel layer; effective only when enabled
+    vessel_ratio: 0.012         # frozen R23 "small" root-diameter ratio
+    vessel_antialias_mm: 0.10   # R23 antialias half-width (mm)
+    vessel_r: [0.6615, 0.7977]  # vessel box (real_vessel_anchor p05-p95)
+    vessel_g: [0.4189, 0.5587]
+    vessel_b: [0.4690, 0.6220]
+    uv_sidecar: ""              # R16-schema npz; empty = xatlas at prime

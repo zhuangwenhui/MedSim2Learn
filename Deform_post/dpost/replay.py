@@ -149,6 +149,7 @@ def run_sequence(recipe, seq, out_dir, subsample=None, with_artifacts=True,
     deleted after the artifacts stage. Returns a summary dict.
     """
     from .dataset.serialize import serialize_labels_dataset
+    from .diversity import make_painter, write_appearance_provenance
     from .render import render_fixed_camera_sequence
     from .simrun import run_deformsim_replay
     from . import artifacts as artifacts_mod
@@ -203,8 +204,32 @@ def run_sequence(recipe, seq, out_dir, subsample=None, with_artifacts=True,
         _write_status(out_dir, stage, "running")
         print("=== Stage 3: render ===")
         camera_path = os.path.join(out_dir, "camera.json")
+        painter = None
+        if recipe.diversity.appearance.enabled:
+            # C1 appearance DR: the per-sequence seed component is the
+            # numeric sequence id; the painter primes (UV basis + baked
+            # texture) from the sequence's FIRST deformed frame and the
+            # full draw+texture provenance is recorded into replay_meta.json
+            # (written by prep above) before any pixel is produced.
+            try:
+                ordinal = int(seq)
+            except ValueError:
+                raise ValueError(
+                    "diversity.appearance needs a numeric sequence id for "
+                    f"its per-sequence seed, got {seq!r}") from None
+            painter = make_painter(recipe.diversity.appearance, ordinal)
+            first_ply = sorted(
+                f for f in os.listdir(ply_dir)
+                if f.lower().endswith(".ply"))
+            if not first_ply:
+                raise RuntimeError(f"no PLY files in {ply_dir}")
+            painter.prime_from_ply(os.path.join(ply_dir, first_ply[0]))
+            meta_path = write_appearance_provenance(out_dir, painter)
+            print(f"appearance: variant={painter.draw.r25_variant} "
+                  f"seed={painter.draw.seed} ordinal={ordinal} "
+                  f"texture={painter.texture_sha256[:16]} -> {meta_path}")
         n_png, n_render_failed = render_fixed_camera_sequence(
-            ply_dir, camera_path, png_dir)
+            ply_dir, camera_path, png_dir, appearance=painter)
         print(f"render: {n_png} PNGs -> {png_dir}"
               + (f" ({n_render_failed} failed)" if n_render_failed else ""))
         if n_render_failed:
