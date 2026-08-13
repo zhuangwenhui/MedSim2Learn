@@ -31,6 +31,7 @@ This `AGENTS.md` file provides instructions for OpenAI Codex and other AI agents
 - **Signature (absolute):** every commit's author and committer is ONLY `WENHUIZ <84453228+zhuangwenhui@users.noreply.github.com>`. No `Co-Authored-By`, no "Generated with Claude Code", no AI/tool footer. Messages are human-style Conventional Commits, not AI-prompt prose or a spec/plan changelog.
 - **Cadence:** let small / incremental changes accumulate and wait for the user's commit decision (their office hours). Auto-commit to the current branch is authorized only for overnight, handed-off exploratory tasks, so the working branch does not race far ahead of master.
 - **Racing approaches:** see Branch Management below — race each rival approach in its own worktree and merge only the winner.
+- **Gap-reduction victory gate (owner ruling, 2026-08-10):** on the data-improvement line, technical-verification work may enter master or be pushed to origin ONLY after it demonstrates a verified data-side gap reduction on the task metric (gap-closed % under the frozen c2-baseline / c1-ceiling protocol). Until then all such branches remain local; proxy metrics (feature separability, visual acceptance) do not count as victory.
 
 ---
 
