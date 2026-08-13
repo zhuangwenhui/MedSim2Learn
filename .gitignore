@@ -137,3 +137,10 @@ Testing/
 /KiDKNet/outputs/
 
 docs/
+
+# Local experiment scratch and product dirs (data never enters git)
+_c1_scratch/
+_c1_fleet/
+_c3_scratch/
+_c3_fleet/
+_f123_scratch/
