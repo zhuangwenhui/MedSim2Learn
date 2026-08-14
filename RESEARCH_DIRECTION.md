@@ -205,3 +205,20 @@ recipe, not the data gap.
 Immediate next code action (on user go): a minimal `render.py` domain-randomization
 pass (random lighting + background + procedural material/vertex-color + vignette),
 gated behind a config flag, then a gap-shrink check via the existing scripts.
+
+## Route status ledger (2026-08-14 append)
+
+Frozen protocol: c2 baseline 1.3572 / c1 ceiling 0.2316, gap-closed %, 5-fold
+paired CV, synthetic-only model selection, real test with sensor Newtons.
+
+| Route | Verdict | Evidence |
+|---|---|---|
+| DR-C1 appearance randomization | **有效 +39.6%** (master canonical recipe) | DR-C2 manifest + fold3 seedcheck |
+| C1+C3 combined (+contact diversity) | **有效 +60.6%**, 5/5 (branch `c1c3-combined`) | C1C3 manifest; C3 marginal alone: 不可判定 |
+| FDA spectral alignment (direction 1) | **淘汰 (2026-08-14)**: isolation −39.1% (0/5, harmful); stacking 57.9% < 60.6% (undecidable, negative point estimate) | `Deform_post/research/data_improve/2026-08-13-fda-*.md`; evidence tar `D:/MedSim2Learn-archive/fda-20260814-evidence.tar.gz`; code archived on local branch `codex/dataimprove-fda` |
+
+FDA lesson: the gap does not live in low-frequency amplitude statistics; DC/
+brightness transplantation destroys real brightness-force cues and per-frame
+reference draws add appearance flicker. Learned, texture-capable translation
+(this document's Tier-1 CUT anticipation) is the next probe — direction 2 of
+the three-direction ruling, design manifest `2026-08-14-cut-design-manifest.md`.
