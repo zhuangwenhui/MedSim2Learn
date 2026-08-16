@@ -222,3 +222,18 @@ brightness transplantation destroys real brightness-force cues and per-frame
 reference draws add appearance flicker. Learned, texture-capable translation
 (this document's Tier-1 CUT anticipation) is the next probe — direction 2 of
 the three-direction ruling, design manifest `2026-08-14-cut-design-manifest.md`.
+
+## Route status ledger (2026-08-16 append)
+
+| Route | Verdict | Evidence |
+|---|---|---|
+| CUT unpaired translation (direction 2, image-space) | **淘汰 (2026-08-15)**: structure hallucination + scene-grammar memorization (seq15 cross-sequence probe); owner ruled all image-space frame-authoring routes out -- learned components may author TEXTURES only | `2026-08-14-cut-design-manifest.md` section 5; evidence tar `D:/MedSim2Learn-archive/cut-20260815-evidence.tar.gz` |
+| T-B-G textured mesh route (base-colour canvas + generated vessels, UV onto mesh, classical render) | **有效 +56.7%**, 5/5 folds (p=1/32) -- strongest single isolation effect; victory gate passed, merged to master (`15b7a60`) | `2026-08-15-tb-pilot-receipt-and-design.md` sections 4b-4e; pool/renders archived under `D:/MedSim2Learn-archive/tbg-*`; server `datasets/mixed_tex_v1` |
+| DINOv2 sentinel fold (pre-registered representation probe) | Frozen vitb14 + 3-layer head, fold0 magnitude MAE 0.8846 vs full ConvNeXt 0.8653 on the same data/fold (gap 0.019) -- representation axis carries most of the task signal | server `outputs/sentinel_dinov2_tex_fold0/sentinel_report.json` (features + predictions cached) |
+
+Texture lesson: the sim-real gap on this line is dominated by surface
+appearance statistics that a REAL-base-colour canvas plus prompt-guided matte
+vessel painting can supply; glare-contaminated fine-tunes (LoRA on wet-specular
+crops) paint lighting into material and are unusable for albedo-style texture
+authoring. Stacking round A (texture x C1 render-time lighting jitter) unlocked
+by the >=10% economy rule and owner-ordered 2026-08-16.

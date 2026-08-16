@@ -13,9 +13,9 @@ real_visual_force_dataset:
   access: read-only
 
 real_origin_data:
-  path: "D:/Data Processpor/Origin_data"
+  path: "D:/Data Processor/Origin_data"
   role: >-
-    Purified real corpus (Data Processpor pipeline): visual_data/NN.mp4 +
+    Purified real corpus (Data Processor pipeline): visual_data/NN.mp4 +
     force_data/NN.csv for 32 sequences, frame i <-> force row i (alignment
     pre-validated). The image source for the KiDKNet REAL datasets (real_full ->
     real_merged). NOTE: 04.mp4 is BLACK at source (corrupt) -> seq04 is excluded
@@ -35,3 +35,56 @@ toolchain:
 python_env:
   path: "C:/Users/space/anaconda3/envs/MedLearning/python.exe"
   role: "open3d 0.19 / numpy / torch / pandas - Deform_post + KiDKNet runtime"
+
+server_tool_envs:
+  path: "/workspace/project/tools/venvs"
+  role: >-
+    Isolated per-toolchain python venvs on the MOUNTED volume (survives
+    container rebuilds, visible in wenhui's directory tree). Convention
+    (owner ruling 2026-08-15): the training venv /opt/venv is FROZEN --
+    nothing gets installed into it; every auxiliary toolchain gets its own
+    venv here with a pip-freeze snapshot beside it (<name>.freeze.txt).
+    Current: venvs/tex (torch 2.5.1+cu121, kaolin 0.18.0, diffusers 0.39,
+    T-B texture painting stack).
+  access: tool runtime only
+
+hf_weights_cache:
+  path: "/workspace/project/tools/hf_cache"
+  role: >-
+    HF_HOME cache for diffusion weights. Provenance ledger under the
+    owner's official-publisher rule (2026-08-15):
+    lllyasviel/control_v11f1p_sd15_depth = original author org, KEEP;
+    CompVis/stable-diffusion-v1-4 = ORIGINAL publisher of the SD-1.x
+    line (verified HTTP 200) -- designated main-chain base, replacing the
+    community sd-v1-5 mirror; stable-diffusion-v1-5 mirror = retained in
+    cache only as an A/B exhibit for the "community clearly better"
+    exception clause, not a production source;
+    stabilityai/stable-diffusion-2-depth = hard-walled (HTTP 401 on both
+    API and page; owner-side check 2026-08-15: official page/API 404 even
+    logged in -- official SD2 line confirmed unavailable, closed);
+    sd2-community/stable-diffusion-2-depth = community re-upload,
+    structure verified complete (diffusers layout + 512-depth-ema
+    originals) but low adoption and no bit-level identity check possible
+    -- NOT integrated (off the critical path), revisit only if a
+    TEXTure-reference comparison is commissioned;
+    openai/clip-vit-base-patch32 = original publisher, corpus-curation
+    tooling only. Torch-hub cache (container layer, auto re-downloads):
+    facebookresearch/dinov2 dinov2_vitb14 = original publisher (curation
+    ranking + DINO gate metric + representation probe); torchvision
+    convnext_large = original distribution (representation probe).
+    No other weight sources without a ledger entry here.
+  access: read-only cache
+
+cut_official:
+  path: "/workspace/project/tools/contrastive-unpaired-translation"
+  commit: "b3ac297708dfb6f7589d04662277e53c0d579c27"
+  role: >-
+    Official CUT (Park et al., ECCV 2020) implementation, cloned on the
+    training server OUTSIDE the repo (container path; host equivalent
+    /data/wenhui/MedSim2Learn/tools/...). Direction-2 unpaired sim->real
+    translation per Deform_post/research/data_improve/
+    2026-08-14-cut-design-manifest.md. Runtime deps dominate/packaging/GPUtil
+    installed in the container venv; visdom NOT installed (build-broken with
+    modern setuptools) -- always run with --display_id 0, under which the
+    code never imports it.
+  access: read-only (upstream code; training writes checkpoints elsewhere)
