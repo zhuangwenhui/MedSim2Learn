@@ -180,10 +180,10 @@ class RecipeConfig:
     # External read-only corpus; canonical path lives in
     # data_sources.yaml[real_visual_force_dataset].path -- keep the two in sync.
     real_data_root: str = "D:/Image2Force Data/Real Visual-force Paired Data"
-    # Purified real corpus (Data Processpor pipeline): visual_data/NN.mp4 +
+    # Purified real corpus (Data Processor pipeline): visual_data/NN.mp4 +
     # force_data/NN.csv, frame i <-> force row i (alignment pre-validated).
     # Canonical path: data_sources.yaml[real_origin_data].path -- keep in sync.
-    real_origin_root: str = "D:/Data Processpor/Origin_data"
+    real_origin_root: str = "D:/Data Processor/Origin_data"
     mesh: str = "{dataflow}/ShapeReconstruction/meshes/kidney_anat.ply"
     annotation: str = "{dataflow}/Deform_post/inputs/annotations/kidney_anat_contact_k1.json"
     out_root: str = "{dataflow}/Deform_post/primary/twin_full"

@@ -1,7 +1,7 @@
 """Real laparoscopic video -> image-force .pt dataset (synt-compatible contract).
 
 Source: the purified corpus under ``<real_origin_root>/{visual_data/NN.mp4,
-force_data/NN.csv}`` produced by the Data Processpor pipeline (step1 copy +
+force_data/NN.csv}`` produced by the Data Processor pipeline (step1 copy +
 step2 alignment check). Frame ``i`` of ``NN.mp4`` pairs 1:1 with row ``i`` of
 ``NN.csv`` (fx,fy,fz raw sensor Newtons); the alignment ``frame_count ==
 force_rows`` is assumed pre-validated (a mismatch truncates to the shorter

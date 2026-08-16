@@ -13,7 +13,7 @@ maps onto one dpost module:
              -> artifacts -> cleanup), config-driven
   batch      many sequences via `run` subprocesses, throttled, with batch_log.csv
   assemble   per-sequence .pt outputs -> merged KiDKNet data_dir + splits
-  realbuild  real videos (Data Processpor) -> image-force .pt per sequence
+  realbuild  real videos (Data Processor) -> image-force .pt per sequence
   selftest   run every module's self-test
 
 Defaults come from configs/kidney_twin.yaml (override with --config); explicit
@@ -200,7 +200,7 @@ def _build_parser():
     # --- realbuild ------------------------------------------------------
     prb = sub.add_parser(
         "realbuild",
-        help="Real videos (Data Processpor Origin_data) -> image-force .pt per seq")
+        help="Real videos (Data Processor Origin_data) -> image-force .pt per seq")
     add_config(prb)
     prb.add_argument("--seqs", default="01..32",
                      help="Comma list and/or inclusive ranges, e.g. '01..32'")
